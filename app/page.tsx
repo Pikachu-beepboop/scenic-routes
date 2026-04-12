@@ -30,12 +30,15 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       {/* Навигация (как в Wix) */}
-      <nav className="flex justify-between items-center px-12 py-8 border-b border-gray-100">
-        <div className="text-2xl font-black tracking-tighter">EXPLR.</div>
+      <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
+        <div className="text-2xl font-black tracking-tighter">
+          Scenic <br /> <span className="text-black">Routes</span>
+        </div>
         <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
           <a href="#" className="text-black">Маршруты</a>
           <a href="#" className="hover:text-black transition">О нас</a>
           <a href="#" className="hover:text-black transition">Контакты</a>
+          <a href="#" className="hover:text-black transition">Обезьянка</a>
         </div>
         <button className="bg-black text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition">
           Войти
@@ -45,7 +48,7 @@ export default function Home() {
       {/* Hero-секция (Главный баннер) */}
       <section className="px-12 py- text-center border-b border-gray-100">
         <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter mb-8 uppercase">
-          World <br /> <span className="text-gray-200">Beyond</span>
+          Scenic <br /> <span className="text-black">Routes</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
           Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск и веселья.
