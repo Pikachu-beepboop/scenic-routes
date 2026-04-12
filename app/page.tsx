@@ -87,7 +87,7 @@ export default function Home() {
 
       {/* Футер */}
       <footer className="p-12 text-center text-gray-300 text-xs font-bold uppercase tracking-[0.2em]">
-        © 2024 SCENIC ROUTES PROJECT — MADE WITH NEXT.JS & SUPABASE
+    
       </footer>
     </main>
   );
