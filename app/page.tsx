@@ -48,7 +48,7 @@ export default function Home() {
           World <br /> <span className="text-gray-200">Beyond</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
-          Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск.
+          Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск и веселья.
         </p>
       </section>
 
