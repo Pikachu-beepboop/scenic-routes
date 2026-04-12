@@ -1,65 +1,94 @@
-import Image from "next/image"
-
 export default function Home() {
+  // Данные пока просто в коде (без базы), чтобы вы видели визуал
+  const mockRoutes = [
+    {
+      id: 1,
+      title: "Ледяные пещеры Ватнайёкюдль",
+      country: "Исландия",
+      price: "1,200",
+      image: "https://unsplash.com",
+      tag: "Экстрим"
+    },
+    {
+      id: 2,
+      title: "Доломитовые Альпы: Треккинг",
+      country: "Италия",
+      price: "950",
+      image: "https://unsplash.com",
+      tag: "Горы"
+    },
+    {
+      id: 3,
+      title: "Сафари в парке Серенгети",
+      country: "Танзания",
+      price: "2,100",
+      image: "https://unsplash.com",
+      tag: "Природа"
+    }
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-white">
+      {/* Навигация (как в Wix) */}
+      <nav className="flex justify-between items-center px-12 py-8 border-b border-gray-100">
+        <div className="text-2xl font-black tracking-tighter">EXPLR.</div>
+        <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
+          <a href="#" className="text-black">Маршруты</a>
+          <a href="#" className="hover:text-black transition">О нас</a>
+          <a href="#" className="hover:text-black transition">Контакты</a>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <button className="bg-black text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition">
+          Войти
+        </button>
+      </nav>
+
+      {/* Hero-секция (Главный баннер) */}
+      <section className="px-12 py- text-center border-b border-gray-100">
+        <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter mb-8 uppercase">
+          World <br /> <span className="text-gray-200">Beyond</span>
+        </h1>
+        <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
+          Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск.
+        </p>
+      </section>
+
+      {/* Сетка маршрутов */}
+      <section className="p-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
+          {mockRoutes.map((route) => (
+            <div key={route.id} className="group relative aspect-[3/4] overflow-hidden bg-gray-100 border border-gray-200">
+              <img 
+                src={route.image} 
+                alt={route.title}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              {/* Контент поверх картинки */}
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors p-8 flex flex-col justify-between text-white">
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold uppercase tracking-widest bg-white/20 backdrop-blur-md px-3 py-1 rounded">
+                    {route.tag}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-widest">{route.country}</span>
+                </div>
+                <div>
+                  <h3 className="text-3xl font-bold mb-2 leading-tight">{route.title}</h3>
+                  <div className="flex justify-between items-center border-t border-white/30 pt-4 mt-4 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0 duration-500">
+                    <span className="text-xl font-bold">${route.price}</span>
+                    <button className="text-sm font-bold uppercase tracking-widest underline decoration-2 underline-offset-4">
+                      Подробнее
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Футер */}
+      <footer className="p-12 text-center text-gray-300 text-xs font-bold uppercase tracking-[0.2em]">
+        © 2024 SCENIC ROUTES PROJECT — MADE WITH NEXT.JS & SUPABASE
+      </footer>
+    </main>
   );
 }
