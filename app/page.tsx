@@ -46,13 +46,36 @@ export default function Home() {
       </nav>
 
       {/* Hero-секция (Главный баннер) */}
-      <section className="relative px-12 pt-59 pb-96 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
+      <section className="relative px-12 pt-59 pb-35 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
         <h1 className="text-[120px] font-black leading-[0.75] uppercase text-white opacity-92 tracking-tighter mb-8 uppercase">
           Scenic <br /> <span className="text-white">Routes</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
           Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск и веселья.
         </p>
+        {/* Контейнер для меню и кнопки */}
+        <div className="relative z-20 mt-25 flex flex-row items-center justify-center gap-20 bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 max-w-4xl mx-auto">
+  
+        {/* Первый Dropdown */}
+          <select className="w-65 bg-transparent text-white border-b border-white/30 px-4 py-2 outline-none cursor-pointer hover:border-white transition">
+          <option className="text-black" value="">Выберите направление</option>
+          <option className="text-black" value="mountains">Горы</option>
+         <option className="text-black" value="forest">Лес</option>
+         </select>
+
+        {/* Второй Dropdown */}
+          <select className="w-65 bg-transparent text-white border-b border-white/30 px-4 py-2 outline-none cursor-pointer hover:border-white transition">
+          <option className="text-black" value="">Выберите дату</option>
+         <option className="text-black" value="june">Июнь</option>
+          <option className="text-black" value="july">Июль</option>
+         </select>
+
+        {/* Кнопка поиска */}
+          <button className="w-65 bg-white text-black px-8 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-gray-200 transition">
+           Найти маршрут
+             </button>
+          </div>
+
       </section>
 
       {/* Сетка маршрутов */}
