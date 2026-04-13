@@ -46,9 +46,9 @@ export default function Home() {
       </nav>
 
       {/* Hero-секция (Главный баннер) */}
-      <section className="px-12 py-45 text-center border-b border-gray-100">
-        <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter mb-8 uppercase">
-          Scenic <br /> <span className="text-black">Routes</span>
+      <section className="px-12 py-75 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
+        <h1 className="text-[120px] text-white font-black leading-[0.8] tracking-tighter mb-8 uppercase">
+          Scenic <br /> <span className="text-white">Routes</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
           Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск и веселья.
