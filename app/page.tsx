@@ -1,5 +1,11 @@
+"use client";
+
+import { useState } from "react";
+
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState("Выберите направление");
   const mockRoutes = [
     {
       id: 1,
@@ -57,12 +63,37 @@ export default function Home() {
         {/* Контейнер для меню и кнопки */}
         <div className="relative z-20 mt-25 flex flex-row items-center justify-center gap-20 bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 max-w-4xl mx-auto">
   
-        {/* Первый Dropdown */}
-          <select className="w-65 bg-transparent text-white px-4 py-2 outline-none cursor-pointer hover:border-white transition">
-          <option className="text-black" value="">Выберите направление</option>
-          <option className="text-black" value="mountains">Горы</option>
-         <option className="text-black" value="forest">Лес</option>
-         </select>
+        {/* Кастомный Dropdown */}
+        
+          <div className="relative w-64">
+           {/* Кнопка (верхняя часть) */}
+           <div 
+           onClick={() => setIsOpen(!isOpen)}
+             className={`cursor-pointer px-4 py-3 text-white transition flex justify-between items-center
+            ${isOpen ? "bg-white/10 rounded-t-2xl" : "bg-transparent rounded-none"}`}
+             >
+             {selected}
+            <span className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>▼</span>
+           </div>
+
+        {/* Выпадающий список (нижняя часть) */}
+          {isOpen && (
+           <div className="absolute top-full left-0 w-full z-50 bg-white/10 backdrop-blur-xl border border-white/20 rounded-b-2xl shadow-2xl overflow-hidden">
+            <div 
+             className="px-4 py-3 text-white hover:bg-white/20 cursor-pointer"
+              onClick={() => { setSelected("Горы"); setIsOpen(false); }}
+             >
+             Горы
+            </div>
+           <div 
+              className="px-4 py-3 text-white hover:bg-white/20 cursor-pointer"
+              onClick={() => { setSelected("Лес"); setIsOpen(false); }}
+            >
+            Лес
+          </div>
+         </div>
+           )}
+        </div>
 
         {/* Второй Dropdown */}
           <select className="w-65 bg-transparent text-white px-4 py-2 outline-none cursor-pointer hover:border-white transition">
