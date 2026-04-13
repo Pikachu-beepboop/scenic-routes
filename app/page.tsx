@@ -61,39 +61,44 @@ export default function Home() {
         </p>
 
         {/* Контейнер для меню и кнопки */}
-        <div className="relative z-20 mt-25 flex flex-row items-center justify-center gap-20 bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 max-w-4xl mx-auto">
+        <div className="relative z-20 mt-25 flex flex-row items-center justify-center gap-20 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/20 max-w-4xl mx-auto">
   
         {/* Кастомный Dropdown */}
         
-          <div className="relative w-64">
-           {/* Кнопка (верхняя часть) */}
-           <div 
-           onClick={() => setIsOpen(!isOpen)}
-             className={`cursor-pointer px-4 py-3 text-white transition flex justify-between items-center
-            ${isOpen ? "bg-white/10 rounded-t-2xl" : "bg-transparent rounded-none"}`}
-             >
-             {selected}
-            <span className={`transition-transform ${isOpen ? "rotate-180" : ""}`}>▼</span>
-           </div>
-
-        {/* Выпадающий список (нижняя часть) */}
-          {isOpen && (
-           <div className="absolute top-full left-0 w-full z-50 bg-white/10 backdrop-blur-xl border border-white/20 rounded-b-2xl shadow-2xl overflow-hidden">
-            <div 
-             className="px-4 py-3 text-white hover:bg-white/20 cursor-pointer"
-              onClick={() => { setSelected("Горы"); setIsOpen(false); }}
-             >
-             Горы
-            </div>
-           <div 
-              className="px-4 py-3 text-white hover:bg-white/20 cursor-pointer"
-              onClick={() => { setSelected("Лес"); setIsOpen(false); }}
+          <div className="relative w-64 z-50"> 
+            {/* Кнопка (верхняя часть) */}
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className={`cursor-pointer px-4 py-3 text-white transition-all flex justify-between items-center z-50 relative
+                ${isOpen 
+                  ? "bg-[#0a241a] rounded-t-2xl border-t border-l border-r border-white/20" 
+                  : "bg-white/10 hover:bg-white/20 rounded-2xl border border-white/10"
+                  }`}
             >
-            Лес
+          <span className="font-medium">{selected}</span>
+          <span className={`transition-transform duration-300 text-xs ${isOpen ? "rotate-180" : ""}`}>
+          ▲
+        </span>
+      </div>
+
+            {/* Выпадающий список (нижняя часть) */}
+              {isOpen && (
+                 <div className="absolute top-[100%] left-0 w-full z-40 bg-[#0a241a] backdrop-blur-3xl border-b border-l border-r border-white/20 rounded-b-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden">
+               <div
+               className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
+                onClick={() => { setSelected("Горы"); setIsOpen(false); }}
+               >
+                Горы
+             </div>
+                 <div
+                  className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
+                   onClick={() => { setSelected("Лес"); setIsOpen(false); }}
+                   >
+                    Лес
+                </div>
+              </div>
+              )}
           </div>
-         </div>
-           )}
-        </div>
 
         {/* Второй Dropdown */}
           <select className="w-65 bg-transparent text-white px-4 py-2 outline-none cursor-pointer hover:border-white transition">
