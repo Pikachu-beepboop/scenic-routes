@@ -46,8 +46,8 @@ export default function Home() {
       </nav>
 
       {/* Hero-секция (Главный баннер) */}
-      <section className="px-12 py-75 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
-        <h1 className="text-[120px] text-white font-black leading-[0.8] tracking-tighter mb-8 uppercase">
+      <section className="relative px-12 pt-59 pb-96 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
+        <h1 className="text-[120px] font-black leading-[0.75] uppercase text-white opacity-92 tracking-tighter mb-8 uppercase">
           Scenic <br /> <span className="text-white">Routes</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
