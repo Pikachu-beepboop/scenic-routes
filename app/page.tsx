@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
 
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
@@ -8,6 +9,21 @@ export default function Home() {
   const [isOpenDate, setIsOpenDate] = useState(false);
   const [selected, setSelected] = useState("Выберите направление");
   const [selectedDate, setSelectedDate] = useState("Выберите дату");
+    useEffect(() => {
+  const handleClickOutside = (event) => {
+    // Если клик был НЕ по выпадающему меню, закрываем их
+    if (!event.target.closest('.custom-dropdown')) {
+      setIsOpen(false);
+      setIsOpenDate(false); // если у тебя есть второй дропдаун
+       }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+       return () => {
+     document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
+  
   const mockRoutes = [
     {
       id: 1,
@@ -67,7 +83,7 @@ export default function Home() {
   
         {/* Кастомный Dropdown */}
         
-          <div className="relative w-64 z-50"> 
+          <div className="relative w-64 z-50 custom-dropdown"> 
             {/* Кнопка (верхняя часть) */}
             <div
                 onClick={() => setIsOpen(!isOpen)}
@@ -104,7 +120,7 @@ export default function Home() {
 
        {/* Кастомный Dropdown 2 */}
         
-          <div className="relative w-64 z-50"> 
+          <div className="relative w-64 z-50 custom-dropdown"> 
             {/* Кнопка (верхняя часть) */}
             <div
                 onClick={() => setIsOpenDate(!isOpenDate)}
