@@ -31,8 +31,8 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       {/* Навигация (как в Wix) */}
       <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
-        <div className="text-2xl font-black tracking-tighter">
-          Scenic <br /> <span className="text-black">Routes</span>
+        <div className="text-2xl font-black leading-[0.8] tracking-tighter">
+          Scenic <br /> <span className="text-black ml-4">Routes</span>
         </div>
         <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
           <a href="#" className="text-black">Маршруты</a>
@@ -46,7 +46,7 @@ export default function Home() {
       </nav>
 
       {/* Hero-секция (Главный баннер) */}
-      <section className="px-12 py- text-center border-b border-gray-100">
+      <section className="px-12 py-45 text-center border-b border-gray-100">
         <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter mb-8 uppercase">
           Scenic <br /> <span className="text-black">Routes</span>
         </h1>
