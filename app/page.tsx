@@ -5,7 +5,9 @@ import { useState } from "react";
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
   const [isOpen, setIsOpen] = useState(false);
+  const [isOpenDate, setIsOpenDate] = useState(false);
   const [selected, setSelected] = useState("Выберите направление");
+  const [selectedDate, setSelectedDate] = useState("Выберите дату");
   const mockRoutes = [
     {
       id: 1,
@@ -100,12 +102,42 @@ export default function Home() {
               )}
           </div>
 
-        {/* Второй Dropdown */}
-          <select className="w-65 bg-transparent text-white px-4 py-2 outline-none cursor-pointer hover:border-white transition">
-          <option className="text-black" value="">Выберите дату</option>
-         <option className="text-black" value="june">Июнь</option>
-          <option className="text-black" value="july">Июль</option>
-         </select>
+       {/* Кастомный Dropdown 2 */}
+        
+          <div className="relative w-64 z-50"> 
+            {/* Кнопка (верхняя часть) */}
+            <div
+                onClick={() => setIsOpenDate(!isOpenDate)}
+                className={`cursor-pointer px-4 py-3 text-white transition-all flex justify-between items-center z-50 relative
+                ${isOpenDate 
+                  ? "bg-[#0a241a] rounded-t-2xl border-t border-l border-r border-white/20" 
+                  : "bg-white/10 hover:bg-white/20 rounded-2xl border border-white/10"
+                  }`}
+            >
+          <span className="font-medium">{selectedDate}</span>
+          <span className={`transition-transform duration-300 text-xs ${isOpenDate ? "rotate-180" : ""}`}>
+          ▲
+        </span>
+      </div>
+
+            {/* Выпадающий список (нижняя часть) */}
+              {isOpenDate && (
+                 <div className="absolute top-[100%] left-0 w-full z-40 bg-[#0a241a] backdrop-blur-3xl border-b border-l border-r border-white/20 rounded-b-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden">
+               <div
+               className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
+                onClick={() => { setSelectedDate("Июнь"); setIsOpenDate(false); }}
+               >
+                Июнь
+             </div>
+                 <div
+                  className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
+                   onClick={() => { setSelectedDate("Июль"); setIsOpenDate(false); }}
+                   >
+                    Июль
+                </div>
+              </div>
+              )}
+          </div>
 
         {/* Кнопка поиска */}
           <button className="w-65 bg-white text-black px-8 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-gray-200 transition">
