@@ -61,7 +61,7 @@ export default function Home() {
           Scenic <br /> <span className="text-black ml-4">Routes</span>
         </div>
         <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
-          <a href="#" className="text-black">Маршруты</a>
+          <a href="#" className="hover:text-black transition">Маршруты</a>
           <a href="#" className="hover:text-black transition">О нас</a>
           <a href="#" className="hover:text-black transition">Контакты</a>
           <a href="#" className="hover:text-black transition">Обезьянка</a>
