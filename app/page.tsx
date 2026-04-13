@@ -53,18 +53,19 @@ export default function Home() {
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
           Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск и веселья.
         </p>
+
         {/* Контейнер для меню и кнопки */}
         <div className="relative z-20 mt-25 flex flex-row items-center justify-center gap-20 bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 max-w-4xl mx-auto">
   
         {/* Первый Dropdown */}
-          <select className="w-65 bg-transparent text-white border-b border-white/30 px-4 py-2 outline-none cursor-pointer hover:border-white transition">
+          <select className="w-65 bg-transparent text-white px-4 py-2 outline-none cursor-pointer hover:border-white transition">
           <option className="text-black" value="">Выберите направление</option>
           <option className="text-black" value="mountains">Горы</option>
          <option className="text-black" value="forest">Лес</option>
          </select>
 
         {/* Второй Dropdown */}
-          <select className="w-65 bg-transparent text-white border-b border-white/30 px-4 py-2 outline-none cursor-pointer hover:border-white transition">
+          <select className="w-65 bg-transparent text-white px-4 py-2 outline-none cursor-pointer hover:border-white transition">
           <option className="text-black" value="">Выберите дату</option>
          <option className="text-black" value="june">Июнь</option>
           <option className="text-black" value="july">Июль</option>
