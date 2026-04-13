@@ -10,19 +10,21 @@ export default function Home() {
   const [selected, setSelected] = useState("Выберите направление");
   const [selectedDate, setSelectedDate] = useState("Выберите дату");
     useEffect(() => {
-  const handleClickOutside = (event) => {
-    // Если клик был НЕ по выпадающему меню, закрываем их
-    if (!event.target.closest('.custom-dropdown')) {
+  const handleClickOutside = (event: Event) => {
+    // Cast event.target to Element to access closest()
+    const target = event.target as Element;
+    
+    if (!target.closest('.custom-dropdown')) {
       setIsOpen(false);
-      setIsOpenDate(false); // если у тебя есть второй дропдаун
-       }
-      };
+      setIsOpenDate(false);
+    }
+  };
 
-      document.addEventListener("mousedown", handleClickOutside);
-       return () => {
-     document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }, []);
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
   
   const mockRoutes = [
     {
