@@ -91,7 +91,7 @@ export default function Home() {
     <div
       onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
       className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
-      ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
+      ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/85 rounded-2xl"}`}
     >
       <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Направление</span>
       <div className="flex justify-between items-center">
