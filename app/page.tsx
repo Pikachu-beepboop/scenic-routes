@@ -80,92 +80,64 @@ export default function Home() {
   Scenic <br /> Routes
 </h1>
         <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
-          Мы создаем невероятные маршруты для тех, кто ищет больше, чем просто отпуск и веселья.
+          Explore breathtaking driving routes through mountains, coastlines and nature landscapes around the world.
         </p>
-
-        {/* Контейнер для меню и кнопки */}
-        <div className="relative z-20 mt-25 flex flex-row items-center justify-center gap-20 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/20 max-w-4xl mx-auto">
   
-        {/* Кастомный Dropdown */}
-        
-          <div className="relative w-64 z-50 custom-dropdown"> 
-            {/* Кнопка (верхняя часть) */}
-            <div
-                onClick={() => setIsOpen(!isOpen)}
-                className={`cursor-pointer px-4 py-3 text-white transition-all flex justify-between items-center z-50 relative
-                ${isOpen 
-                  ? "bg-[#0a241a] rounded-t-2xl border-t border-l border-r border-white/20" 
-                  : "bg-white/10 hover:bg-white/20 rounded-2xl border border-white/10"
-                  }`}
-            >
-          <span className="font-medium">{selected}</span>
-          <span className={`transition-transform duration-300 text-xs ${isOpen ? "rotate-180" : ""}`}>
-          ▲
-        </span>
+       {/* Общий контейнер поиска */}
+<div className="mt-15 flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto">
+  
+  {/* Первый Dropdown (Направление) */}
+  <div className="relative w-80 custom-dropdown group"> 
+    <div
+      onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
+      className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
+      ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
+    >
+      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Направление</span>
+      <div className="flex justify-between items-center">
+        <span className="font-medium">{selected}</span>
+        <span className={`transition-transform duration-300 text-[10px] ${isOpen ? "rotate-180" : ""}`}>▼</span>
       </div>
+    </div>
 
-            {/* Выпадающий список (нижняя часть) */}
-              {isOpen && (
-                 <div className="absolute top-[100%] left-0 w-full z-40 bg-[#0a241a] backdrop-blur-3xl border-b border-l border-r border-white/20 rounded-b-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden">
-               <div
-               className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
-                onClick={() => { setSelected("Горы"); setIsOpen(false); }}
-               >
-                Горы
-             </div>
-                 <div
-                  className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
-                   onClick={() => { setSelected("Лес"); setIsOpen(false); }}
-                   >
-                    Лес
-                </div>
-              </div>
-              )}
-          </div>
-
-       {/* Кастомный Dropdown 2 */}
-        
-          <div className="relative w-64 z-50 custom-dropdown"> 
-            {/* Кнопка (верхняя часть) */}
-            <div
-                onClick={() => setIsOpenDate(!isOpenDate)}
-                className={`cursor-pointer px-4 py-3 text-white transition-all flex justify-between items-center z-50 relative
-                ${isOpenDate 
-                  ? "bg-[#0a241a] rounded-t-2xl border-t border-l border-r border-white/20" 
-                  : "bg-white/10 hover:bg-white/20 rounded-2xl border border-white/10"
-                  }`}
-            >
-          <span className="font-medium">{selectedDate}</span>
-          <span className={`transition-transform duration-300 text-xs ${isOpenDate ? "rotate-180" : ""}`}>
-          ▲
-        </span>
+    {isOpen && (
+      <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected("Горы"); setIsOpen(false); }}>Горы</div>
+        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected("Лес"); setIsOpen(false); }}>Лес</div>
       </div>
+    )}
+  </div>
 
-            {/* Выпадающий список (нижняя часть) */}
-              {isOpenDate && (
-                 <div className="absolute top-[100%] left-0 w-full z-40 bg-[#0a241a] backdrop-blur-3xl border-b border-l border-r border-white/20 rounded-b-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden">
-               <div
-               className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
-                onClick={() => { setSelectedDate("Июнь"); setIsOpenDate(false); }}
-               >
-                Июнь
-             </div>
-                 <div
-                  className="px-4 py-3 text-emerald-50 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
-                   onClick={() => { setSelectedDate("Июль"); setIsOpenDate(false); }}
-                   >
-                    Июль
-                </div>
-              </div>
-              )}
-          </div>
+  {/* Разделитель */}
+  <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
-        {/* Кнопка поиска */}
-          <button className="w-65 bg-white text-black px-8 py-3 rounded-xl font-bold uppercase tracking-tighter hover:bg-gray-200 transition">
-           Найти маршрут
-             </button>
-          </div>
+  {/* Второй Dropdown (Дата) */}
+  <div className="relative w-80 custom-dropdown group"> 
+    <div
+      onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
+      className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
+      ${isOpenDate ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
+    >
+      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Период</span>
+      <div className="flex justify-between items-center">
+        <span className="font-medium">{selectedDate}</span>
+        <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? "rotate-180" : ""}`}>▼</span>
+      </div>
+    </div>
 
+    {isOpenDate && (
+      <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate("Июнь"); setIsOpenDate(false); }}>Июнь</div>
+        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate("Июль"); setIsOpenDate(false); }}>Июль</div>
+      </div>
+    )}
+  </div>
+
+  {/* Кнопка Поиска */}
+  <button className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
+    НАЙТИ МАРШРУТ
+  </button>
+</div>
       </section>
 
       {/* Сетка маршрутов */}
