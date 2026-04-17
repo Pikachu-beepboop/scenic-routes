@@ -69,24 +69,34 @@ export default function Home() {
           Login
         </button>
       </nav>
+    
 
-      {/* Hero-секция (Главный баннер) */}
-      <section className="relative px-12 pt-45 pb-35 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
-        <h1 className="pb-2 text-[155px] font-black leading-[0.8] uppercase tracking-tighter mb-8 italic
+     {/* Hero-секция (Главный баннер) */}
+
+    
+      <section className="relative px-12 pt-30 pb-35 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
+        <p className="mt-10 text-sm md:text-base uppercase text-gray-500/80 tracking-[0.35em] italic drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+          Discover the world
+        </p>
+
+        <h1 className="pb-2 text-[165px] font-black leading-[0.85] uppercase tracking-tight mb-6 italic
                bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent 
-               drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]
+               drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)]
                animate-in slide-in-from-bottom-10 duration-1000">
   Scenic <br /> Routes
 </h1>
-        <p className="text-xl text-gray-400 max-w-xl mx-auto font-medium">
-          Explore breathtaking driving routes through mountains, coastlines and nature landscapes around the world.
+        <p className="mt-4 text-lg md:text-xl text-white/90 font-medium tracking-wide uppercase italic">
+          Mountains <span className="mx-4 text-white/40">/</span> 
+          Coastlines <span className="mx-3 text-white/40">/</span> 
+          Nature
         </p>
+
   
        {/* Общий контейнер поиска */}
-<div className="mt-15 flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto">
+<div className="mt-10 flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto">
   
   {/* Первый Dropdown (Направление) */}
-  <div className="relative w-80 custom-dropdown group"> 
+  <div className="relative w-95 custom-dropdown group"> 
     <div
       onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
       className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
@@ -111,7 +121,7 @@ export default function Home() {
   <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
   {/* Второй Dropdown (Дата) */}
-  <div className="relative w-80 custom-dropdown group"> 
+  <div className="relative w-95 custom-dropdown group"> 
     <div
       onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
       className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
@@ -137,6 +147,8 @@ export default function Home() {
     НАЙТИ МАРШРУТ
   </button>
 </div>
+
+        
       </section>
 
       {/* Сетка маршрутов */}
