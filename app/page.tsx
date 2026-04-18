@@ -6,6 +6,7 @@ import localFont from 'next/font/local';
 
 const expressFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
+  weight: '700',
 });
 
 export default function Home() {
@@ -80,11 +81,9 @@ export default function Home() {
 <section className="relative px-12 pt-5 pb-50 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
   
   {/* 1. Главный заголовок */}
-  <h1 className="pl-6 pr-4 pb-2 text-[120px] md:text-[165px] font-black leading-[0.85] uppercase tracking-tight mb-8 italic
-         bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent 
-         drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)]
-         animate-in slide-in-from-bottom-10 duration-1000">
-    Scenic <br /> Routes
+  <h1 className="pl-6 pr-5 pb-2 text-[120px] md:text-[165px] leading-[0.93] uppercase tracking-[0.04em] mb-8 italic antialiased font-normal bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-10 duration-1000"
+    style={{ WebkitTextStroke: '20px transparent' }}>
+  Scenic <br /> Routes
   </h1>
 
   {/* Основной контейнер БЕЗ границ (border-0) */}
