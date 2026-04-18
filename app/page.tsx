@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
 import localFont from 'next/font/local';
 
-const expressFont = localFont({
+const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
   weight: '700',
 });
 
-const SecondFont = localFont({
+const secondFont = localFont({
   src: './fonts/Agbalumo/Agbalumo-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
   weight: '700',
 });
@@ -118,7 +118,7 @@ export default function Home() {
     </div>
 
     {/* Текст внутри рамки */}
-    <p className={`${expressFont.className} text-sm md:text-[18px] text-white font-bold tracking-[0.15em] uppercase leading-relaxed drop-shadow-md`}>
+    <p className={`${firstFont.className} text-sm md:text-[18px] text-white font-bold tracking-[0.15em] uppercase leading-relaxed drop-shadow-md`}>
       The most beautiful roads to explore through <br />
     mountains, coastlines and natural landscapes
     </p>
@@ -190,10 +190,10 @@ export default function Home() {
     
     {/* LINKES DIV: Die textuelle Beschreibung (Popular Destinations) */}
     <div className="md:col-span-1 mb-10">
-      <h2 className={`${SecondFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
+      <h2 className={`${secondFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
         Popular <br /> Destinations
       </h2>
-      <p className={`${SecondFont.className} text-gray-500 text-md mb-10 max-w-[200px]`}>
+      <p className={`${secondFont.className} text-gray-500 text-md mb-10 max-w-[200px]`}>
         Explore the world's most sought-after regions for scenic road trips.
       </p>
       <button className="px-8 py-3 border border-black rounded-full text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
