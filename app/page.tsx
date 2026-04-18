@@ -2,11 +2,6 @@
 
 import { useState } from "react";
 import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
-import localFont from 'next/font/local';
-
-const expressFont = localFont({
-  src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
-});
 
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
@@ -76,85 +71,108 @@ export default function Home() {
       </nav>
     
 
-     {/* Hero-секция (Главный баннер) */}
+ {/* Hero-секция (Главный баннер) */}
+<section className="relative px-12 pt-5 pb-50 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
+  
+  {/* 1. Главный заголовок */}
+  <h1 className="pl-6 pr-4 pb-2 text-[120px] md:text-[165px] font-black leading-[0.85] uppercase tracking-tight mb-8 italic
+         bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent 
+         drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)]
+         animate-in slide-in-from-bottom-10 duration-1000">
+    Scenic <br /> Routes
+  </h1>
 
+  {/* Основной контейнер БЕЗ границ (border-0) */}
+<div className="relative mt-7 mb-14 mx-auto w-full max-w-[750px] px-8 py-12 border-0">
+  
+  {/* ЛЕВЫЙ ОТРЕЗОК ВЕРХА */}
+  <div className="absolute top-0 left-0 w-[42%] h-[2px] bg-gray-300 shadow-sm"></div>
+  
+  {/* ПРАВЫЙ ОТРЕЗОК ВЕРХА */}
+  <div className="absolute top-0 right-0 w-[42%] h-[2px] bg-gray-300 shadow-sm"></div>
+
+  {/* ЛЕВАЯ СТОРОНА */}
+  <div className="absolute top-0 left-0 w-[2px] h-full bg-gray-300 shadow-sm"></div>
+
+  {/* ПРАВАЯ СТОРОНА */}
+  <div className="absolute top-0 right-0 w-[2px] h-full bg-gray-300 shadow-sm"></div>
+
+  {/* НИЖНЯЯ ЛИНИЯ */}
+  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gray-300 shadow-sm"></div>
+  
+    <div className="absolute -top-17 left-1/2 -translate-x-1/2 bg-transparent px-4"> 
+      <img 
+        src="/mountains.png" 
+        alt="mountains" 
+        className="w-30 h-30 object-contain invert brightness-200" 
+      />
+    </div>
+
+    {/* Текст внутри рамки */}
+    <p className=" text-sm md:text-[17px] text-white font-bold tracking-[0.25em] uppercase leading-relaxed drop-shadow-md">
+      The most beautiful roads to explore through <br />
+    mountains, coastlines and natural landscapes
+    </p>
+  </div>
+
+  {/* 3. Общий контейнер поиска (теперь внутри секции) */}
+  <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000">
     
-      <section className="relative px-12 pt-30 pb-35 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
-        <p className="mt-10 text-sm md:text-base uppercase text-gray-500/80 tracking-[0.35cm] italic drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-          Discover the world
-        </p>
-
-        <h1 className="pb-2 text-[165px] font-black leading-[0.85] uppercase tracking-tight mb-6 italic
-               bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent 
-               drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)]
-               animate-in slide-in-from-bottom-10 duration-1000">
-  Scenic <br /> Routes
-</h1>
-        <p className={`${expressFont.className} mt-4 text-lg md:text-xl text-white/80 font-medium tracking-wide uppercase italic`}>
-          Mountains <span className="mx-4 text-white/40">/</span> 
-          Coastlines <span className="mx-3 text-white/40">/</span> 
-          Nature
-        </p>
-
-  
-       {/* Общий контейнер поиска */}
-<div className="mt-10 flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto">
-  
-  {/* Первый Dropdown (Направление) */}
-  <div className="relative w-95 custom-dropdown group"> 
-    <div
-      onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
-      className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
-      ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
-    >
-      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Направление</span>
-      <div className="flex justify-between items-center">
-        <span className="font-medium">{selected}</span>
-        <span className={`transition-transform duration-300 text-[10px] ${isOpen ? "rotate-180" : ""}`}>▼</span>
+    {/* Первый Dropdown (Направление) */}
+    <div className="relative w-95 custom-dropdown group"> 
+      <div
+        onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
+        className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
+        ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
+      >
+        <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Направление</span>
+        <div className="flex justify-between items-center">
+          <span className="font-medium">{selected || "Выберите место"}</span>
+          <span className={`transition-transform duration-300 text-[10px] ${isOpen ? "rotate-180" : ""}`}>▼</span>
+        </div>
       </div>
+
+      {isOpen && (
+        <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected("Горы"); setIsOpen(false); }}>Горы</div>
+          <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected("Лес"); setIsOpen(false); }}>Лес</div>
+        </div>
+      )}
     </div>
 
-    {isOpen && (
-      <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected("Горы"); setIsOpen(false); }}>Горы</div>
-        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected("Лес"); setIsOpen(false); }}>Лес</div>
-      </div>
-    )}
-  </div>
+    {/* Разделитель */}
+    <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
-  {/* Разделитель */}
-  <div className="w-[1px] h-10 bg-white/10 mx-1" />
-
-  {/* Второй Dropdown (Дата) */}
-  <div className="relative w-95 custom-dropdown group"> 
-    <div
-      onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
-      className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
-      ${isOpenDate ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
-    >
-      <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Период</span>
-      <div className="flex justify-between items-center">
-        <span className="font-medium">{selectedDate}</span>
-        <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? "rotate-180" : ""}`}>▼</span>
+    {/* Второй Dropdown (Дата) */}
+    <div className="relative w-95 custom-dropdown group"> 
+      <div
+        onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
+        className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full
+        ${isOpenDate ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
+      >
+        <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Период</span>
+        <div className="flex justify-between items-center">
+          <span className="font-medium">{selectedDate || "Выберите дату"}</span>
+          <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? "rotate-180" : ""}`}>▼</span>
+        </div>
       </div>
+
+      {isOpenDate && (
+        <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate("Июнь"); setIsOpenDate(false); }}>Июнь</div>
+          <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate("Июль"); setIsOpenDate(false); }}>Июль</div>
+        </div>
+      )}
     </div>
 
-    {isOpenDate && (
-      <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate("Июнь"); setIsOpenDate(false); }}>Июнь</div>
-        <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate("Июль"); setIsOpenDate(false); }}>Июль</div>
-      </div>
-    )}
+    {/* Кнопка Поиска */}
+    <button className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
+      НАЙТИ МАРШРУТ
+    </button>
   </div>
+</section>
 
-  {/* Кнопка Поиска */}
-  <button className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
-    НАЙТИ МАРШРУТ
-  </button>
-</div>
-
-        
-      </section>
+   
 
       {/* Сетка маршрутов */}
       <section className="p-12">
@@ -195,6 +213,5 @@ export default function Home() {
       </footer>
     </main>
   );
-
 }
 
