@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
+import localFont from 'next/font/local';
+
+const expressFont = localFont({
+  src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
+});
 
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
@@ -109,7 +114,7 @@ export default function Home() {
     </div>
 
     {/* Текст внутри рамки */}
-    <p className=" text-sm md:text-[17px] text-white font-bold tracking-[0.25em] uppercase leading-relaxed drop-shadow-md">
+    <p className={`${expressFont.className} text-sm md:text-[18px] text-white font-bold tracking-[0.15em] uppercase leading-relaxed drop-shadow-md`}>
       The most beautiful roads to explore through <br />
     mountains, coastlines and natural landscapes
     </p>
