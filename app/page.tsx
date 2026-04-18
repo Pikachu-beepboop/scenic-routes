@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
+import localFont from 'next/font/local';
+
+const expressFont = localFont({
+  src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
+});
 
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
@@ -75,7 +80,7 @@ export default function Home() {
 
     
       <section className="relative px-12 pt-30 pb-35 text-center border-b border-gray-100 bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
-        <p className="mt-10 text-sm md:text-base uppercase text-gray-500/80 tracking-[0.35em] italic drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+        <p className="mt-10 text-sm md:text-base uppercase text-gray-500/80 tracking-[0.35cm] italic drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
           Discover the world
         </p>
 
@@ -85,7 +90,7 @@ export default function Home() {
                animate-in slide-in-from-bottom-10 duration-1000">
   Scenic <br /> Routes
 </h1>
-        <p className="mt-4 text-lg md:text-xl text-white/90 font-medium tracking-wide uppercase italic">
+        <p className={`${expressFont.className} mt-4 text-lg md:text-xl text-white/80 font-medium tracking-wide uppercase italic`}>
           Mountains <span className="mx-4 text-white/40">/</span> 
           Coastlines <span className="mx-3 text-white/40">/</span> 
           Nature
@@ -190,5 +195,6 @@ export default function Home() {
       </footer>
     </main>
   );
+
 }
 
