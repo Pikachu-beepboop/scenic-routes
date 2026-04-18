@@ -9,6 +9,11 @@ const expressFont = localFont({
   weight: '700',
 });
 
+const SecondFont = localFont({
+  src: './fonts/Agbalumo/Agbalumo-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
+  weight: '700',
+});
+
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
   const [isOpen, setIsOpen] = useState(false);
@@ -35,26 +40,26 @@ export default function Home() {
   const mockRoutes = [
     {
       id: 1,
-      title: "Ледяные пещеры Ватнайёкюдль",
+      title: "Norway Fjords",
       country: "Исландия",
       price: "1,200",
-      image: "https://unsplash.com",
+      image: "/Norway fjords.jpg",
       tag: "Экстрим"
     },
     {
       id: 2,
-      title: "Доломитовые Альпы: Треккинг",
+      title: "Toscana",
       country: "Италия",
       price: "950",
-      image: "https://unsplash.com",
+      image: "/Toscana.jpg",
       tag: "Горы"
     },
     {
       id: 3,
-      title: "Сафари в парке Серенгети",
+      title: "Fujiyoshida",
       country: "Танзания",
       price: "2,100",
-      image: "https://unsplash.com",
+      image: "/Fujiyoshida.jpg",
       tag: "Природа"
     }
   ];
@@ -178,38 +183,60 @@ export default function Home() {
 
    
 
-      {/* Сетка маршрутов */}
-      <section className="p-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
-          {mockRoutes.map((route) => (
-            <div key={route.id} className="group relative aspect-[3/4] overflow-hidden bg-gray-100 border border-gray-200">
-              <img 
-                src={route.image} 
-                alt={route.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              {/* Контент поверх картинки */}
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors p-8 flex flex-col justify-between text-white">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-bold uppercase tracking-widest bg-white/20 backdrop-blur-md px-3 py-1 rounded">
-                    {route.tag}
-                  </span>
-                  <span className="text-xs font-bold uppercase tracking-widest">{route.country}</span>
-                </div>
-                <div>
-                  <h3 className="text-3xl font-bold mb-2 leading-tight">{route.title}</h3>
-                  <div className="flex justify-between items-center border-t border-white/30 pt-4 mt-4 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-4 group-hover:translate-y-0 duration-500">
-                    <span className="text-xl font-bold">${route.price}</span>
-                    <button className="text-sm font-bold uppercase tracking-widest underline decoration-2 underline-offset-4">
-                      Подробнее
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Sektion: Populäre Ziele */}
+<section className="p-12 bg-white">
+  {/* Das Container-Grid für die gesamte Ansicht */}
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
+    
+    {/* LINKES DIV: Die textuelle Beschreibung (Popular Destinations) */}
+    <div className="md:col-span-1 mb-10">
+      <h2 className={`${SecondFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
+        Popular <br /> Destinations
+      </h2>
+      <p className={`${SecondFont.className} text-gray-500 text-md mb-10 max-w-[200px]`}>
+        Explore the world's most sought-after regions for scenic road trips.
+      </p>
+      <button className="px-8 py-3 border border-black rounded-full text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
+        Explore
+      </button>
+    </div>
+
+    {/* RECHTES DIV: Die Karten-Sektion (diagonal steigend) */}
+<div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+  {mockRoutes.map((route, index) => (
+    <div 
+  key={route.id} 
+  className={`group relative overflow-hidden transition-all duration-700 cursor-pointer h-[500px] shadow-2xl rounded-sm ${
+    index === 0 ? 'mt-32' : 
+    index === 1 ? 'mt-16' : 
+    'mt-0'
+  }`}
+>
+  {/* DAS HINTERGRUNDBILD */}
+  <img
+    src={route.image} // Hier wird das Bild aus deinem Array geladen
+    alt={route.title}
+    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+  />
+  
+  {/* SCHWARZER VERLAUF (Damit man die Schrift besser liest) */}
+  <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent opacity-80" />
+
+  {/* TEXT ÜBER DEM BILD */}
+  <div className="relative z-10 p-6">
+    <h3 className="text-white text-lg font-light tracking-wide drop-shadow-lg">
+      {route.title}
+    </h3>
+  </div>
+
+      {/* Subtiler Hover-Dunkel-Effekt */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors ease-in-out duration-20" />
+    </div>
+  ))}
+</div>
+
+  </div>
+</section>
 
       {/* Футер */}
       <footer className="p-12 text-center text-gray-300 text-xs font-bold uppercase tracking-[0.2em]">
