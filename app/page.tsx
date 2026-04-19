@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState } from "react";
 import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
 import localFont from 'next/font/local';
@@ -43,6 +44,8 @@ export default function Home() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+
 
   const mockRoutes = [
     {
@@ -201,11 +204,11 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
 
           {/* LINKES DIV: Die textuelle Beschreibung (Popular Destinations) */}
-          <div className="md:col-span-1 mb-10">
-            <h2 className={`${secondFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
+          <div className="md:col-span-1 mb-25">
+            <h2 className={`${firstFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
               Popular <br /> Destinations
             </h2>
-            <p className={`${secondFont.className} text-gray-500 text-md mb-5 max-w-[200px]`}>
+            <p className={`${firstFont.className} text-gray-500 text-md mb-5 max-w-[330px]`}>
               Explore the world's most sought-after regions for scenic road trips.
             </p>
             <button className="px-8 py-3 border border-black rounded-full text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
@@ -299,7 +302,7 @@ export default function Home() {
           </span>
         </div>
       </div>
-
+      
       {/* 3. DIE NEUE ROUTEN-SEKTION */}
       <section className="py-5 max-w-7xl mx-auto px-5">
         <div className="text-center mb-25">
@@ -314,10 +317,26 @@ export default function Home() {
                 <img
                   src={route.image}
                   alt={route.name}
-                  className="w-full h-full object-cover transition-transform duration-500 scale-[1.01] group-hover:scale-110 will-change-transform transform-gpu [backface-visibility:hidden] [transform:translateZ(0)_rotate(0.01deg)]"
-                  style={{ backfaceVisibility: 'hidden' }}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
 
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/30 backdrop-blur-xl border border-white/40 px-3 py-1 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_0_8px_rgba(255,255,255,0.4)] z-10">
+
+                  {/* Das Icon (Sterne/Glitzern) */}
+                  <svg
+                    className="w-3.5 h-3.5 text-emerald-600 drop-shadow-sm"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+
+
+                  <span className="text-[11px] font-black text-emerald-950 tracking-tight drop-shadow-[0_1px_2px_rgba(255,255,255,0.3)]"> {/*font-extrabold text-emerald-900/90 tracking-tight; text-[11px] font-bold text-emerald-800 tracking-tight */}
+                    {route.badge}
+                  </span>
+                </div>
 
               </div>
               <div className="p-5">
