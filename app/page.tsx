@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useEffect } from 'react'; // Не забудьте добавить useEffect в импорт сверху
 import localFont from 'next/font/local';
+import  seasonalRoutes  from './routes-data';
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
@@ -71,6 +72,8 @@ export default function Home() {
       //tag: "Природа"
     }
   ];
+  // 2. Logik für die Jahreszeit
+  const [currentSeason, setCurrentSeason] = useState<'spring'>('spring'); 
 
   return (
     <main className="min-h-screen bg-white">
@@ -279,6 +282,63 @@ export default function Home() {
   </h2>
 </div>
   </section>
+
+{/* 3. DIE NEUE ROUTEN-SEKTION */}
+      <section className="py-40 max-w-7xl mx-auto px-5">
+        <div className="text-center mb-25">
+          <h2 className="text-5xl font-bold">Best Routes Right Now</h2>
+          <p className="mt-5 text-[20px] text-gray-500">Handpicked routes for spring conditions.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {seasonalRoutes[currentSeason].map((route) => (
+            <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1">
+              <div className="relative h-78 overflow-hidden"> {/* overflow-hidden ist hier wichtig für den Zoom */}
+                <img 
+                 src={route.image} 
+                 alt={route.name} 
+                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                />
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/30 backdrop-blur-xl border border-white/40 px-3 py-1 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_0_8px_rgba(255,255,255,0.4)] z-10">
+              
+              {/* Das Icon (Sterne/Glitzern) */}
+              <svg 
+                className="w-3.5 h-3.5 text-emerald-600 drop-shadow-sm" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+               </svg>
+  
+                <span className="text-[11px] font-black text-emerald-950 tracking-tight drop-shadow-[0_1px_2px_rgba(255,255,255,0.3)]"> {/*font-extrabold text-emerald-900/90 tracking-tight; text-[11px] font-bold text-emerald-800 tracking-tight */}
+                 {route.badge}
+               </span>
+            </div>
+
+            </div>
+              <div className="p-5">
+                <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>
+                <h3 className="font-bold text-lg mt-1">{route.name}</h3>
+                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.desc}</p>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-xs text-gray-400">🕒 {route.duration}</span>
+                  <button className="text-sm font-semibold text-blue-600">View Route</button>
+                </div>
+              </div>
+              <div className="px-5 pb-5 italic text-xs text-gray-400">
+                {route.reason}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live Status Indicator */}
+        <div className="mt-10 flex justify-center items-center gap-2 text-emerald-600 text-sm font-medium">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          Weather data updated • Conditions optimal for travel
+        </div>
+      </section>
 
 
 
