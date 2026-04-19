@@ -314,10 +314,11 @@ export default function Home() {
                 <img
                   src={route.image}
                   alt={route.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-500 scale-[1.01] group-hover:scale-110 will-change-transform transform-gpu [backface-visibility:hidden] [transform:translateZ(0)_rotate(0.01deg)]"
+                  style={{ backfaceVisibility: 'hidden' }}
                 />
 
-                
+
               </div>
               <div className="p-5">
                 <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>
