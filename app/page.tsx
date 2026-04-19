@@ -320,23 +320,7 @@ export default function Home() {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
 
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/30 backdrop-blur-xl border border-white/40 px-3 py-1 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_0_8px_rgba(255,255,255,0.4)] z-10">
-
-                  {/* Das Icon (Sterne/Glitzern) */}
-                  <svg
-                    className="w-3.5 h-3.5 text-emerald-600 drop-shadow-sm"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-
-
-                  <span className="text-[11px] font-black text-emerald-950 tracking-tight drop-shadow-[0_1px_2px_rgba(255,255,255,0.3)]"> {/*font-extrabold text-emerald-900/90 tracking-tight; text-[11px] font-bold text-emerald-800 tracking-tight */}
-                    {route.badge}
-                  </span>
-                </div>
+                
 
               </div>
               <div className="p-5">
