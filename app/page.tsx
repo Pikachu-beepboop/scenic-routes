@@ -14,6 +14,11 @@ const secondFont = localFont({
   weight: '700',
 });
 
+const thirdFont = localFont({
+  src: './fonts/colitez-serif/ColitezSerif-Italic.otf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
+  weight: '700',
+});
+
 export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
   const [isOpen, setIsOpen] = useState(false);
@@ -41,26 +46,29 @@ export default function Home() {
     {
       id: 1,
       title: "Norway Fjords",
-      country: "Исландия",
-      price: "1,200",
+      country: "Norway",
+      time: "2 days",
       image: "/Norway fjords.jpg",
-      tag: "Экстрим"
+      description: "Experience the breathtaking beauty of Norway's fjords, where towering cliffs meet serene waters. Perfect for a quick getaway to nature's wonders.",
+      //tag: "Экстрим"
     },
     {
       id: 2,
       title: "Toscana",
       country: "Италия",
-      price: "950",
+      time: "5 days",
       image: "/Toscana.jpg",
-      tag: "Горы"
+      description: "Discover the rolling hills, vineyards, and Renaissance art of Tuscany. A perfect blend of culture, cuisine, and stunning landscapes for an unforgettable road trip.",
+      //tag: "Горы"
     },
     {
       id: 3,
       title: "Fujiyoshida",
-      country: "Танзания",
-      price: "2,100",
+      country: "Japan",
+      time: "1 week",
       image: "/Fujiyoshida.jpg",
-      tag: "Природа"
+      description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji. Experience traditional culture, hot springs, and breathtaking views in this unforgettable road trip.",
+      //tag: "Природа"
     }
   ];
 
@@ -193,7 +201,7 @@ export default function Home() {
       <h2 className={`${secondFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
         Popular <br /> Destinations
       </h2>
-      <p className={`${secondFont.className} text-gray-500 text-md mb-10 max-w-[200px]`}>
+      <p className={`${secondFont.className} text-gray-500 text-md mb-5 max-w-[200px]`}>
         Explore the world's most sought-after regions for scenic road trips.
       </p>
       <button className="px-8 py-3 border border-black rounded-full text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
@@ -206,10 +214,10 @@ export default function Home() {
   {mockRoutes.map((route, index) => (
     <div 
   key={route.id} 
-  className={`group relative overflow-hidden transition-all duration-700 cursor-pointer h-[500px] shadow-2xl rounded-sm ${
-    index === 0 ? 'mt-32' : 
-    index === 1 ? 'mt-16' : 
-    'mt-0'
+  className={`group relative overflow-hidden transition-all duration-700 cursor-pointer h-[500px] shadow-2xl rounded-4xl ${
+    index === 0 ? 'mt-55' : 
+    index === 1 ? 'mt-40' : 
+    'mt-25'
   }`}
 >
   {/* DAS HINTERGRUNDBILD */}
@@ -227,6 +235,20 @@ export default function Home() {
     <h3 className="text-white text-lg font-light tracking-wide drop-shadow-lg">
       {route.title}
     </h3>
+
+    {/* Land & Dauer (z.B. Italien • 5 days) */}
+  <p className="text-white/90 text-sm mt-1 drop-shadow-md">
+    {route.country} • {route.time}
+  </p>
+
+ {/* Tag / Kategorie (falls vorhanden) */}
+{route.description && (
+  <div className="mt-75 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+    <span className="text-white text-md font-light drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+      {route.description}
+    </span>
+  </div>
+)}
   </div>
 
       {/* Subtiler Hover-Dunkel-Effekt */}
@@ -234,9 +256,31 @@ export default function Home() {
     </div>
   ))}
 </div>
-
-  </div>
+ </div>
 </section>
+
+  {/* ZITAT SEKTION */}
+  <section className="relative w-full mt-35 py-50 px-6 flex items-center justify-center overflow-hidden">
+   {/* Hintergrundbild des Zitats */}
+    <div className="absolute inset-0 z-0"> {/* z-index auf 0 gesetzt */}
+      <img 
+       src="/roadimage.avif"  // Überprüfe links im Ordner: Kleines "t" und ".png"?
+       alt="Open Road" 
+       className="w-full h-full object-cover"
+      />
+     <div className="absolute inset-0 bg-black/50" /> {/* Etwas dunkler für Kontrast */}
+    </div>
+
+    {/* Der Text-Container */}
+<div className="relative z-10 max-w-[85%] px-2 text-center">
+  <h2 className={`${thirdFont.className} text-white text-4xl md:text-6xl font-semibold leading-[1.5] tracking-tight drop-shadow-2xl`}>
+    Experience the freedom of the <span className="block md:inline">open road. Discover hidden mountain passes, coastal highways, and breathtaking landscapes.
+    </span>
+  </h2>
+</div>
+  </section>
+
+
 
       {/* Футер */}
       <footer className="p-12 text-center text-gray-300 text-xs font-bold uppercase tracking-[0.2em]">
