@@ -6,6 +6,7 @@ import { useEffect } from 'react'; // Не забудьте добавить use
 import localFont from 'next/font/local';
 import seasonalRoutes from './routes-data';
 import Footer from './Footer';
+import AuthModal from './AuthModal';
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
@@ -26,6 +27,7 @@ export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [selected, setSelected] = useState("Выберите направление");
   const [selectedDate, setSelectedDate] = useState("Выберите дату");
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function Home() {
   const [currentSeason, setCurrentSeason] = useState<'spring'>('spring');
 
   return (
+    <>
     <main className="min-h-screen bg-white">
       {/* Навигация (как в Wix) */}
       <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
@@ -91,11 +94,13 @@ export default function Home() {
           <a href="#" className="hover:text-black transition">About us</a>
           <a href="#" className="hover:text-black transition">Contacts</a>
         </div>
-        <button className="bg-black text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition">
-          Login
-        </button>
-      </nav>
-
+        <button
+  onClick={() => setIsAuthOpen(true)}
+  className="bg-[#003e4d] text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition"
+>
+  Login
+</button>
+</nav>
 
       {/* Hero-секция (Главный баннер) */}
       <section className="relative px-12 pt-5 pb-50 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
@@ -332,9 +337,6 @@ export default function Home() {
                   <button className="text-sm font-semibold text-blue-600">View Route</button>
                 </div>
               </div>
-              <div className="px-5 pb-5 italic text-xs text-gray-400">
-                {route.reason}
-              </div>
             </div>
           ))}
         </div>
@@ -421,6 +423,8 @@ export default function Home() {
         </div>
       </footer>
     </main>
+    <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      </>
   );
 }
 
