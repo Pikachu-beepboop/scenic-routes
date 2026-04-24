@@ -6,12 +6,9 @@ import { useEffect } from 'react'; // Не забудьте добавить use
 import localFont from 'next/font/local';
 import seasonalRoutes from './routes-data';
 import Footer from './Footer';
-<<<<<<< HEAD
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-=======
 import AuthModal from './AuthModal';
->>>>>>> 731f5e28a70c64dcd8f94a03a24101b100503bf8
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
