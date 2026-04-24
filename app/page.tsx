@@ -103,7 +103,7 @@ export default function Home() {
         <button
   onClick={() => setIsAuthOpen(true)}
   
-className="bg-[#003e4d] text-white px-6 py-2 rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg">
+className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
   Login
 </button>
 </nav>
