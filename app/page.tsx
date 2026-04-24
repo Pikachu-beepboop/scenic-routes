@@ -6,8 +6,12 @@ import { useEffect } from 'react'; // Не забудьте добавить use
 import localFont from 'next/font/local';
 import seasonalRoutes from './routes-data';
 import Footer from './Footer';
+<<<<<<< HEAD
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+=======
+import AuthModal from './AuthModal';
+>>>>>>> 731f5e28a70c64dcd8f94a03a24101b100503bf8
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
@@ -28,6 +32,7 @@ export default function Home() {
   // Данные пока просто в коде (без базы), чтобы вы видели визуал
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [selected, setSelected] = useState("Выберите направление");
   const [selectedDate, setSelectedDate] = useState("Выберите дату");
   const router = useRouter();
@@ -83,6 +88,7 @@ export default function Home() {
   const [currentSeason, setCurrentSeason] = useState<'spring'>('spring');
 
   return (
+    <>
     <main className="min-h-screen bg-white">
       {/* Навигация (как в Wix) */}
       <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
@@ -97,11 +103,13 @@ export default function Home() {
           </Link>
           <a href="#" className="hover:text-black transition">About us</a>
         </div>
-        <button className="bg-black text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition">
-          Login
-        </button>
-      </nav>
-
+        <button
+  onClick={() => setIsAuthOpen(true)}
+  
+className=" bg-[#003e4d] text-white px-6 py-3 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
+  Login
+</button>
+</nav>
 
 
       {/* Hero-секция (Главный баннер) */}
@@ -428,6 +436,8 @@ export default function Home() {
         </div>
       </footer>
     </main>
+    <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      </>
   );
 }
 
