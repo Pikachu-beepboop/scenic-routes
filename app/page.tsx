@@ -6,6 +6,8 @@ import { useEffect } from 'react'; // Не забудьте добавить use
 import localFont from 'next/font/local';
 import seasonalRoutes from './routes-data';
 import Footer from './Footer';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf', // Punkt und Slash bedeutet: im gleichen Ordner suchen
@@ -28,6 +30,7 @@ export default function Home() {
   const [isOpenDate, setIsOpenDate] = useState(false);
   const [selected, setSelected] = useState("Выберите направление");
   const [selectedDate, setSelectedDate] = useState("Выберите дату");
+  const router = useRouter();
   useEffect(() => {
     const handleClickOutside = (event: Event) => {
       // Cast event.target to Element to access closest()
@@ -83,18 +86,22 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       {/* Навигация (как в Wix) */}
       <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
-        <div className="text-2xl font-black leading-[0.8] tracking-tighter">
-          Scenic <br /> <span className="text-black ml-4">Routes</span>
-        </div>
+        <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+          <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
+            Scenic <br /> <span className="ml-4">Routes</span>
+          </div>
+        </Link>
         <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
-          <a href="#" className="hover:text-black transition">Destinations</a>
+          <Link href="/explore" className="hover:text-black transition">
+            Explore Routes
+          </Link>
           <a href="#" className="hover:text-black transition">About us</a>
-          <a href="#" className="hover:text-black transition">Contacts</a>
         </div>
         <button className="bg-black text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition">
           Login
         </button>
       </nav>
+
 
 
       {/* Hero-секция (Главный баннер) */}
@@ -190,7 +197,10 @@ export default function Home() {
           </div>
 
           {/* Кнопка Поиска */}
-          <button className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
+          <button
+            onClick={() => router.push(`/explore?destination=${selected}&date=${selectedDate}`)}
+            className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg"
+          >
             НАЙТИ МАРШРУТ
           </button>
         </div>
@@ -302,7 +312,7 @@ export default function Home() {
           </span>
         </div>
       </div>
-      
+
       {/* 3. DIE NEUE ROUTEN-SEKTION */}
       <section className="py-5 max-w-7xl mx-auto px-5">
         <div className="text-center mb-25">
@@ -320,7 +330,7 @@ export default function Home() {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
 
-                
+
 
               </div>
               <div className="p-5">
@@ -331,9 +341,6 @@ export default function Home() {
                   <span className="text-xs text-gray-400">🕒 {route.duration}</span>
                   <button className="text-sm font-semibold text-blue-600">View Route</button>
                 </div>
-              </div>
-              <div className="px-5 pb-5 italic text-xs text-gray-400">
-                {route.reason}
               </div>
             </div>
           ))}
