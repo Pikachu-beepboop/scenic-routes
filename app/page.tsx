@@ -283,7 +283,7 @@ export default function Home() {
         </div>
 
         {/* Der Text-Container */}
-        <div className="relative z-10 max-w-[85%] px-2 text-center">
+        <div className="relative z-10 max-w-8xl px-2 text-center">
           <h2 className={`${thirdFont.className} text-white text-4xl md:text-6xl font-semibold leading-[1.5] tracking-tight drop-shadow-2xl`}>
             Experience the freedom of the <span className="block md:inline">open road. Discover hidden mountain passes, coastal highways, and breathtaking landscapes.
             </span>
