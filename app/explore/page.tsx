@@ -50,7 +50,7 @@ export default function ExplorePage() {
           <a href="#" className="hover:text-black transition">About us</a>
         </div>
 
-        <button className="bg-black text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-tighter hover:bg-gray-800 transition">
+        <button className="bg-[#003e4d] text-white px-6 py-2 rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg">
           Login
         </button>
       </nav>
