@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import localFont from 'next/font/local';
 import { useSearchParams } from 'next/navigation';
+import AuthModal from '../AuthModal';
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf',
@@ -26,6 +27,7 @@ export default function ExplorePage() {
   const [selectedDate, setSelectedDate] = useState(searchParams.get('date') || '');
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   // Filter state — MUSS innerhalb der Komponente sein
   const [showFilters, setShowFilters] = useState(false);
@@ -72,9 +74,12 @@ export default function ExplorePage() {
           </Link>
           <a href="#" className="hover:text-black transition">About us</a>
         </div>
-        <button className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
-          Login
-        </button>
+        <button
+            onClick={() => setIsAuthOpen(true)}
+
+            className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
+            Login
+          </button>
       </nav>
 
       {/* HERO */}
@@ -315,6 +320,7 @@ export default function ExplorePage() {
         </div>
 
       </main >
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div >
   );
 }
@@ -341,5 +347,6 @@ function RouteCard({ title, country, info, tag, img }: any) {
         </div>
       </div>
     </div>
+    
   );
 }
