@@ -21,8 +21,8 @@ export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [selected, setSelected] = useState("Выберите направление");
-  const [selectedDate, setSelectedDate] = useState("Выберите дату");
+  const [selected, setSelected] = useState("Choose destination");
+  const [selectedDate, setSelectedDate] = useState("Choose duration");
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -129,7 +129,7 @@ export default function Home() {
                 onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
                 className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
               >
-                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Направление</span>
+                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Country</span>
                 <div className="flex justify-between items-center">
                   <span className="font-medium">{selected}</span>
                   <span className={`transition-transform duration-300 text-[10px] ${isOpen ? "rotate-180" : ""}`}>▼</span>
@@ -150,7 +150,7 @@ export default function Home() {
                 onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
                 className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpenDate ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
               >
-                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Период</span>
+                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Date</span>
                 <div className="flex justify-between items-center">
                   <span className="font-medium">{selectedDate}</span>
                   <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? "rotate-180" : ""}`}>▼</span>
@@ -167,7 +167,7 @@ export default function Home() {
             <button
               onClick={() => router.push(`/explore?destination=${selected}&date=${selectedDate}`)}
               className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
-              НАЙТИ МАРШРУТ
+              FIND ROUTE
             </button>
           </div>
         </section>

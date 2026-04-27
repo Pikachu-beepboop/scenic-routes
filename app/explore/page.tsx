@@ -56,10 +56,10 @@ export default function ExplorePage() {
     setLoading(true);
     let query = supabase.from('routes').select('*');
 
-    if (selected && selected !== 'Выберите направление') {
+    if (selected && selected !== 'Choose destination') {
       query = query.eq('category', selected);
     }
-    if (selectedDate && selectedDate !== 'Выберите дату') {
+    if (selectedDate && selectedDate !== 'Choose duration') {
       query = query.eq('month', selectedDate);
     }
     if (filters.countries.length > 0) {
@@ -119,9 +119,9 @@ export default function ExplorePage() {
               onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
               className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpen ? 'bg-white/5 backdrop-blur-xl rounded-2xl' : 'hover:bg-white/5 rounded-2xl'}`}
             >
-              <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Направление</span>
+              <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Country</span>
               <div className="flex justify-between items-center">
-                <span className="font-medium">{selected || 'Выберите место'}</span>
+                <span className="font-medium">{selected || 'Choose destination'}</span>
                 <span className={`transition-transform duration-300 text-[10px] ${isOpen ? 'rotate-180' : ''}`}>▼</span>
               </div>
             </div>
@@ -141,9 +141,9 @@ export default function ExplorePage() {
               onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
               className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpenDate ? 'bg-white/5 backdrop-blur-xl rounded-2xl' : 'hover:bg-white/5 rounded-2xl'}`}
             >
-              <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Период</span>
+              <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Date</span>
               <div className="flex justify-between items-center">
-                <span className="font-medium">{selectedDate || 'Выберите дату'}</span>
+                <span className="font-medium">{selectedDate || 'Choose duration'}</span>
                 <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? 'rotate-180' : ''}`}>▼</span>
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function ExplorePage() {
           <button
             onClick={fetchRoutes}
             className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
-            НАЙТИ МАРШРУТ
+            FIND ROUTE
           </button>
         </div>
       </section>
