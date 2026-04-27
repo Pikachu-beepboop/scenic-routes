@@ -357,11 +357,6 @@ export default function Home() {
           </div>
           <div className="max-w-7xl mx-auto flex items-center justify-between pt-5 text-xs text-gray-700">
             <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
-            <div className="flex gap-3">
-              {['IG', 'FB', 'X'].map(s => (
-                <a key={s} href="#" className="w-8 h-8 flex items-center justify-center rounded-full border border-white/10 text-white/40 hover:border-emerald-500 hover:text-emerald-400 transition-all text-xs font-bold">{s}</a>
-              ))}
-            </div>
           </div>
         </footer>
  
