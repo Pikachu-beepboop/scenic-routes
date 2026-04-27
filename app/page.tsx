@@ -110,7 +110,7 @@ export default function Home() {
 
 
         {/* Hero-секция (Главный баннер) */}
-        <section className="relative px-12 pt-5 pb-50 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
+        <section className="relative px-12 pt-5 pb-30 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
 
           {/* 1. Главный заголовок */}
           <h1 className="pl-6 pr-5 pb-2 text-[120px] md:text-[165px] leading-[0.93] uppercase tracking-[0.04em] mb-8 italic antialiased font-normal bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-10 duration-1000"
@@ -348,7 +348,7 @@ export default function Home() {
                         {route.duration}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M6 18 C6 18 6 8 14 5" />
                           <line x1="14" y1="5" x2="10" y2="3" />
                           <line x1="14" y1="5" x2="14" y2="9" />
@@ -371,80 +371,67 @@ export default function Home() {
         </section>
 
 
-        <footer className="w-full bg-[#0f172a] text-gray-300 py-16 px-6 mt-20 border-t border-gray-800">
-          <div className="max-w-7xl mx-auto">
+        <footer className="w-full bg-[#0a0f1a] text-gray-500 py-12 px-12 mt-20">
 
-            {/* Oberer Teil: 3 Spalten */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-left">
+          {/* MAIN ROW */}
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 pb-16 border-b border-white/5">
 
-              {/* Spalte 1: Logo & Info */}
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-3">
-                  {/* Das Berg-Logo aus deinem public Ordner */}
-                  <div className="w-25 h-25 flex items-center justify-center">
-                    <img
-                      src="/mountains.png"
-                      alt="Logo"
-                      className="w-full h-full object-contain invert brightness-0 invert"
-                    />
-                  </div>
-                  <span className="text-2xl font-bold text-white tracking-tight">Scenic Routes</span>
-                </div>
-                <p className="text-sm leading-relaxed text-gray-400 max-w-xs">
-                  Discover the world's most beautiful driving routes through mountains, coastlines, and breathtaking landscapes.
-                </p>
+            {/* LINKS: Logo */}
+            <div className="flex flex-col gap-2 flex-shrink-0 min-w-[180px]">
+              <div className="flex items-center gap-3">
+                <img src="/mountains.png" alt="Logo" className="w-13 h-13 object-contain invert opacity-70" />
+                <span className="text-lg font-black text-white tracking-tight whitespace-nowrap">Scenic Routes</span>
               </div>
-
-              {/* Spalte 2: Links */}
-              <div className="flex flex-col">
-                <h4 className="text-white font-bold mb-6 text-lg">Quick Links</h4>
-                <ul className="space-y-3 text-sm">
-                  <li><a href="#" className="hover:text-emerald-400 transition-colors">Explore Routes</a></li>
-                  <li><a href="#" className="hover:text-emerald-400 transition-colors">My Trips</a></li>
-                  <li><a href="#" className="hover:text-emerald-400 transition-colors">About Us</a></li>
-                  <li><a href="#" className="hover:text-emerald-400 transition-colors">Contact</a></li>
-                </ul>
-              </div>
-
-              {/* Spalte 3: Kontakt */}
-              <div className="flex flex-col">
-                <h4 className="text-white font-bold mb-6 text-lg">Get in Touch</h4>
-                <ul className="space-y-4 text-sm">
-                  <li className="flex items-center gap-3">
-                    <span className="text-emerald-500 text-lg">📧</span>
-                    <a href="mailto:hello@scenicroutes.com" className="hover:text-white transition-colors">hello@scenicroutes.com</a>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <span className="text-emerald-500 text-lg">📍</span>
-                    <span className="text-gray-400">Worldwide Routes</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Unterer Teil: Copyright & Socials */}
-            <div className="border-t border-gray-800 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-              <p className="text-xs text-gray-500">
-                © {new Date().getFullYear()} Scenic Routes. All rights reserved.
+              <p className="text-[13px] text-gray-600 leading-relaxed max-w-[220px]">
+                Curated routes for those who seek the road less travelled.
               </p>
+            </div>
 
-              <div className="flex items-center gap-5">
-                <div className="flex gap-3">
-                  {['IG', 'FB', 'X'].map((social) => (
-                    <a key={social} href="#" className="w-9 h-9 flex items-center justify-center bg-gray-800/50 border border-gray-700 rounded-full text-white text-xs hover:bg-emerald-600 hover:border-emerald-500 transition-all">
-                      {social}
-                    </a>
-                  ))}
-                </div>
-                {/*<button className="w-10 h-10 bg-white text-[#0f172a] rounded-full flex items-center justify-center font-black shadow-xl hover:scale-110 active:scale-95 transition-all">
-                ?
-              </button>*/}
+            {/* MITTE: Links */}
+            <div className="flex flex-col items-center gap-3 text-[13px]">
+              <div className="flex gap-8">
+                {['Explore Routes', 'Mountains', 'Coastal', 'Forest'].map(link => (
+                  <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
+                ))}
+              </div>
+              <div className="flex gap-8">
+                {['About Us', 'Contact', 'Privacy', 'Terms'].map(link => (
+                  <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
+                ))}
               </div>
             </div>
 
+            {/* RECHTS: Newsletter */}
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <p className="text-xs text-white font-semibold uppercase tracking-widest">Stay Inspired</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  className="w-72 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500 transition-colors"
+                />
+                <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">
+                  →
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* BOTTOM ROW */}
+          <div className="max-w-7xl mx-auto flex items-center justify-between pt-5 text-xs text-gray-700">
+            <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
+            <div className="flex gap-3">
+              {['IG', 'FB', 'X'].map(s => (
+                <a key={s} href="#"
+                  className="w-8 h-8 flex items-center justify-center rounded-full border border-white/10 text-white/40 hover:border-emerald-500 hover:text-emerald-400 transition-all text-xs font-bold">
+                  {s}
+                </a>
+              ))}
+            </div>
+          </div>
+
         </footer>
-      </main>
+      </main >
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
