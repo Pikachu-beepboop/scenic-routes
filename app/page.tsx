@@ -29,7 +29,8 @@ export default function Home() {
   const [countries, setCountries] = useState<string[]>([]);
   const [durations, setDurations] = useState<string[]>([]);
   const router = useRouter();
- 
+ const [photoIndexes, setPhotoIndexes] = useState([0, 0, 0]);
+
   useEffect(() => {
     const handleClickOutside = (event: Event) => {
       const target = event.target as Element;
@@ -85,33 +86,42 @@ async function fetchRoutes() {
     fetchDurations();
     fetchRoutes();
   }, []);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setPhotoIndexes(prev => prev.map((idx, i) => 
+      (idx + 1) % mockRoutes[i].images.length
+    ));
+  }, 4000);
+  return () => clearInterval(interval);
+}, []);
  
   const mockRoutes = [
-    {
-      id: 1,
-      title: "Norway Fjords",
-      country: "Norway",
-      time: "2 days",
-      image: "/Norway fjords.jpg",
-      description: "Experience the breathtaking beauty of Norway's fjords, where towering cliffs meet serene waters.",
-    },
-    {
-      id: 2,
-      title: "Toscana",
-      country: "Italia",
-      time: "5 days",
-      image: "/Toscana.jpg",
-      description: "Discover the rolling hills, vineyards, and Renaissance art of Tuscany.",
-    },
-    {
-      id: 3,
-      title: "Fujiyoshida",
-      country: "Japan",
-      time: "1 week",
-      image: "/Fujiyoshida.jpg",
-      description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
-    }
-  ];
+  {
+    id: 1,
+    title: "Norway Fjords",
+    country: "Norway",
+    time: "2 days",
+    images: ["/Norway fjords.jpg", "/Norway fjords 2.jpg", "/Norway fjords 3.jpg"],
+    description: "Experience the breathtaking beauty of Norway's fjords.",
+  },
+  {
+    id: 2,
+    title: "Toscana",
+    country: "Italia",
+    time: "5 days",
+    images: ["/Toscana 2.jpg", "/Toscana 1.jpg","/Toscana 3.jpg"],
+    description: "Discover the rolling hills, vineyards, and Renaissance art of Tuscany.",
+  },
+  {
+    id: 3,  
+    title: "Fujiyoshida",
+    country: "Japan",
+    time: "1 week",
+    images: ["/Fujiyoshida.jpg", ],
+    description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
+  }
+];
  
   return (
     <>
@@ -242,7 +252,16 @@ async function fetchRoutes() {
                     index === 0 ? 'mt-55' : index === 1 ? 'mt-40' : 'mt-25'
                   }`}
                 >
-                  <img src={route.image} alt={route.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110" />
+                  {route.images.map((img, imgIndex) => (
+                        <img
+                        key={img}
+                        src={img}
+                        alt={route.title}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                          imgIndex === photoIndexes[index] ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                    ))}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent opacity-80" />
                   <div className="relative z-10 p-6">
                     <h3 className="text-white text-lg font-light tracking-wide drop-shadow-lg">{route.title}</h3>
