@@ -5,6 +5,7 @@ import Link from 'next/link';
 import localFont from 'next/font/local';
 import { useSearchParams } from 'next/navigation';
 import AuthModal from '../AuthModal';
+import seasonalRoutes from '../routes-data';
 
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf',
@@ -75,11 +76,11 @@ export default function ExplorePage() {
           <a href="#" className="hover:text-black transition">About us</a>
         </div>
         <button
-            onClick={() => setIsAuthOpen(true)}
+          onClick={() => setIsAuthOpen(true)}
 
-            className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
-            Login
-          </button>
+          className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
+          Login
+        </button>
       </nav>
 
       {/* HERO */}
@@ -99,7 +100,7 @@ export default function ExplorePage() {
             <h1 className="text-5xl font-bold text-white italic tracking-[0.01em]">
               Explore Scenic Routes
             </h1>
-            <p className={`${firstFont.className} text-white/90 text-lg mt-3 font-light italic`}>
+            <p className={`${firstFont.className} text-white/90 text-[17.4px] mt-3 font-light italic`}>
               Discover the world's most breathtaking driving routes.
             </p>
           </div>
@@ -162,15 +163,7 @@ export default function ExplorePage() {
         {/* Filter bar */}
         < div className="flex items-center justify-between mb-10" >
           <div className="flex gap-3 overflow-x-auto">
-            {['All Terrains', 'Mountains', 'Coastal', 'Forest'].map((item, i) => (
-              <button
-                key={item}
-                className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition ${i === 0 ? 'bg-[#1a3229] text-white' : 'border border-gray-200 text-gray-500 hover:border-gray-400'
-                  }`}
-              >
-                {item}
-              </button>
-            ))}
+
           </div>
 
           {/* MORE FILTERS BUTTON */}
@@ -213,13 +206,13 @@ export default function ExplorePage() {
 
                   {/* DIFFICULTY */}
                   <div className="mb-5">
-                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Difficulty</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Terrains</p>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { label: 'Easy', color: 'bg-green-100 text-green-800' },
-                        { label: 'Moderate', color: 'bg-yellow-100 text-yellow-800' },
-                        { label: 'Hard', color: 'bg-orange-100 text-orange-800' },
-                        { label: 'Extreme', color: 'bg-red-100 text-red-800' },
+                        { label: 'Forest', color: 'bg-green-100 text-green-800' },
+                        { label: 'Deserts', color: 'bg-yellow-100 text-yellow-800' },
+                        { label: 'Coastal', color: 'bg-orange-100 text-orange-800' },
+                        { label: 'Mountains', color: 'bg-blue-100 text-blue-800' },
                       ].map(({ label, color }) => (
                         <button
                           key={label}
@@ -312,11 +305,79 @@ export default function ExplorePage() {
           </div>{/* end relative */}
         </div > {/* end filter bar */}
 
+        {/* ACTIVE FILTER TAGS */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {filters.difficulty.map(tag => (
+              <span key={tag} className="flex items-center gap-1.5 bg-[#1a3229]/10 text-[#1a3229] border border-[#1a3229]/20 px-3 py-1.5 rounded-full text-xs font-semibold">
+                {tag}
+                <button onClick={() => toggleFilter('difficulty', tag)} className="hover:text-red-500 transition text-base leading-none">×</button>
+              </span>
+            ))}
+            {filters.countries.map(country => (
+              <span key={country} className="flex items-center gap-1.5 bg-[#1a3229]/10 text-[#1a3229] border border-[#1a3229]/20 px-3 py-1.5 rounded-full text-xs font-semibold">
+                {country}
+                <button onClick={() => toggleFilter('countries', country)} className="hover:text-red-500 transition text-base leading-none">×</button>
+              </span>
+            ))}
+            {filters.duration !== 'any' && (
+              <span className="flex items-center gap-1.5 bg-[#1a3229]/10 text-[#1a3229] border border-[#1a3229]/20 px-3 py-1.5 rounded-full text-xs font-semibold">
+                {filters.duration === 'half' ? 'Half day' : filters.duration === 'full' ? 'Full day' : filters.duration === 'weekend' ? 'Weekend' : 'Multi-day'}
+                <button onClick={() => setFilters(prev => ({ ...prev, duration: 'any' }))} className="hover:text-red-500 transition text-base leading-none">×</button>
+              </span>
+            )}
+            {filters.minRating > 0 && (
+              <span className="flex items-center gap-1.5 bg-[#1a3229]/10 text-[#1a3229] border border-[#1a3229]/20 px-3 py-1.5 rounded-full text-xs font-semibold">
+                {'★'.repeat(filters.minRating)}+
+                <button onClick={() => setFilters(prev => ({ ...prev, minRating: 0 }))} className="hover:text-red-500 transition text-base leading-none">×</button>
+              </span>
+            )}
+            <button
+              onClick={() => setFilters({ difficulty: [], duration: 'any', minRating: 0, countries: [] })}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold text-gray-400 hover:text-red-500 border border-gray-200 transition"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
         {/* Route Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          <RouteCard title="Atlantic Ocean Road" country="Norway" info="2-3 h | 8.3 km" tag="Coastal" img="/Norway fjords.jpg" />
-          <RouteCard title="Black Forest High Road" country="Germany" info="3-4 h | 60 km" tag="Forest" img="/black-forest-b500.jpg" />
-          <RouteCard title="Grossglockner" country="Austria" info="2-4 h | 48 km" tag="Alpine" img="/grossglockner-high-alpine.jpg" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {seasonalRoutes['spring'].map((route) => (
+            <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1">
+              <div className="relative h-78 overflow-hidden">
+                <img
+                  src={route.image}
+                  alt={route.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              </div>
+              <div className="p-5">
+                <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>
+                <h3 className="font-bold text-lg mt-1">{route.name}</h3>
+                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.desc}</p>
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      {route.duration}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 18 C6 18 6 8 14 5" />
+                        <line x1="14" y1="5" x2="10" y2="3" />
+                        <line x1="14" y1="5" x2="14" y2="9" />
+                      </svg>
+                      {route.km}
+                    </span>
+                  </div>
+                  <button className="text-sm font-semibold text-blue-600">View Route</button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
       </main >
@@ -347,6 +408,6 @@ function RouteCard({ title, country, info, tag, img }: any) {
         </div>
       </div>
     </div>
-    
+
   );
 }

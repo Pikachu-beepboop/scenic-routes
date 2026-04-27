@@ -334,16 +334,28 @@ export default function Home() {
                     alt={route.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-
-
-
                 </div>
                 <div className="p-5">
                   <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>
                   <h3 className="font-bold text-lg mt-1">{route.name}</h3>
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.desc}</p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-gray-400">🕒 {route.duration}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {route.duration}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 18 C6 18 6 8 14 5" />
+                          <line x1="14" y1="5" x2="10" y2="3" />
+                          <line x1="14" y1="5" x2="14" y2="9" />
+                        </svg>
+                        {route.km}
+                      </span>
+                    </div>
                     <button className="text-sm font-semibold text-blue-600">View Route</button>
                   </div>
                 </div>
