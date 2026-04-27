@@ -379,8 +379,67 @@ export default function ExplorePage() {
             </div>
           ))}
         </div>
-
       </main >
+        <footer className="w-full bg-[#0a0f1a] text-gray-500 py-12 px-12 mt-20">
+
+          {/* MAIN ROW */}
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 pb-16 border-b border-white/5">
+
+            {/* LINKS: Logo */}
+            <div className="flex flex-col gap-2 flex-shrink-0 min-w-[180px]">
+              <div className="flex items-center gap-3">
+                <img src="/mountains.png" alt="Logo" className="w-13 h-13 object-contain invert opacity-70" />
+                <span className="text-lg font-black text-white tracking-tight whitespace-nowrap">Scenic Routes</span>
+              </div>
+              <p className="text-[13px] text-gray-600 leading-relaxed max-w-[220px]">
+                Curated routes for those who seek the road less travelled.
+              </p>
+            </div>
+
+            {/* MITTE: Links */}
+            <div className="flex flex-col items-center gap-3 text-[13px]">
+              <div className="flex gap-8">
+                {['Explore Routes', 'Mountains', 'Coastal', 'Forest'].map(link => (
+                  <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
+                ))}
+              </div>
+              <div className="flex gap-8">
+                {['About Us', 'Contact', 'Privacy', 'Terms'].map(link => (
+                  <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
+                ))}
+              </div>
+            </div>
+
+            {/* RECHTS: Newsletter */}
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <p className="text-xs text-white font-semibold uppercase tracking-widest">Stay Inspired</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  className="w-72 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500 transition-colors"
+                />
+                <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">
+                  →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM ROW */}
+          <div className="max-w-7xl mx-auto flex items-center justify-between pt-5 text-xs text-gray-700">
+            <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
+            <div className="flex gap-3">
+              {['IG', 'FB', 'X'].map(s => (
+                <a key={s} href="#"
+                  className="w-8 h-8 flex items-center justify-center rounded-full border border-white/10 text-white/40 hover:border-emerald-500 hover:text-emerald-400 transition-all text-xs font-bold">
+                  {s}
+                </a>
+              ))}
+            </div>
+          </div>
+
+        </footer>
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div >
   );
