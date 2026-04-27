@@ -58,12 +58,27 @@ export default function Home() {
     }
   }
  
-  async function fetchRoutes() {
-    setLoading(true);
-    const { data } = await supabase.from('routes').select('*').limit(3);
-    if (data) setRoutes(data);
-    setLoading(false);
-  }
+  function getCurrentSeason() {
+  const month = new Date().getMonth() + 1;
+  if (month >= 3 && month <= 5) return 'spring';
+  if (month >= 6 && month <= 8) return 'summer';
+  if (month >= 9 && month <= 11) return 'autumn';
+  return 'winter';
+}
+
+async function fetchRoutes() {
+  setLoading(true);
+  const season = getCurrentSeason();
+  const { data } = await supabase
+    .from('routes')
+    .select('*')
+    .eq('season', season)
+    .limit(3);
+  if (data) setRoutes(data);
+  setLoading(false);
+}
+
+  
  
   useEffect(() => {
     fetchCountries();
