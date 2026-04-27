@@ -1,3 +1,4 @@
+
 "use client";
  
 import { useState, useEffect } from "react";
@@ -21,10 +22,12 @@ export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [selected, setSelected] = useState("Choose destination");
-  const [selectedDate, setSelectedDate] = useState("Choose duration");
+  const [selected, setSelected] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [durations, setDurations] = useState<string[]>([]);
   const router = useRouter();
  
   useEffect(() => {
@@ -38,6 +41,22 @@ export default function Home() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  async function fetchCountries() {
+    const { data } = await supabase.from('routes').select('country');
+    if (data) {
+      const unique = [...new Set(data.map((r: any) => r.country))].sort()as string[];
+      setCountries(unique);
+    }
+  }
+
+  async function fetchDurations() {
+    const { data } = await supabase.from('routes').select('duration');
+    if (data) {
+      const unique = [...new Set(data.map((r: any) => r.duration))].sort() as string[];
+      setDurations(unique);
+    }
+  }
  
   async function fetchRoutes() {
     setLoading(true);
@@ -47,6 +66,8 @@ export default function Home() {
   }
  
   useEffect(() => {
+    fetchCountries();
+    fetchDurations();
     fetchRoutes();
   }, []);
  
@@ -124,6 +145,8 @@ export default function Home() {
  
           {/* SEARCH */}
           <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000">
+
+            {/* Dropdown Country */}
             <div className="relative w-95 custom-dropdown group">
               <div
                 onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
@@ -131,35 +154,44 @@ export default function Home() {
               >
                 <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Country</span>
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">{selected}</span>
+                  <span className="font-medium">{selected || 'Choose destination'}</span>
                   <span className={`transition-transform duration-300 text-[10px] ${isOpen ? "rotate-180" : ""}`}>▼</span>
                 </div>
               </div>
               {isOpen && (
                 <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected("Горы"); setIsOpen(false); }}>Горы</div>
-                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected("Лес"); setIsOpen(false); }}>Лес</div>
+                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
+                  {countries.map((country) => (
+                    <div key={country} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected(country); setIsOpen(false); }}>
+                      {country}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
  
             <div className="w-[1px] h-10 bg-white/10 mx-1" />
- 
+
+            {/* Dropdown Duration */}
             <div className="relative w-95 custom-dropdown group">
               <div
                 onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
                 className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpenDate ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
               >
-                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Date</span>
+                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Duration</span>
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">{selectedDate}</span>
+                  <span className="font-medium">{selectedDate || 'Choose duration'}</span>
                   <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? "rotate-180" : ""}`}>▼</span>
                 </div>
               </div>
               {isOpenDate && (
                 <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate("Июнь"); setIsOpenDate(false); }}>Июнь</div>
-                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate("Июль"); setIsOpenDate(false); }}>Июль</div>
+                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
+                  {durations.map((duration) => (
+                    <div key={duration} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
+                      {duration}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -318,11 +350,7 @@ export default function Home() {
             <div className="flex flex-col gap-2 flex-shrink-0">
               <p className="text-xs text-white font-semibold uppercase tracking-widest">Stay Inspired</p>
               <div className="flex items-center gap-2">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="w-72 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500 transition-colors"
-                />
+                <input type="email" placeholder="your@email.com" className="w-72 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500 transition-colors" />
                 <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">→</button>
               </div>
             </div>

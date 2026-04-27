@@ -22,6 +22,8 @@ export default function ExplorePage() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [durations, setDurations] = useState<string[]>([]);
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<{
@@ -51,16 +53,31 @@ export default function ExplorePage() {
     (filters.duration !== 'any' ? 1 : 0) +
     (filters.minRating > 0 ? 1 : 0);
 
-  // Загрузка маршрутов из Supabase
+  async function fetchCountries() {
+    const { data } = await supabase.from('routes').select('country');
+    if (data) {
+      const unique = [...new Set(data.map((r: any) => r.country))].sort() as string[];
+      setCountries(unique);
+    }
+  }
+
+  async function fetchDurations() {
+    const { data } = await supabase.from('routes').select('duration');
+    if (data) {
+      const unique = [...new Set(data.map((r: any) => r.duration))].sort()as string[];
+      setDurations(unique);
+    }
+  }
+
   async function fetchRoutes() {
     setLoading(true);
     let query = supabase.from('routes').select('*');
 
     if (selected && selected !== 'Choose destination') {
-      query = query.eq('category', selected);
+      query = query.eq('country', selected);
     }
     if (selectedDate && selectedDate !== 'Choose duration') {
-      query = query.eq('month', selectedDate);
+      query = query.eq('duration', selectedDate);
     }
     if (filters.countries.length > 0) {
       query = query.in('country', filters.countries);
@@ -73,6 +90,11 @@ export default function ExplorePage() {
     if (data) setRoutes(data);
     setLoading(false);
   }
+
+  useEffect(() => {
+    fetchCountries();
+    fetchDurations();
+  }, []);
 
   useEffect(() => {
     fetchRoutes();
@@ -114,6 +136,8 @@ export default function ExplorePage() {
         </div>
 
         <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit ml-auto mr-10">
+
+          {/* Dropdown Country */}
           <div className="relative w-85 custom-dropdown group">
             <div
               onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
@@ -127,21 +151,25 @@ export default function ExplorePage() {
             </div>
             {isOpen && (
               <div className="absolute top-[117%] left-0 w-full z-[100] bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelected('Горы'); setIsOpen(false); }}>Горы</div>
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelected('Лес'); setIsOpen(false); }}>Лес</div>
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelected(''); setIsOpen(false); }}>Все</div>
+                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
+                {countries.map((country) => (
+                  <div key={country} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelected(country); setIsOpen(false); }}>
+                    {country}
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
           <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
+          {/* Dropdown Duration */}
           <div className="relative w-85 custom-dropdown group">
             <div
               onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
               className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpenDate ? 'bg-white/5 backdrop-blur-xl rounded-2xl' : 'hover:bg-white/5 rounded-2xl'}`}
             >
-              <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Date</span>
+              <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Duration</span>
               <div className="flex justify-between items-center">
                 <span className="font-medium">{selectedDate || 'Choose duration'}</span>
                 <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? 'rotate-180' : ''}`}>▼</span>
@@ -149,9 +177,12 @@ export default function ExplorePage() {
             </div>
             {isOpenDate && (
               <div className="absolute top-[117%] left-0 w-full z-[100] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl overflow-hidden">
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelectedDate('Июнь'); setIsOpenDate(false); }}>Июнь</div>
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelectedDate('Июль'); setIsOpenDate(false); }}>Июль</div>
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>Все</div>
+                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
+                {durations.map((duration) => (
+                  <div key={duration} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
+                    {duration}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -230,7 +261,7 @@ export default function ExplorePage() {
                   <div className="mb-6">
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Country</p>
                     <div className="flex flex-col gap-2 max-h-36 overflow-y-auto pr-1">
-                      {['Norway', 'Austria', 'Germany', 'Switzerland', 'Iceland', 'Scotland', 'New Zealand', 'USA', 'Italy', 'Morocco'].map(country => (
+                      {countries.map(country => (
                         <label key={country} className="flex items-center gap-3 cursor-pointer group">
                           <input type="checkbox" checked={filters.countries.includes(country)} onChange={() => toggleFilter('countries', country)} className="accent-[#1a3229] rounded" />
                           <span className="text-sm text-gray-700 group-hover:text-gray-900 transition">{country}</span>
@@ -350,4 +381,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-
