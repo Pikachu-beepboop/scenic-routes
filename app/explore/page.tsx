@@ -24,6 +24,9 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [countries, setCountries] = useState<string[]>([]);
   const [durations, setDurations] = useState<string[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [savedRoutes, setSavedRoutes] = useState<string[]>([]);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<{
@@ -53,6 +56,47 @@ export default function ExplorePage() {
     (filters.duration !== 'any' ? 1 : 0) +
     (filters.minRating > 0 ? 1 : 0);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) fetchSavedRoutes();
+  }, [user]);
+
+  async function fetchSavedRoutes() {
+    const { data } = await supabase
+      .from('saved_routes')
+      .select('route_id')
+      .eq('user_id', user.id);
+    if (data) setSavedRoutes(data.map((r: any) => r.route_id));
+  }
+
+  async function toggleSave(routeId: string) {
+    if (!user) { setIsAuthOpen(true); return; }
+    const isSaved = savedRoutes.includes(routeId);
+    if (isSaved) {
+      await supabase.from('saved_routes').delete().eq('user_id', user.id).eq('route_id', routeId);
+      setSavedRoutes(prev => prev.filter(id => id !== routeId));
+    } else {
+      await supabase.from('saved_routes').insert({ user_id: user.id, route_id: routeId });
+      setSavedRoutes(prev => [...prev, routeId]);
+    }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSavedRoutes([]);
+    setShowUserMenu(false);
+  }
+
   async function fetchCountries() {
     const { data } = await supabase.from('routes').select('country');
     if (data) {
@@ -64,7 +108,7 @@ export default function ExplorePage() {
   async function fetchDurations() {
     const { data } = await supabase.from('routes').select('duration');
     if (data) {
-      const unique = [...new Set(data.map((r: any) => r.duration))].sort()as string[];
+      const unique = [...new Set(data.map((r: any) => r.duration))].sort() as string[];
       setDurations(unique);
     }
   }
@@ -72,21 +116,11 @@ export default function ExplorePage() {
   async function fetchRoutes() {
     setLoading(true);
     let query = supabase.from('routes').select('*');
-
-    if (selected && selected !== 'Choose destination') {
-      query = query.eq('country', selected);
-    }
-    if (selectedDate && selectedDate !== 'Choose duration') {
-      query = query.eq('duration', selectedDate);
-    }
-    if (filters.countries.length > 0) {
-      query = query.in('country', filters.countries);
-    }
-    if (filters.minRating > 0) {
-      query = query.gte('rating', filters.minRating);
-    }
-
-    const { data, error } = await query;
+    if (selected && selected !== 'Choose destination') query = query.eq('country', selected);
+    if (selectedDate && selectedDate !== 'Choose duration') query = query.eq('duration', selectedDate);
+    if (filters.countries.length > 0) query = query.in('country', filters.countries);
+    if (filters.minRating > 0) query = query.gte('rating', filters.minRating);
+    const { data } = await query;
     if (data) setRoutes(data);
     setLoading(false);
   }
@@ -113,19 +147,41 @@ export default function ExplorePage() {
         <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
           <Link href="/explore" className="text-black border-b border-black transition">Explore Routes</Link>
           <a href="#" className="hover:text-black transition">About us</a>
+          {user && (
+            <Link href="/my-trips" className="hover:text-black transition text-emerald-600">My Trips</Link>
+          )}
         </div>
-        <button
-          onClick={() => setIsAuthOpen(true)}
-          className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
-          Login
-        </button>
+        {user ? (
+          <div className="relative">
+            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
+                {user.email?.[0]}
+              </div>
+            </button>
+            {showUserMenu && (
+              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsAuthOpen(true)}
+            className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
+            Login
+          </button>
+        )}
       </nav>
 
       {/* HERO */}
       <section className="relative h-[70vh] flex items-center overflow-hidden">
         <img src="/iceland.jpg" className="absolute inset-0 w-full h-full object-cover" alt="Background" />
         <div className="absolute inset-0 bg-black/40" />
-
         <div className="relative z-10 w-full max-w-7xl mx-auto px-12 flex items-center justify-between gap-8">
           <div>
             <h1 className="text-5xl font-bold text-white italic tracking-[0.01em]">Explore Scenic Routes</h1>
@@ -136,8 +192,6 @@ export default function ExplorePage() {
         </div>
 
         <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit ml-auto mr-10">
-
-          {/* Dropdown Country */}
           <div className="relative w-85 custom-dropdown group">
             <div
               onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
@@ -152,20 +206,19 @@ export default function ExplorePage() {
             {isOpen && (
               <div className="absolute top-[117%] left-0 w-full z-[100] bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
                 <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
-                {countries.map((country) => (
-                  <div key={country} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelected(country); setIsOpen(false); }}>
-                    {country}
-                  </div>
-                ))}
-              </div>
+                  <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
+                  {countries.map((country) => (
+                    <div key={country} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelected(country); setIsOpen(false); }}>
+                      {country}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
-          {/* Dropdown Duration */}
           <div className="relative w-85 custom-dropdown group">
             <div
               onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
@@ -179,21 +232,19 @@ export default function ExplorePage() {
             </div>
             {isOpenDate && (
               <div className="absolute top-[117%] left-0 w-full z-[100] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl overflow-hidden">
-                  <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
-                {durations.map((duration) => (
-                  <div key={duration} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
-                    {duration}
-                  </div>
-                ))}
-              </div>
+                <div className="overflow-y-auto max-h-48 custom-scrollbar">
+                  <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
+                  {durations.map((duration) => (
+                    <div key={duration} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
+                      {duration}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          <button
-            onClick={fetchRoutes}
-            className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
+          <button onClick={fetchRoutes} className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
             FIND ROUTE
           </button>
         </div>
@@ -202,7 +253,6 @@ export default function ExplorePage() {
       {/* CONTENT */}
       <main className="max-w-7xl mx-auto px-6 py-12">
 
-        {/* Filter bar */}
         <div className="flex items-center justify-between mb-10">
           <div className="flex gap-3 overflow-x-auto"></div>
           <div className="relative">
@@ -283,7 +333,6 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* ACTIVE FILTER TAGS */}
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {filters.difficulty.map(tag => (
@@ -313,6 +362,18 @@ export default function ExplorePage() {
               <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1">
                 <div className="relative h-78 overflow-hidden">
                   <img src={route.image_url} alt={route.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  {/* СЕРДЕЧКО */}
+                  <button
+                    onClick={() => toggleSave(route.id)}
+                    className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/40"
+                  >
+                    <svg
+                      className={`w-5 h-5 transition-colors duration-200 ${savedRoutes.includes(route.id) ? 'fill-red-500 stroke-red-500' : 'fill-transparent stroke-white'}`}
+                      viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </button>
                 </div>
                 <div className="p-5">
                   <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>

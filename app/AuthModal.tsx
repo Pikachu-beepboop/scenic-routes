@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,6 +10,12 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [active, setActive] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -16,9 +23,29 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     } else {
       document.body.style.overflow = "";
       setActive(false);
+      setError("");
+      setSuccess("");
     }
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
+
+  async function handleLogin() {
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
+    else { setSuccess("Logged in!"); setTimeout(onClose, 1000); }
+    setLoading(false);
+  }
+
+  async function handleRegister() {
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error) setError(error.message);
+    else setSuccess("Check your email to confirm registration!");
+    setLoading(false);
+  }
 
   if (!isOpen) return null;
 
@@ -50,7 +77,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           box-shadow: 0 25px 70px rgba(0,0,0,0.35);
           position: relative;
           clip-path: inset(0 0 0 0 round 15px);
-           backface-visibility: hidden;
+          backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
           width: 850px;
           max-width: 100%;
@@ -96,8 +123,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           text-align: center;
           background: #fff;
         }
-        .au-form.login    { left: 0; width: 50%; z-index: 2;  }
-        .au-form.register { left: 0; width: 50%; opacity: 0; z-index: 1;  }
+        .au-form.login    { left: 0; width: 50%; z-index: 2; }
+        .au-form.register { left: 0; width: 50%; opacity: 0; z-index: 1; }
 
         .au-box.active .au-form.login    { transform: translateX(100%); }
         .au-box.active .au-form.register { transform: translateX(100%); opacity: 1; z-index: 5; animation: auShow .6s; }
@@ -152,7 +179,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           text-decoration: none; margin: 8px 0;
           transition: color .3s;
         }
-        .au-forgot:hover { color: #003e4d; }
 
         .au-btn {
           border-radius: 25px;
@@ -170,37 +196,38 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           box-shadow: 0 4px 15px rgba(0,62,77,.4);
           font-family: 'Poppins', sans-serif;
         }
-        .au-btn:hover { box-shadow: 0 8px 25px rgba(0,62,77,.7); box-shadow: 0 6px 20px rgba(0,62,77,.55); }
-        .au-btn:active { transform: translateY(0); }
+        .au-btn:hover { box-shadow: 0 6px 20px rgba(0,62,77,.55); }
+        .au-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .au-error { color: #e53e3e; font-size: 12px; margin-top: 8px; }
+        .au-success { color: #38a169; font-size: 12px; margin-top: 8px; }
 
         .au-panel-wrap {
           position: absolute;
-          top: 0; 
-          width: calc(50% + 1px); 
+          top: 0;
+          width: calc(50% + 1px);
           left: calc(50% - 1px);
           height: 100%;
           overflow: hidden;
           transition: transform .6s ease-in-out;
           z-index: 100;
         }
-        .au-box.active .au-panel-wrap { transform: translateX(-100%);  }
+        .au-box.active .au-panel-wrap { transform: translateX(-100%); }
 
         .au-panel {
           background: linear-gradient(135deg, #003e4d, #003e4d);
           outline: 2px solid #003e4d;
           position: relative;
-          
           left: -100%;
           height: 100%;
           width: 200%;
           transition: transform .6s ease-in-out;
         }
-        .au-box.active .au-panel { transform: translateX(50%);}
+        .au-box.active .au-panel { transform: translateX(50%); }
 
         .au-panel-side {
           position: absolute;
           top: 0; height: 100%; width: 50%;
-          
           display: flex; align-items: center; justify-content: center;
           flex-direction: column;
           padding: 0 44px;
@@ -273,10 +300,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <a href="#">in</a>
             </div>
             <span className="au-sub">or use your email for registration</span>
-            <input type="text" placeholder="Full Name" />
-            <input type="email" placeholder="Email Address" />
-            <input type="password" placeholder="Password" />
-            <button className="au-btn" type="button">Sign Up</button>
+            <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
+            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            {error && <p className="au-error">{error}</p>}
+            {success && <p className="au-success">{success}</p>}
+            <button className="au-btn" type="button" onClick={handleRegister} disabled={loading}>
+              {loading ? "Loading..." : "Sign Up"}
+            </button>
             <div className="au-mobile-switch">
               <p>Already have an account?</p>
               <button className="au-mobile-btn" type="button" onClick={() => setActive(false)}>Sign In</button>
@@ -292,10 +323,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <a href="#">in</a>
             </div>
             <span className="au-sub">or use your account</span>
-            <input type="email" placeholder="Email Address" />
-            <input type="password" placeholder="Password" />
+            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
             <a href="#" className="au-forgot">Forgot your password?</a>
-            <button className="au-btn" type="button">Sign In</button>
+            {error && <p className="au-error">{error}</p>}
+            {success && <p className="au-success">{success}</p>}
+            <button className="au-btn" type="button" onClick={handleLogin} disabled={loading}>
+              {loading ? "Loading..." : "Sign In"}
+            </button>
             <div className="au-mobile-switch">
               <p>Don&apos;t have an account?</p>
               <button className="au-mobile-btn" type="button" onClick={() => setActive(true)}>Sign Up</button>

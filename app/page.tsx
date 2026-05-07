@@ -28,8 +28,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [countries, setCountries] = useState<string[]>([]);
   const [durations, setDurations] = useState<string[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
- const [photoIndexes, setPhotoIndexes] = useState([0, 0, 0]);
+  const [photoIndexes, setPhotoIndexes] = useState([0, 0, 0]);
 
   useEffect(() => {
     const handleClickOutside = (event: Event) => {
@@ -43,10 +45,26 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null);
+    setShowUserMenu(false);
+  }
+
   async function fetchCountries() {
     const { data } = await supabase.from('routes').select('country');
     if (data) {
-      const unique = [...new Set(data.map((r: any) => r.country))].sort()as string[];
+      const unique = [...new Set(data.map((r: any) => r.country))].sort() as string[];
       setCountries(unique);
     }
   }
@@ -60,27 +78,25 @@ export default function Home() {
   }
  
   function getCurrentSeason() {
-  const month = new Date().getMonth() + 1;
-  if (month >= 3 && month <= 5) return 'spring';
-  if (month >= 6 && month <= 8) return 'summer';
-  if (month >= 9 && month <= 11) return 'autumn';
-  return 'winter';
-}
+    const month = new Date().getMonth() + 1;
+    if (month >= 3 && month <= 5) return 'spring';
+    if (month >= 6 && month <= 8) return 'summer';
+    if (month >= 9 && month <= 11) return 'autumn';
+    return 'winter';
+  }
 
-async function fetchRoutes() {
-  setLoading(true);
-  const season = getCurrentSeason();
-  const { data } = await supabase
-    .from('routes')
-    .select('*')
-    .eq('season', season)
-    .limit(3);
-  if (data) setRoutes(data);
-  setLoading(false);
-}
+  async function fetchRoutes() {
+    setLoading(true);
+    const season = getCurrentSeason();
+    const { data } = await supabase
+      .from('routes')
+      .select('*')
+      .eq('season', season)
+      .limit(3);
+    if (data) setRoutes(data);
+    setLoading(false);
+  }
 
-  
- 
   useEffect(() => {
     fetchCountries();
     fetchDurations();
@@ -88,40 +104,40 @@ async function fetchRoutes() {
   }, []);
 
   useEffect(() => {
-  const interval = setInterval(() => {
-    setPhotoIndexes(prev => prev.map((idx, i) => 
-      (idx + 1) % mockRoutes[i].images.length
-    ));
-  }, 4000);
-  return () => clearInterval(interval);
-}, []);
+    const interval = setInterval(() => {
+      setPhotoIndexes(prev => prev.map((idx, i) =>
+        (idx + 1) % mockRoutes[i].images.length
+      ));
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
  
   const mockRoutes = [
-  {
-    id: 1,
-    title: "Norway Fjords",
-    country: "Norway",
-    time: "2 days",
-    images: ["/Norway fjords.jpg", "/Norway fjords 2.jpg", "/Norway fjords 3.jpg"],
-    description: "Experience the breathtaking beauty of Norway's fjords.",
-  },
-  {
-    id: 2,
-    title: "Toscana",
-    country: "Italia",
-    time: "5 days",
-    images: ["/Toscana 2.jpg", "/Toscana 1.jpg","/Toscana 3.jpg"],
-    description: "Discover the rolling hills, vineyards, and Renaissance art of Tuscany.",
-  },
-  {
-    id: 3,  
-    title: "Fujiyoshida",
-    country: "Japan",
-    time: "1 week",
-    images: ["/Fujiyoshida.jpg", "/fujiyoshida 2.jpg", "/fujiyoshida 3.jpg"],
-    description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
-  }
-];
+    {
+      id: 1,
+      title: "Norway Fjords",
+      country: "Norway",
+      time: "2 days",
+      images: ["/Norway fjords.jpg", "/Norway fjords 2.jpg", "/Norway fjords 3.jpg"],
+      description: "Experience the breathtaking beauty of Norway's fjords.",
+    },
+    {
+      id: 2,
+      title: "Toscana",
+      country: "Italia",
+      time: "5 days",
+      images: ["/Toscana 2.jpg", "/Toscana 1.jpg", "/Toscana 3.jpg"],
+      description: "Discover the rolling hills, vineyards, and Renaissance art of Tuscany.",
+    },
+    {
+      id: 3,
+      title: "Fujiyoshida",
+      country: "Japan",
+      time: "1 week",
+      images: ["/Fujiyoshida.jpg", "/fujiyoshida 2.jpg", "/fujiyoshida 3.jpg"],
+      description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
+    }
+  ];
  
   return (
     <>
@@ -135,14 +151,46 @@ async function fetchRoutes() {
             </div>
           </Link>
           <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
-            <Link href="/explore" className="hover:text-black transition">Explore Routes</Link>
-            <a href="#" className="hover:text-black transition">About us</a>
-          </div>
-          <button
-            onClick={() => setIsAuthOpen(true)}
-            className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
-            Login
-          </button>
+  <Link href="/explore" className="hover:text-black transition">Explore Routes</Link>
+  <a href="#" className="hover:text-black transition">About us</a>
+  {user && (
+    <Link href="/my-trips" className="hover:text-black transition text-emerald-600">
+      My Trips
+    </Link>
+  )}
+</div>
+
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
+                  {user.email?.[0]}
+                </div>
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
+              Login
+            </button>
+          )}
         </nav>
  
         {/* HERO */}
@@ -185,15 +233,15 @@ async function fetchRoutes() {
               </div>
               {isOpen && (
                 <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                 <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
+                  <div className="overflow-y-auto max-h-48 custom-scrollbar">
+                    <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
                     {countries.map((country) => (
-                       <div key={country} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected(country); setIsOpen(false); }}>
-                    {country}
-                   </div>
-                     ))}
-                   </div>
-              </div>
+                      <div key={country} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected(country); setIsOpen(false); }}>
+                        {country}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
  
@@ -214,13 +262,13 @@ async function fetchRoutes() {
               {isOpenDate && (
                 <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
-                  {durations.map((duration) => (
-                    <div key={duration} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
-                      {duration}
-                    </div>
-                  ))}
-                </div>
+                    <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
+                    {durations.map((duration) => (
+                      <div key={duration} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
+                        {duration}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -257,22 +305,22 @@ async function fetchRoutes() {
                   }`}
                 >
                   {route.images.map((img, imgIndex) => (
-                        <img
-                        key={img}
-                        src={img}
-                        alt={route.title}
-                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                          imgIndex === photoIndexes[index] ? 'opacity-100' : 'opacity-0'
-                        }`}
-                      />
-                    ))}
+                    <img
+                      key={img}
+                      src={img}
+                      alt={route.title}
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                        imgIndex === photoIndexes[index] ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  ))}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent opacity-80" />
                   <div className="relative z-10 p-6">
                     <h3 className="text-white text-lg font-light tracking-wide drop-shadow-lg">{route.title}</h3>
                     <p className="text-white/90 text-sm mt-1 drop-shadow-md">{route.country} • {route.time}</p>
                     {route.description && (
                       <div className="mt-90 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
-                        <span className="text-white text-md font-light drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{route.description}</span>
+                        <span className="text-white text-md font-light drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[180px] block">{route.description}</span>
                       </div>
                     )}
                   </div>
