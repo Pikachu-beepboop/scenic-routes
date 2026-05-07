@@ -151,12 +151,14 @@ export default function ExplorePage() {
             </div>
             {isOpen && (
               <div className="absolute top-[117%] left-0 w-full z-[100] bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+                <div className="overflow-y-auto max-h-48 custom-scrollbar">
                 <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
                 {countries.map((country) => (
                   <div key={country} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelected(country); setIsOpen(false); }}>
                     {country}
                   </div>
                 ))}
+              </div>
               </div>
             )}
           </div>
@@ -177,12 +179,14 @@ export default function ExplorePage() {
             </div>
             {isOpenDate && (
               <div className="absolute top-[117%] left-0 w-full z-[100] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl overflow-hidden">
+                  <div className="overflow-y-auto max-h-48 custom-scrollbar">
                 <div className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer text-center" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
                 {durations.map((duration) => (
                   <div key={duration} className="px-6 py-3 text-white hover:bg-white/10 cursor-pointer border-t border-white/10 text-center" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
                     {duration}
                   </div>
                 ))}
+              </div>
               </div>
             )}
           </div>
