@@ -38,6 +38,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(false);
   }
 
+  async function handleResetPassword() {
+  if (!email) {
+    setError('Please enter your email address first.');
+    return;
+  }
+  setLoading(true);
+  setError("");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'http://localhost:3000/reset-password',
+  });
+  if (error) setError(error.message);
+  else setSuccess("Password reset link sent to your email!");
+  setLoading(false);
+}
+
   async function handleRegister() {
   setLoading(true);
   setError("");
@@ -336,7 +351,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <span className="au-sub">or use your account</span>
             <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
             <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-            <a href="#" className="au-forgot">Forgot your password?</a>
+            <button type="button" className="au-forgot" onClick={handleResetPassword}>
+               Forgot your password?
+            </button>
             {error && <p className="au-error">{error}</p>}
             {success && <p className="au-success">{success}</p>}
             <button className="au-btn" type="button" onClick={handleLogin} disabled={loading}>
