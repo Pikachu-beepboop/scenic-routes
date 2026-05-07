@@ -185,13 +185,15 @@ async function fetchRoutes() {
               </div>
               {isOpen && (
                 <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
-                  {countries.map((country) => (
-                    <div key={country} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected(country); setIsOpen(false); }}>
-                      {country}
-                    </div>
-                  ))}
-                </div>
+                <div className="overflow-y-auto max-h-48 custom-scrollbar">
+                 <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
+                    {countries.map((country) => (
+                       <div key={country} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected(country); setIsOpen(false); }}>
+                    {country}
+                   </div>
+                     ))}
+                   </div>
+              </div>
               )}
             </div>
  
@@ -211,12 +213,14 @@ async function fetchRoutes() {
               </div>
               {isOpenDate && (
                 <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="overflow-y-auto max-h-48 custom-scrollbar">
                   <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
                   {durations.map((duration) => (
                     <div key={duration} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
                       {duration}
                     </div>
                   ))}
+                </div>
                 </div>
               )}
             </div>
