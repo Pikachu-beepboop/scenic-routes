@@ -39,13 +39,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   }
 
   async function handleRegister() {
-    setLoading(true);
-    setError("");
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
-    if (error) setError(error.message);
-    else setSuccess("Check your email to confirm registration!");
-    setLoading(false);
+  setLoading(true);
+  setError("");
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name } }
+  });
+
+  if (error) {
+    setError(error.message);
+  } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+    setError('This email is already in use. Please sign in instead.');
+  } else {
+    setSuccess("Check your email to confirm registration!");
   }
+  setLoading(false);
+}
 
   if (!isOpen) return null;
 
