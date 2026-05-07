@@ -49,7 +49,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           border-radius: 20px;
           box-shadow: 0 25px 70px rgba(0,0,0,0.35);
           position: relative;
-          overflow: hidden;
+          clip-path: inset(0 0 0 0 round 15px);
+           backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
           width: 850px;
           max-width: 100%;
           height: 530px;
@@ -94,8 +96,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           text-align: center;
           background: #fff;
         }
-        .au-form.login    { left: 0; width: 50%; z-index: 2; }
-        .au-form.register { left: 0; width: 50%; opacity: 0; z-index: 1; }
+        .au-form.login    { left: 0; width: 50%; z-index: 2;  }
+        .au-form.register { left: 0; width: 50%; opacity: 0; z-index: 1;  }
 
         .au-box.active .au-form.login    { transform: translateX(100%); }
         .au-box.active .au-form.register { transform: translateX(100%); opacity: 1; z-index: 5; animation: auShow .6s; }
@@ -168,32 +170,37 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           box-shadow: 0 4px 15px rgba(0,62,77,.4);
           font-family: 'Poppins', sans-serif;
         }
-        .au-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,62,77,.55); }
+        .au-btn:hover { box-shadow: 0 8px 25px rgba(0,62,77,.7); box-shadow: 0 6px 20px rgba(0,62,77,.55); }
         .au-btn:active { transform: translateY(0); }
 
         .au-panel-wrap {
           position: absolute;
-          top: 0; left: 50%;
-          width: 50%; height: 100%;
+          top: 0; 
+          width: calc(50% + 1px); 
+          left: calc(50% - 1px);
+          height: 100%;
           overflow: hidden;
           transition: transform .6s ease-in-out;
           z-index: 100;
         }
-        .au-box.active .au-panel-wrap { transform: translateX(-100%); }
+        .au-box.active .au-panel-wrap { transform: translateX(-100%);  }
 
         .au-panel {
           background: linear-gradient(135deg, #003e4d, #003e4d);
+          outline: 2px solid #003e4d;
           position: relative;
+          
           left: -100%;
           height: 100%;
           width: 200%;
           transition: transform .6s ease-in-out;
         }
-        .au-box.active .au-panel { transform: translateX(50%); }
+        .au-box.active .au-panel { transform: translateX(50%);}
 
         .au-panel-side {
           position: absolute;
           top: 0; height: 100%; width: 50%;
+          
           display: flex; align-items: center; justify-content: center;
           flex-direction: column;
           padding: 0 44px;
