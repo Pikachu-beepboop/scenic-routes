@@ -118,7 +118,7 @@ async function fetchRoutes() {
     title: "Fujiyoshida",
     country: "Japan",
     time: "1 week",
-    images: ["/Fujiyoshida.jpg", ],
+    images: ["/Fujiyoshida.jpg", "/fujiyoshida 2.jpg", "/fujiyoshida 3.jpg"],
     description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
   }
 ];
