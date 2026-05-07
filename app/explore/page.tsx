@@ -251,7 +251,7 @@ export default function ExplorePage() {
       </section>
 
       {/* CONTENT */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="max-w-[1600px] mx-auto px-6 py-12">
 
         <div className="flex items-center justify-between mb-10">
           <div className="flex gap-3 overflow-x-auto"></div>
@@ -357,7 +357,7 @@ export default function ExplorePage() {
         ) : routes.length === 0 ? (
           <div className="text-center text-gray-400 py-24 text-lg">No routes found. Try changing the filters.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {routes.map((route) => (
               <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1">
                 <div className="relative h-78 overflow-hidden">
