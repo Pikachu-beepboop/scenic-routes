@@ -271,7 +271,7 @@ async function fetchRoutes() {
                     <h3 className="text-white text-lg font-light tracking-wide drop-shadow-lg">{route.title}</h3>
                     <p className="text-white/90 text-sm mt-1 drop-shadow-md">{route.country} • {route.time}</p>
                     {route.description && (
-                      <div className="mt-75 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                      <div className="mt-90 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
                         <span className="text-white text-md font-light drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{route.description}</span>
                       </div>
                     )}
