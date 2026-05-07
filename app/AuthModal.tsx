@@ -53,6 +53,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   setLoading(false);
 }
 
+async function handleGoogleLogin() {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'http://localhost:3000'
+    }
+  });
+}
+
   async function handleRegister() {
   setLoading(true);
   setError("");
@@ -321,9 +330,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div className="au-form register">
             <h1>Create Account</h1>
             <div className="au-socials">
-              <a href="#">f</a>
-              <a href="#">G</a>
-              <a href="#">in</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}>G</a>
             </div>
             <span className="au-sub">or use your email for registration</span>
             <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
@@ -344,9 +351,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div className="au-form login">
             <h1>Sign In</h1>
             <div className="au-socials">
-              <a href="#">f</a>
-              <a href="#">G</a>
-              <a href="#">in</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}>G</a>
             </div>
             <span className="au-sub">or use your account</span>
             <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
