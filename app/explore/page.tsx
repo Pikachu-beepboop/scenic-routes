@@ -27,6 +27,7 @@ export default function ExplorePage() {
   const [user, setUser] = useState<any>(null);
   const [savedRoutes, setSavedRoutes] = useState<string[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<{
@@ -134,6 +135,15 @@ export default function ExplorePage() {
     fetchRoutes();
   }, [selected, selectedDate, filters]);
 
+  useEffect(() => {
+  if (user) fetchProfile(user.id);
+}, [user]);
+
+async function fetchProfile(userId: string) {
+  const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+  if (data) setAvatarUrl(data.avatar_url || '');
+}
+
   return (
     <div className="min-h-screen bg-white">
 
@@ -154,20 +164,27 @@ export default function ExplorePage() {
         {user ? (
           <div className="relative">
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
-                {user.email?.[0]}
-              </div>
-            </button>
-            {showUserMenu && (
-              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
-                </div>
-                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
-                  Sign Out
-                </button>
-              </div>
-            )}
+  {avatarUrl ? (
+    <img src={avatarUrl} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
+  ) : (
+    <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
+      {user.email?.[0]}
+    </div>
+  )}
+</button>
+           {showUserMenu && (
+  <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+    <div className="px-4 py-3 border-b border-gray-100">
+      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+    </div>
+    <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+      Profile
+    </Link>
+    <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
+      Sign Out
+    </button>
+  </div>
+)}
           </div>
         ) : (
           <button
