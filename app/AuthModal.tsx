@@ -39,48 +39,48 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   }
 
   async function handleResetPassword() {
-  if (!email) {
-    setError('Please enter your email address first.');
-    return;
-  }
-  setLoading(true);
-  setError("");
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'http://localhost:3000/reset-password',
-  });
-  if (error) setError(error.message);
-  else setSuccess("Password reset link sent to your email!");
-  setLoading(false);
-}
-
-async function handleGoogleLogin() {
-  await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: 'http://localhost:3000'
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
     }
-  });
-}
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'http://localhost:3000/reset-password',
+    });
+    if (error) setError(error.message);
+    else setSuccess("Password reset link sent to your email!");
+    setLoading(false);
+  }
+
+  async function handleGoogleLogin() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'http://localhost:3000'
+      }
+    });
+  }
 
   async function handleRegister() {
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: name } }
-  });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } }
+    });
 
-  if (error) {
-    setError(error.message);
-  } else if (data.user && data.user.identities && data.user.identities.length === 0) {
-    setError('This email is already in use. Please sign in instead.');
-  } else {
-    setSuccess("Check your email to confirm registration!");
+    if (error) {
+      setError(error.message);
+    } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setError('This email is already in use. Please sign in instead.');
+    } else {
+      setSuccess("Check your email to confirm registration!");
+    }
+    setLoading(false);
   }
-  setLoading(false);
-}
 
   if (!isOpen) return null;
 
@@ -330,12 +330,12 @@ async function handleGoogleLogin() {
           <div className="au-form register">
             <h1>Create Account</h1>
             <div className="au-socials">
-            <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}>G</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}>G</a>
             </div>
             <span className="au-sub">or use your email for registration</span>
-            <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
-            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            <input className="text-gray-900 placeholder:text-gray-500" type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
+            <input className="text-gray-900 placeholder:text-gray-500" type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
+            <input className="text-gray-900 placeholder:text-gray-500" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
             {error && <p className="au-error">{error}</p>}
             {success && <p className="au-success">{success}</p>}
             <button className="au-btn" type="button" onClick={handleRegister} disabled={loading}>
@@ -351,13 +351,13 @@ async function handleGoogleLogin() {
           <div className="au-form login">
             <h1>Sign In</h1>
             <div className="au-socials">
-            <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}>G</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}>G</a>
             </div>
             <span className="au-sub">or use your account</span>
-            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            <input className="text-gray-900 placeholder:text-gray-500" type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
+            <input className="text-gray-900 placeholder:text-gray-500" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
             <button type="button" className="au-forgot" onClick={handleResetPassword}>
-               Forgot your password?
+              Forgot your password?
             </button>
             {error && <p className="au-error">{error}</p>}
             {success && <p className="au-success">{success}</p>}
