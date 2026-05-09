@@ -3,241 +3,255 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { 
-  Clock, MapPin, Navigation, Star, ChevronDown, 
-  Heart, Plus, ExternalLink, Map as MapIcon, ArrowLeft, Check 
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import {
+    Clock, MapPin, Navigation, Star, ChevronDown,
+    Heart, ExternalLink, ArrowLeft, User, Check, Plus
 } from 'lucide-react';
+import Link from 'next/link';
 
-// Import deines AuthModals (Pfad ggf. anpassen, falls der Ordner anders heißt)
+// Import deines AuthModals
 import AuthModal from "@/app/AuthModal";
 
 export default function RouteDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  
-  // --- States ---
-  const [route, setRoute] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  
-  // State für das Popup-Window
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  
-  const { scrollY } = useScroll();
-  
-  // Parallax Effekte für die Hero-Section
-  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
-  const opacityHero = useTransform(scrollY, [0, 300], [1, 0]);
+    const params = useParams();
+    const router = useRouter();
 
-  useEffect(() => {
-    async function loadInitialData() {
-      setLoading(true);
-      
-      // 1. Authentifizierten User abrufen
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
+    // --- States ---
+    const [route, setRoute] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [isSaved, setIsSaved] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-      // 2. Route Details aus Supabase laden
-      const { data: routeData } = await supabase
-        .from('routes')
-        .select('*')
-        .eq('id', params.id)
-        .single();
+    const { scrollY } = useScroll();
 
-      if (routeData) {
-        setRoute(routeData);
+    // --- NAVBAR LOGIK: ERSCHEINT ERST BEIM SCROLLEN ---
+    const navOpacity = useTransform(scrollY, [250, 450], [0, 1]);
+    const navY = useTransform(scrollY, [250, 450], [-20, 0]);
 
-        // 3. Prüfen, ob die Route bereits in 'saved_routes' gespeichert ist
-        if (currentUser) {
-          const { data: savedRecord } = await supabase
-            .from('saved_routes')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .eq('route_id', params.id)
-            .single();
-          
-          if (savedRecord) setIsSaved(true);
+    const navBg = useTransform(scrollY, [250, 450], ["rgba(0,0,0,0)", "rgba(0,0,0,0.85)"]);
+    const navBlur = useTransform(scrollY, [250, 450], ["blur(0px)", "blur(20px)"]);
+
+    // Parallax für das Hero-Bild
+    const y1 = useTransform(scrollY, [0, 1000], [0, 300]);
+    const opacityHero = useTransform(scrollY, [0, 800], [1, 0.2]);
+
+    // --- Auth & Data Fetching ---
+    useEffect(() => {
+        const initAuth = async () => {
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            setUser(currentUser);
+            if (currentUser) checkIfRouteIsSaved(currentUser.id);
+        };
+        initAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (currentUser) {
+                setIsAuthModalOpen(false);
+                checkIfRouteIsSaved(currentUser.id);
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, [params.id]);
+
+    useEffect(() => {
+        async function loadRouteDetails() {
+            setLoading(true);
+            const { data } = await supabase.from('routes').select('*').eq('id', params.id).single();
+            if (data) setRoute(data);
+            setLoading(false);
         }
-      }
-      setLoading(false);
-    }
-    loadInitialData();
-  }, [params.id]);
+        loadRouteDetails();
+    }, [params.id]);
 
-  // --- Zentrale Logik für Herz & Add-Button ---
-  const handleAction = async () => {
-    // Falls NICHT eingeloggt -> Zeige dein Popup Window
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
+    const checkIfRouteIsSaved = async (userId: string) => {
+        const { data } = await supabase.from('saved_routes').select('*').eq('user_id', userId).eq('route_id', params.id).single();
+        setIsSaved(!!data);
+    };
 
-    // Falls eingeloggt -> Speichern oder Löschen in 'saved_routes'
-    if (isSaved) {
-      const { error } = await supabase
-        .from('saved_routes')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('route_id', params.id);
-      
-      if (!error) setIsSaved(false);
-    } else {
-      const { error } = await supabase
-        .from('saved_routes')
-        .insert([{ 
-          user_id: user.id, 
-          route_id: params.id 
-        }]);
-      
-      if (!error) setIsSaved(true);
-    }
-  };
+    const handleAction = async () => {
+        if (!user) { setIsAuthModalOpen(true); return; }
+        if (isSaved) {
+            await supabase.from('saved_routes').delete().eq('user_id', user.id).eq('route_id', params.id);
+            setIsSaved(false);
+        } else {
+            await supabase.from('saved_routes').insert([{ user_id: user.id, route_id: params.id }]);
+            setIsSaved(true);
+        }
+    };
 
-  if (loading) return (
-    <div className="h-screen bg-black flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  if (!route) return (
-    <div className="h-screen bg-black flex items-center justify-center text-white italic tracking-widest">
-      Route not found.
-    </div>
-  );
-
-  return (
-    <div className="bg-black text-white font-sans selection:bg-emerald-500/30">
-      
-      {/* 0. DEIN POPUP WINDOW (AuthModal) */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-      />
-
-      {/* NAVIGATION: BACK BUTTON */}
-      <button 
-        onClick={() => router.back()}
-        className="fixed top-8 left-8 z-50 flex items-center gap-2 px-5 py-2.5 backdrop-blur-xl bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all group shadow-2xl"
-      >
-        <ArrowLeft className="w-5 h-5 text-white group-hover:-translate-x-1 transition-transform" />
-        <span className="text-xs font-bold tracking-widest uppercase">Back</span>
-      </button>
-
-      {/* 1. HERO SECTION (100vh) */}
-      <section className="relative h-screen w-full overflow-hidden flex items-end pb-24 px-8">
-        <motion.div style={{ y: y1, opacity: opacityHero }} className="absolute inset-0 z-0">
-          <img src={route.image_url} alt={route.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-        </motion.div>
-
-        <div className="relative z-10 w-full max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-            className="absolute top-[-65vh] right-0 backdrop-blur-md bg-white/10 px-4 py-2 rounded-full border border-white/20 flex items-center gap-2"
-          >
-            <span className="text-xl">📍</span>
-            <span className="font-medium tracking-wide uppercase text-[10px]">{route.country}</span>
-          </motion.div>
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 80 }} animate={{ opacity: 1, y: 0 }}
-            className="text-6xl md:text-9xl font-black italic uppercase leading-[0.85] tracking-tighter"
-          >
-            {route.title?.split(' ').slice(0, -1).join(' ')} <br /> 
-            <span className="text-emerald-500">{route.title?.split(' ').pop()}</span>
-          </motion.h1>
-
-          <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="mt-12 flex flex-col items-center w-fit opacity-40">
-            <span className="text-[10px] uppercase tracking-[0.5em] mb-2">Scroll to explore</span>
-            <ChevronDown className="w-5 h-5" />
-          </motion.div>
+    if (loading) return (
+        <div className="h-screen bg-black flex flex-col items-center justify-center">
+            <div className="w-12 h-12 border-[3px] border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
         </div>
-      </section>
+    );
 
-      {/* 2. QUICK STATS BAR (Sticky) */}
-      <div className="sticky top-0 z-40 w-full backdrop-blur-2xl bg-black/80 border-y border-white/5">
-        <div className="max-w-7xl mx-auto px-8 py-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="flex items-center gap-3 justify-center md:justify-start">
-            <Clock className="text-emerald-400 w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">{route.duration}</span>
-          </div>
-          <div className="flex items-center gap-3 justify-center md:justify-start">
-            <Navigation className="text-emerald-400 w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">{route.distance_km} km</span>
-          </div>
-          <div className="flex items-center gap-3 justify-center md:justify-start">
-            <MapPin className="text-emerald-400 w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest truncate">{route.country}</span>
-          </div>
-          <div className="flex items-center gap-3 justify-center md:justify-start">
-            <Star className="fill-emerald-400 text-emerald-400 w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">4.9/5 Rating</span>
-          </div>
-        </div>
-      </div>
+    return (
+        <div className="bg-black text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden">
 
-      {/* 3. STORY SECTION */}
-      <section className="max-w-7xl mx-auto px-8 py-32 grid grid-cols-1 lg:grid-cols-2 gap-24 items-center text-center lg:text-left">
-        <div className="space-y-8">
-          <h2 className="text-5xl font-serif italic text-emerald-50 leading-tight">Beyond the <br/> Horizon.</h2>
-          <p className="text-xl leading-relaxed text-gray-400 font-light italic">"{route.description}"</p>
-          <div className="h-1 w-20 bg-emerald-500/50 mx-auto lg:mx-0" />
-        </div>
-        <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
-          <img src={route.image_url} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        </div>
-      </section>
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-      {/* 4. INTERACTIVE MAP SECTION */}
-      <section className="px-8 pb-32">
-        <div className="max-w-7xl mx-auto flex flex-col gap-8">
-          <h3 className="text-center text-2xl font-bold uppercase tracking-[0.3em] opacity-50 mb-4 italic text-emerald-500">The Route Path</h3>
-          <div className="relative h-[600px] w-full rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl group bg-zinc-900/50">
-            <iframe
-              src={route['Google Maps']} 
-              width="100%" height="100%" style={{ border: 0 }}
-              allowFullScreen loading="lazy"
-              className="grayscale invert opacity-70 contrast-125 hover:opacity-100 transition-opacity duration-1000"
-            />
-            <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
-          </div>
-          <div className="flex justify-center">
-            <a 
-              href={route['Maps URL']} target="_blank" rel="noopener noreferrer"
-              className="group flex items-center gap-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black px-12 py-6 rounded-full transition-all hover:shadow-[0_0_50px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 uppercase tracking-tighter"
+            {/* --- SEXY GLASS BACK BUTTON (Immer sichtbar & Ultra-High-End Look) --- */}
+            <div className="fixed top-10 left-10 z-[60]">
+                <button
+                    onClick={() => router.back()}
+                    className="group relative flex items-center justify-center w-16 h-16 transition-all duration-500"
+                >
+                    {/* Crystal Glass Body */}
+                    <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-700 group-hover:bg-white/20 group-hover:scale-110 group-hover:border-emerald-500/40" />
+
+                    {/* Arrow Icon */}
+                    <div className="relative flex items-center justify-center">
+                        <ArrowLeft size={24} className="text-white group-hover:text-emerald-400 group-hover:-translate-x-1.5 transition-all duration-500 ease-out" />
+
+                        {/* Schwebendes Label beim Hover */}
+                        <span className="absolute left-20 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-700 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none whitespace-nowrap bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                            Go Back
+                        </span>
+                    </div>
+                </button>
+            </div>
+
+            {/* --- SCROLL-TRIGGERED NAVBAR (Erscheint verzögert) --- */}
+            <motion.nav
+                style={{ opacity: navOpacity, y: navY, backgroundColor: navBg, backdropFilter: navBlur }}
+                className="fixed top-0 left-0 w-full z-50 border-b border-white/5 transition-all duration-1000 ease-in-out pointer-events-auto"
             >
-              <ExternalLink className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-              Open Full Map Experience
-            </a>
-          </div>
+                <div className="max-w-screen-2xl mx-auto px-12 h-28 flex items-center justify-between">
+                    <Link href="/" className="flex flex-col leading-[0.75] pl-24">
+                        <span className="text-2xl font-black uppercase tracking-tighter italic">Scenic</span>
+                        <span className="text-xl font-light uppercase tracking-[0.25em] opacity-60">Routes</span>
+                    </Link>
+
+                    <div className="hidden lg:flex items-center gap-14 text-[10px] font-bold uppercase tracking-[0.5em]">
+                        <Link href="/explore" className="hover:text-emerald-400 transition-colors duration-500">Explore</Link>
+                        <Link href="/about" className="opacity-40 hover:opacity-100 transition-all duration-700">About Us</Link>
+                        {user && (
+                            <Link href="/my-trips" className="text-emerald-400 hover:text-emerald-200 transition-colors duration-500">My Trips</Link>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                        <button
+                            onClick={() => !user && setIsAuthModalOpen(true)}
+                            className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-emerald-500 hover:text-black hover:scale-110 transition-all duration-700 shadow-2xl"
+                        >
+                            {user ? (
+                                <span className="text-sm font-bold uppercase italic">{user.email?.charAt(0)}</span>
+                            ) : (
+                                <User size={18} />
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </motion.nav>
+
+            {/* 1. HERO SECTION */}
+            <section className="relative h-screen w-full overflow-hidden flex items-end pb-32 px-12">
+                <motion.div style={{ y: y1, opacity: opacityHero }} className="absolute inset-0 z-0">
+                    <img src={route?.image_url} alt={route?.title} className="w-full h-full object-cover scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
+                </motion.div>
+
+                <div className="relative z-10 w-full max-w-7xl mx-auto">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 120 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
+                        className="text-7xl md:text-[12rem] font-black italic uppercase leading-[0.75] tracking-tighter text-left"
+                    >
+                        {route?.title?.split(' ').slice(0, -1).join(' ')} <br />
+                        <span className="text-emerald-500">{route?.title?.split(' ').pop()}</span>
+                    </motion.h1>
+
+                    <motion.div animate={{ y: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="mt-20 opacity-30">
+                        <ChevronDown size={40} strokeWidth={1} />
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* 2. QUICK STATS BAR (Sticky) */}
+            <div className="sticky top-0 z-40 w-full backdrop-blur-3xl bg-black/70 border-y border-white/5 shadow-2xl">
+                <div className="max-w-7xl mx-auto px-12 py-12 grid grid-cols-2 md:grid-cols-4 gap-12 text-[10px] font-bold uppercase tracking-[0.6em] opacity-70">
+                    <div className="flex items-center gap-4 justify-center md:justify-start hover:text-emerald-400 transition-all">
+                        <Clock size={18} strokeWidth={1} /> {route?.duration}
+                    </div>
+                    <div className="flex items-center gap-4 justify-center md:justify-start hover:text-emerald-400 transition-all">
+                        <Navigation size={18} strokeWidth={1} /> {route?.distance_km} km
+                    </div>
+                    <div className="flex items-center gap-4 justify-center md:justify-start hover:text-emerald-400 transition-all truncate">
+                        <MapPin size={18} strokeWidth={1} /> {route?.country}
+                    </div>
+                    <div className="flex items-center gap-4 justify-center md:justify-start hover:text-emerald-400 transition-all">
+                        <Star size={18} className="fill-emerald-500 text-emerald-500" /> 4.9 Rating
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. STORY SECTION */}
+            <section className="max-w-7xl mx-auto px-12 py-64 grid grid-cols-1 lg:grid-cols-2 gap-48 items-center">
+                <motion.div initial={{ opacity: 0, y: 60 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.5 }} viewport={{ once: true }} className="space-y-20 text-left">
+                    <div className="space-y-6">
+                        <h2 className="text-7xl font-serif italic text-emerald-50 leading-tight">The <br /> Untold Story.</h2>
+                        <div className="h-px w-32 bg-emerald-500/30" />
+                    </div>
+                    <p className="text-2xl leading-relaxed text-gray-400 font-light italic opacity-80 border-l border-emerald-500/20 pl-12">
+                        "{route?.description}"
+                    </p>
+                </motion.div>
+
+                <motion.div initial={{ scale: 0.85, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 2 }} className="relative aspect-[4/5] rounded-[4rem] overflow-hidden border border-white/5 shadow-2xl group">
+                    <img src={route?.image_url} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-70" />
+                </motion.div>
+            </section>
+
+            {/* 4. MAP SECTION */}
+            <section className="px-12 pb-48 text-center space-y-12">
+                {/* Karten-Container: Höhe von 800px auf 500px und Breite auf max-w-5xl reduziert */}
+                <div className="max-w-7xl mx-auto relative h-[600px] w-full rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group">
+                    <iframe
+                        src={route?.['Google Maps']}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        className="opacity-90 grayscale-[10%] group-hover:grayscale-0 transition-all duration-1000"
+                    />
+                    <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
+                </div>
+
+                <div className="pt-4">
+                    <a
+                        href={route?.['Maps URL']}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        /* Button: Padding von px-24 py-12 auf px-10 py-5 verkleinert */
+                        className="group inline-flex items-center gap-6 bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-16 py-8 rounded-full transition-all duration-700 hover:shadow-[0_15px_60px_rgba(16,185,129,0.3)] uppercase tracking-[0.2em] text-[14px] shadow-2xl"
+                    >
+                        {/* Icon: Größe von 28 auf 20 reduziert */}
+                        <ExternalLink size={23} className="group-hover:rotate-12 transition-transform duration-500" />
+                        Begin Navigation
+                    </a>
+                </div>
+            </section>
+
+            {/* FLOATING HEART ACTION */}
+            <div className="fixed bottom-16 right-16 z-50">
+                <motion.button
+                    whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }}
+                    onClick={handleAction}
+                    className="p-5 bg-zinc-900 border border-white/10 rounded-full shadow-2xl transition-all duration-380 group"
+                >
+                    <Heart
+                        className={`w-8 h-8 transition-all duration-1000 ease-out ${isSaved ? 'text-red-500 fill-red-500 scale-125' : 'text-white'}`}
+                    />
+                </motion.button>
+            </div>
+
         </div>
-      </section>
-
-      {/* FLOATING CTA BUTTONS (DIESE NUTZEN JETZT DEIN AUTH-MODAL) */}
-      <div className="fixed bottom-10 right-10 z-50 flex items-center gap-4">
-        <button 
-          onClick={handleAction}
-          className="p-5 bg-zinc-900/80 backdrop-blur-md border border-white/10 rounded-full hover:bg-zinc-800 transition-all hover:scale-110 shadow-2xl group"
-        >
-          <Heart 
-            className={`w-6 h-6 transition-all duration-300 ${isSaved ? 'text-red-500 fill-red-500 scale-110' : 'text-white'}`} 
-          />
-        </button>
-        
-        <button 
-          onClick={handleAction}
-          className={`flex items-center gap-4 font-black px-10 py-5 rounded-full shadow-2xl transition-all hover:translate-y-[-4px] active:translate-y-0 uppercase tracking-tighter ${
-            isSaved ? 'bg-white text-black' : 'bg-emerald-500 text-black hover:bg-emerald-400'
-          }`}
-        >
-          {isSaved ? <Check size={24} /> : <Plus size={24} />}
-          {isSaved ? "Saved in Trips" : "Add to My Trips"}
-        </button>
-      </div>
-
-    </div>
-  );
+    );
 }
