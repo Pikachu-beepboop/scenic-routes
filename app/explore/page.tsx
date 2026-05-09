@@ -201,14 +201,14 @@ async function fetchProfile(userId: string) {
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-12 flex items-center justify-between gap-8">
           <div>
-            <h1 className="text-5xl font-bold text-white italic tracking-[0.01em]">Explore Scenic Routes</h1>
-            <p className={`${firstFont.className} text-white/90 text-[17.4px] mt-3 font-light italic`}>
+            <h1 className="text-7xl font-bold text-white italic tracking-[0.01em]">Explore Scenic Routes</h1>
+            <p className={`${firstFont.className} text-white/90 text-[26px] mt-3 font-light italic`}>
               Discover the world's most breathtaking driving routes.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit ml-auto mr-10">
+        <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit ml-auto mr-25">
           <div className="relative w-85 custom-dropdown group">
             <div
               onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
