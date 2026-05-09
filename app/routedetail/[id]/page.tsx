@@ -241,54 +241,119 @@ export default function RouteDetailPage() {
                 </div>
             </div>
 
-            {/* 3. STORY SECTION */}
-            <section className="max-w-7xl mx-auto px-12 py-32 md:py-64">
-                {/* OBERER TEIL: Bild und kurze Description */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
-                    <motion.div
-                        initial={{ opacity: 0, x: -50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 1.2 }}
-                        viewport={{ once: true }}
-                        className="space-y-12"
-                    >
-                        <div className="space-y-6">
-                            <h2 className="text-6xl md:text-7xl font-serif italic text-emerald-50 leading-tight">
-                                The <br /> Untold Story.
-                            </h2>
-                            <div className="h-px w-32 bg-emerald-500/30" />
-                        </div>
+{/* 3. STORY SECTION */}
+<section className="max-w-7xl mx-auto px-12 py-32 md:py-64 space-y-32">
+    {/* OBERER TEIL: Einleitung */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
+        <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.2 }}
+            viewport={{ once: true }}
+            className="space-y-12"
+        >
+            <div className="space-y-6">
+                <h2 className="text-6xl md:text-7xl font-serif italic text-emerald-50 leading-tight">
+                    The <br /> Untold Story.
+                </h2>
+                <div className="h-px w-32 bg-emerald-500/30" />
+            </div>
 
-                        {/* KURZE DESCRIPTION */}
-                        <p className="text-2xl leading-relaxed text-emerald-50/60 font-light italic border-l-2 border-emerald-500/40 pl-8">
-                            {route?.description}
-                        </p>
-                    </motion.div>
+            <p className="text-2xl leading-relaxed text-emerald-50/60 font-light italic border-l-2 border-emerald-500/40 pl-8">
+                {route?.description}
+            </p>
+        </motion.div>
 
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        whileInView={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 1.5 }}
-                        className="relative aspect-[4/5] rounded-[3rem] overflow-hidden border border-white/5 shadow-2xl group"
-                    >
-                        <img src={route?.image_url} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    </motion.div>
-                </div>
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5 }}
+            className="relative aspect-[4/5] rounded-[3rem] overflow-hidden border border-white/5 shadow-2xl group"
+        >
+            <img 
+                src={route?.image_url} 
+                className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" 
+                alt="Story visual"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        </motion.div>
+    </div>
 
-                {/* UNTERER TEIL: Long Description über volle Breite */}
+    {/* UNTERER TEIL: Kapitel-Karten mit dynamischem Titel aus Zeile 1 */}
+    <div className="space-y-24">
+        {[
+            { id: 1, raw: route?.chapter1 },
+            { id: 2, raw: route?.chapter2 },
+            { id: 3, raw: route?.chapter3 },
+            { id: 4, raw: route?.chapter4 }
+        ]
+        .filter((chap) => chap.raw)
+        .map((chap, index, array) => {
+            // Logik: Trenne die erste Zeile vom Rest des Textes
+            const lines = chap.raw.split('\n');
+            const title = lines[0]; // Die erste Zeile (z.B. "03 The Masterpiece")
+            const body = lines.slice(1).join('\n'); // Alles ab der zweiten Zeile
+
+            return (
                 <motion.div
-                    initial={{ opacity: 0, y: 40 }}
+                    key={`chapter-${chap.id}`}
+                    id={`chapter-card-${chap.id}`}
+                    initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.2 }}
-                    viewport={{ once: true }}
-                    className="max-w-10xl"
+                    transition={{ duration: 1 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    className="relative group h-[500px] md:h-[650px] w-full overflow-hidden rounded-[3rem] border border-white/10 shadow-2xl snap-start scroll-mt-24"
                 >
-                    <p className="text-xl md:text-2xl leading-relaxed text-gray-400 font-light whitespace-pre-line">
-                        {route?.long_description}
-                    </p>
+                    <div className="absolute inset-0 z-0">
+                        <img 
+                            src={route?.image_url} 
+                            className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-105 opacity-40" 
+                            alt=""
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-transparent" />
+                    </div>
+
+                    <div className="relative z-10 h-full flex flex-col justify-center p-12 md:px-24 max-w-4xl">
+                        {/* Dynamischer Titel aus der ersten Zeile der DB */}
+                        <h3 className="text-4xl md:text-6xl font-serif italic text-white mb-8 leading-tight">
+                            {title}
+                        </h3>
+                        
+                        {/* Der restliche Textkörper */}
+                        <p className="text-xl md:text-3xl text-gray-300 font-light leading-relaxed line-clamp-6">
+                            {body}
+                        </p>
+                    </div>
+
+                    <div className="absolute right-12 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-4 opacity-20 group-hover:opacity-100 transition-all duration-500 z-30">
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                const prevEl = document.getElementById(`chapter-card-${chap.id - 1}`);
+                                if (prevEl) prevEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }}
+                            className={`p-4 rounded-full border border-white/20 hover:bg-white/10 transition-colors ${chap.id === 1 ? 'invisible' : 'visible'}`}
+                        >
+                            <ChevronDown size={24} className="rotate-180 text-emerald-500" />
+                        </button>
+
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                const nextEl = document.getElementById(`chapter-card-${chap.id + 1}`);
+                                if (nextEl) nextEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }}
+                            className={`p-4 rounded-full border border-white/20 hover:bg-white/10 transition-colors ${index === array.length - 1 ? 'invisible' : 'visible'}`}
+                        >
+                            <ChevronDown size={24} className="text-emerald-500" />
+                        </button>
+                    </div>
                 </motion.div>
-            </section>
+            );
+        })}
+    </div>
+</section>
+
 
             {/* 4. MAP SECTION */}
             <section className="px-12 pb-48 text-center space-y-12">
