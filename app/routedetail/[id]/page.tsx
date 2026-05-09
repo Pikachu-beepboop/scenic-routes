@@ -282,7 +282,7 @@ export default function RouteDetailPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.2 }}
                     viewport={{ once: true }}
-                    className="max-w-4xl"
+                    className="max-w-10xl"
                 >
                     <p className="text-xl md:text-2xl leading-relaxed text-gray-400 font-light whitespace-pre-line">
                         {route?.long_description}
