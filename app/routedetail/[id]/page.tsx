@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
     Clock, MapPin, Navigation, Star, ChevronDown,
-    Heart, ExternalLink, ArrowLeft, User, Check, Plus
+    Heart, ExternalLink, ArrowLeft, User, Check, Plus,
+    ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -150,24 +151,74 @@ export default function RouteDetailPage() {
             </motion.nav>
 
             {/* 1. HERO SECTION */}
-            <section className="relative h-screen w-full overflow-hidden flex items-end pb-32 px-12">
+            {/* 1. HERO SECTION */}
+            <section className="relative h-screen w-full overflow-hidden flex items-end justify-start px-12 pb-24 md:px-20 md:pb-32">
                 <motion.div style={{ y: y1, opacity: opacityHero }} className="absolute inset-0 z-0">
                     <img src={route?.image_url} alt={route?.title} className="w-full h-full object-cover scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/90 via-black/20 to-transparent" />
                 </motion.div>
 
-                <div className="relative z-10 w-full max-w-7xl mx-auto">
+                <div className="relative z-10 w-full max-w-7xl">
                     <motion.h1
-                        initial={{ opacity: 0, y: 120 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
-                        className="text-7xl md:text-[12rem] font-black italic uppercase leading-[0.75] tracking-tighter text-left"
+                        initial={{ opacity: 0, x: -30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className="text-5xl md:text-7xl lg:text-[6rem] font-black italic uppercase leading-[0.9] tracking-tighter text-left drop-shadow-2xl"
                     >
-                        {route?.title?.split(' ').slice(0, -1).join(' ')} <br />
-                        <span className="text-emerald-500">{route?.title?.split(' ').pop()}</span>
+                        {route?.title?.includes('(') ? (
+                            <>
+                                {route.title.split('(')[0]}
+                                <span className="text-emerald-500 whitespace-nowrap ml-4">
+                                    ({route.title.split('(')[1]}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                {(() => {
+                                    const words = route?.title?.split(' ') || [];
+                                    // Checkt, ob das letzte Wort eine Zahl ist (z.B. "1")
+                                    const isLastWordNumber = !isNaN(Number(words[words.length - 1]));
+
+                                    if (isLastWordNumber && words.length > 1) {
+                                        const main = words.slice(0, -2).join(' ');
+                                        const highlight = words.slice(-2).join(' '); // Nimmt "Highway 1" zusammen
+                                        return (
+                                            <>
+                                                {main} <span className="text-emerald-500 whitespace-nowrap">{highlight}</span>
+                                            </>
+                                        );
+                                    }
+
+                                    // Standard-Verhalten für normale Namen
+                                    return (
+                                        <>
+                                            {words.slice(0, -1).join(' ')}{' '}
+                                            <span className="text-emerald-500">{words[words.length - 1]}</span>
+                                        </>
+                                    );
+                                })()}
+                            </>
+                        )}
                     </motion.h1>
 
-                    <motion.div animate={{ y: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="mt-20 opacity-30">
-                        <ChevronDown size={40} strokeWidth={1} />
+                    {/* SCROLL INDICATOR - Horizontal angeordnet, aber Pfeil zeigt nach unten */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.5 }}
+                        transition={{ delay: 2, duration: 1 }}
+                        className="absolute -bottom-16 left-0 flex flex-row items-center gap-3"
+                    >
+                        <span className="text-[10px] font-bold uppercase tracking-[0.4em]">
+                            Scroll
+                        </span>
+
+                        {/* Pfeil zeigt nach unten und hüpft dezent vertikal */}
+                        <motion.div
+                            animate={{ y: [0, 5, 0] }}
+                            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        >
+                            <ChevronDown size={16} />
+                        </motion.div>
                     </motion.div>
                 </div>
             </section>
@@ -191,20 +242,51 @@ export default function RouteDetailPage() {
             </div>
 
             {/* 3. STORY SECTION */}
-            <section className="max-w-7xl mx-auto px-12 py-64 grid grid-cols-1 lg:grid-cols-2 gap-48 items-center">
-                <motion.div initial={{ opacity: 0, y: 60 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.5 }} viewport={{ once: true }} className="space-y-20 text-left">
-                    <div className="space-y-6">
-                        <h2 className="text-7xl font-serif italic text-emerald-50 leading-tight">The <br /> Untold Story.</h2>
-                        <div className="h-px w-32 bg-emerald-500/30" />
-                    </div>
-                    <p className="text-2xl leading-relaxed text-gray-400 font-light italic opacity-80 border-l border-emerald-500/20 pl-12">
-                        "{route?.description}"
-                    </p>
-                </motion.div>
+            <section className="max-w-7xl mx-auto px-12 py-32 md:py-64">
+                {/* OBERER TEIL: Bild und kurze Description */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 1.2 }}
+                        viewport={{ once: true }}
+                        className="space-y-12"
+                    >
+                        <div className="space-y-6">
+                            <h2 className="text-6xl md:text-7xl font-serif italic text-emerald-50 leading-tight">
+                                The <br /> Untold Story.
+                            </h2>
+                            <div className="h-px w-32 bg-emerald-500/30" />
+                        </div>
 
-                <motion.div initial={{ scale: 0.85, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 2 }} className="relative aspect-[4/5] rounded-[4rem] overflow-hidden border border-white/5 shadow-2xl group">
-                    <img src={route?.image_url} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-70" />
+                        {/* KURZE DESCRIPTION */}
+                        <p className="text-2xl leading-relaxed text-emerald-50/60 font-light italic border-l-2 border-emerald-500/40 pl-8">
+                            {route?.description}
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        whileInView={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 1.5 }}
+                        className="relative aspect-[4/5] rounded-[3rem] overflow-hidden border border-white/5 shadow-2xl group"
+                    >
+                        <img src={route?.image_url} className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    </motion.div>
+                </div>
+
+                {/* UNTERER TEIL: Long Description über volle Breite */}
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 0.2 }}
+                    viewport={{ once: true }}
+                    className="max-w-4xl"
+                >
+                    <p className="text-xl md:text-2xl leading-relaxed text-gray-400 font-light whitespace-pre-line">
+                        {route?.long_description}
+                    </p>
                 </motion.div>
             </section>
 
