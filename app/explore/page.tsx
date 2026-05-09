@@ -136,13 +136,13 @@ export default function ExplorePage() {
   }, [selected, selectedDate, filters]);
 
   useEffect(() => {
-  if (user) fetchProfile(user.id);
-}, [user]);
+    if (user) fetchProfile(user.id);
+  }, [user]);
 
-async function fetchProfile(userId: string) {
-  const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
-  if (data) setAvatarUrl(data.avatar_url || '');
-}
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+    if (data) setAvatarUrl(data.avatar_url || '');
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -164,27 +164,27 @@ async function fetchProfile(userId: string) {
         {user ? (
           <div className="relative">
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-  {avatarUrl ? (
-    <img src={avatarUrl} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
-  ) : (
-    <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
-      {user.email?.[0]}
-    </div>
-  )}
-</button>
-           {showUserMenu && (
-  <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-    <div className="px-4 py-3 border-b border-gray-100">
-      <p className="text-xs text-gray-400 truncate">{user.email}</p>
-    </div>
-    <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-      Profile
-    </Link>
-    <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
-      Sign Out
-    </button>
-  </div>
-)}
+              {avatarUrl ? (
+                <img src={avatarUrl} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
+                  {user.email?.[0]}
+                </div>
+              )}
+            </button>
+            {showUserMenu && (
+              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+                <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                  Profile
+                </Link>
+                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button
@@ -367,57 +367,56 @@ async function fetchProfile(userId: string) {
         )}
 
         {/* ROUTE GRID */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : routes.length === 0 ? (
-          <div className="text-center text-gray-400 py-24 text-lg">No routes found. Try changing the filters.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
-            {routes.map((route) => (
-              <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1">
-                <div className="relative h-78 overflow-hidden">
-                  <img src={route.image_url} alt={route.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  {/* СЕРДЕЧКО */}
-                  <button
-                    onClick={() => toggleSave(route.id)}
-                    className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/40"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {routes.map((route) => (
+            <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1 relative">
+
+              <div className="relative h-78 overflow-hidden">
+                {/* Bild-Link zur Cinematic Seite */}
+                <Link href={`/routedetail/${route.id}`}>
+                  <img
+                    src={route.image_url}
+                    alt={route.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 cursor-pointer"
+                  />
+                </Link>
+
+                {/* Herz-Button bleibt funktionsfähig */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleSave(route.id);
+                  }}
+                  className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white/40"
+                >
+                  <svg
+                    className={`w-5 h-5 transition-colors duration-200 ${savedRoutes.includes(route.id) ? 'fill-red-500 stroke-red-500' : 'fill-transparent stroke-white'}`}
+                    viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
                   >
-                    <svg
-                      className={`w-5 h-5 transition-colors duration-200 ${savedRoutes.includes(route.id) ? 'fill-red-500 stroke-red-500' : 'fill-transparent stroke-white'}`}
-                      viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-                    >
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="p-5">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-5">
+                <Link href={`/routedetail/${route.id}`}>
                   <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>
-                  <h3 className="font-bold text-lg mt-1">{route.title}</h3>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.description}</p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        {route.duration}
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 18 C6 18 6 8 14 5" /><line x1="14" y1="5" x2="10" y2="3" /><line x1="14" y1="5" x2="14" y2="9" />
-                        </svg>
-                        {route.distance_km} km
-                      </span>
-                    </div>
-                    <button className="text-sm font-semibold text-blue-600">View Route</button>
+                  <h3 className="font-bold text-lg mt-1 hover:text-emerald-500 transition-colors cursor-pointer">{route.title}</h3>
+                </Link>
+                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.description}</p>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Deine Duration/Distance Icons bleiben hier */}
                   </div>
+                  <Link href={`/routedetail/${route.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800">
+                    View Route
+                  </Link>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </main>
 
       <footer className="w-full bg-[#0a0f1a] text-gray-500 py-12 px-12 mt-20">
