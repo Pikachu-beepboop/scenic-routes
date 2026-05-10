@@ -367,59 +367,75 @@ export default function RouteDetailPage() {
 
 
 
-            {/* 4. MAP SECTION (Vollständiges Box-Design) */}
+            {/* 4. MAP SECTION (Vollständige Supabase-Integration & Cinematic Box Design) */}
             <section className="max-w-7xl mx-auto px-6 md:px-12 pb-48">
-                {/* Der Haupt-Container: Definierter Box-Look durch Kontrast und Schatten */}
                 <div className="bg-zinc-900/80 rounded-[3rem] border border-white/20 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-md">
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[650px]">
 
-                        {/* LINKE SPALTE: Timeline & Routen-Info */}
+                        {/* LINKE SPALTE: Dynamische Timeline & Routen-Info */}
                         <div className="lg:col-span-4 p-10 md:p-14 flex flex-col justify-between border-r border-white/10 bg-black/40">
 
-                            {/* Header & Timeline Bereich */}
                             <div className="space-y-12">
-                                <div>
-                                    <h2 className="text-4xl md:text-5xl font-serif italic text-white mb-4 leading-tight">
+                                <div className="space-y-4">
+                                    <h2 className="text-4xl md:text-5xl font-serif italic text-white leading-tight">
                                         The Route<span className="text-emerald-500">.</span>
                                     </h2>
-                                    <p className="text-zinc-500 text-xs leading-relaxed uppercase tracking-[0.2em] font-medium">
-                                        Explore the journey through our eyes.
+                                    <p className="text-zinc-500 text-xs leading-relaxed uppercase tracking-[0.2em] font-medium italic">
+                                        {route?.['start point']} <span className="text-emerald-500/50 mx-2">—</span> {route?.['end point']}
                                     </p>
                                 </div>
 
-                                {/* Vertikale Timeline */}
                                 <div className="space-y-10 relative">
-                                    {/* Die durchgehende Linie im Hintergrund */}
                                     <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-emerald-500/20" />
 
-                                    {/* Wegpunkte: Hier kannst du deine Daten mappen */}
-                                    {[
-                                        { name: route?.start_point || "Te Anau", desc: "The journey begins." },
-                                        { name: "Eglinton Valley", desc: "A vast glacial valley." },
-                                        { name: "Mirror Lakes", desc: "Nature's reflection." },
-                                        { name: route?.end_point || "Milford Sound", desc: "The final destination." }
-                                    ].map((point, i) => (
-                                        <div key={i} className="relative pl-10 group cursor-default">
-                                            {/* Der interaktive Punkt mit Glow-Effekt bei Hover */}
-                                            <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 border-emerald-500/40 bg-black z-10 flex items-center justify-center transition-all duration-300 group-hover:border-emerald-500 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                                    {/* 1. STARTPUNKT */}
+                                    {route?.['start point'] && (
+                                        <div className="relative pl-10 group cursor-default">
+                                            <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 border-emerald-500 bg-black z-10 flex items-center justify-center">
                                                 <div className="w-2 h-2 bg-emerald-500 rounded-full" />
                                             </div>
-
                                             <div className="space-y-1">
-                                                <h4 className="text-white/90 font-medium group-hover:text-emerald-400 transition-colors duration-300">
-                                                    {point.name}
-                                                </h4>
-                                                <p className="text-zinc-500 text-xs font-light italic tracking-wide">
-                                                    {point.desc}
-                                                </p>
+                                                <h4 className="text-white font-medium italic">{route?.['start point']}</h4>
+                                                <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Departure Point</p>
                                             </div>
                                         </div>
-                                    ))}
+                                    )}
+
+                                    {/* 2. DYNAMISCHE STOPPS */}
+                                    {route?.['route highlights']?.split('\n').map((stop: string, i: number) => {
+                                        const trimmedStop = stop.trim();
+                                        if (!trimmedStop) return null;
+
+                                        return (
+                                            <div key={i} className="relative pl-10 group cursor-default">
+                                                <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 border-emerald-500/40 bg-black z-10 flex items-center justify-center group-hover:border-emerald-500 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all duration-300">
+                                                    <div className="w-1.5 h-1.5 bg-emerald-500/60 group-hover:bg-emerald-500 rounded-full" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <h4 className="text-white/80 font-medium group-hover:text-emerald-400 transition-colors duration-300">
+                                                        {trimmedStop}
+                                                    </h4>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* 3. ENDPUNKT */}
+                                    {route?.['end point'] && (
+                                        <div className="relative pl-10 group cursor-default">
+                                            <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 border-emerald-500 bg-black z-10 flex items-center justify-center">
+                                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h4 className="text-white font-medium italic">{route?.['end point']}</h4>
+                                                <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Final Destination</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Call-to-Action Button */}
                             <div className="pt-12">
                                 <a
                                     href={route?.['Maps URL']}
@@ -428,12 +444,12 @@ export default function RouteDetailPage() {
                                     className="group flex items-center justify-center gap-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-5 rounded-2xl transition-all duration-500 uppercase tracking-widest text-[11px] w-full shadow-2xl active:scale-95"
                                 >
                                     <Navigation size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-500" />
-                                    Open in Google Maps
+                                    Begin Navigation
                                 </a>
                             </div>
                         </div>
 
-                        {/* RECHTE SPALTE: Die interaktive Google Maps Karte (Originalfarben) */}
+                        {/* RECHTE SPALTE: Die interaktive Google Maps Karte */}
                         <div className="lg:col-span-8 relative h-[500px] lg:h-auto overflow-hidden focus:outline-none">
                             <iframe
                                 src={route?.['Google Maps']}
@@ -442,19 +458,14 @@ export default function RouteDetailPage() {
                                 style={{ border: 0 }}
                                 allowFullScreen
                                 loading="lazy"
-                                /* Filter entfernt: Karte zeigt jetzt originale Farben und volle Helligkeit */
-                                className="w-full h-full outline-none border-none opacity-100 transition-transform duration-[1200ms] ease-in-out hover:scale-105"
+                                className="w-full h-full outline-none border-none opacity-100 transition-all duration-[1200ms] ease-in-out"
                             />
-
-                            {/* Status-Badge oben rechts bleibt als schickes Detail bestehen 
-                            <div className="absolute top-8 right-8 px-5 py-2 bg-black/60 backdrop-blur-xl rounded-full border border-white/10 text-[10px] text-white/70 uppercase tracking-[0.2em] flex items-center gap-3">
-                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                <span>Live Interaction</span>
-                            </div>*/}
                         </div>
                     </div>
                 </div>
             </section>
+
+
 
             {/* FLOATING HEART ACTION */}
             <div className="fixed bottom-16 right-16 z-50">
