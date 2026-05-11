@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import AuthModal from '../AuthModal';
 import { Navigation, MapPin, Mountain, Globe, Users, ArrowRight, Mail } from 'lucide-react';
 
 const team = [
@@ -13,7 +14,6 @@ const team = [
         role: 'Co-Founder & Product',
         bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered.",
         color: 'from-emerald-700 to-teal-900',
-        accent: 'emerald',
     },
     {
         initials: 'US',
@@ -21,7 +21,6 @@ const team = [
         role: 'Co-Founder & Engineering',
         bio: "The brain behind the tech. Builds every feature from the ground up and keeps everything running smoothly.",
         color: 'from-indigo-700 to-violet-900',
-        accent: 'indigo',
     },
     {
         initials: 'MD',
@@ -29,7 +28,6 @@ const team = [
         role: 'Design Manager',
         bio: "Makes sure every pixel is in its right place. Turns complex ideas into clean, beautiful interfaces.",
         color: 'from-amber-600 to-orange-800',
-        accent: 'amber',
     },
 ];
 
@@ -57,37 +55,120 @@ const values = [
 
 export default function AboutPage() {
     const [user, setUser] = useState<any>(null);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => {
-            setUser(data.session?.user ?? null);
+            const u = data.session?.user ?? null;
+            setUser(u);
+            if (u) fetchProfile(u.id);
         });
+        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+            const u = session?.user ?? null;
+            setUser(u);
+            if (u) fetchProfile(u.id);
+        });
+        return () => listener.subscription.unsubscribe();
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: Event) => {
+            const target = event.target as Element;
+            if (!target.closest('.user-menu-wrapper')) {
+                setShowUserMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    async function fetchProfile(userId: string) {
+        const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+        if (data) setAvatarUrl(data.avatar_url || '');
+    }
+
+    async function handleLogout() {
+        await supabase.auth.signOut();
+        setUser(null);
+        setShowUserMenu(false);
+        router.push('/');
+    }
 
     return (
         <div className="min-h-screen bg-[#f5f4f0] text-[#0a0a0a] font-sans">
 
-            {/* ── Navbar ────────────────────────────────────────────── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-black/5">
-                <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-                    <Link href="/" className="flex flex-col leading-none">
-                        <span className="text-base font-black uppercase tracking-tight italic">Scenic</span>
-                        <span className="text-[10px] font-light uppercase tracking-[0.2em] text-black/40">Routes</span>
+            <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+
+            {/* ── Navbar ── */}
+            <nav
+                className="flex justify-between items-center px-10 py-4"
+                style={{ background: '#ffffff' }}
+            >
+                {/* Logo */}
+                <Link href="/" className="hover:opacity-80 transition-opacity">
+                    <div className="leading-none">
+                        <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
+                            Scenic <br /> <span className="ml-4">Routes</span>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Nav Links */}
+                <div className="hidden md:flex items-center gap-10">
+                    <Link href="/explore" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        Explore Routes
                     </Link>
-                    <div className="flex items-center gap-8">
-                        <Link href="/explore" className="text-xs uppercase tracking-[0.15em] text-black/40 hover:text-black transition-colors duration-200">Explore Routes</Link>
-                        <Link href="/about" className="text-xs uppercase tracking-[0.15em] text-emerald-600 font-semibold">About Us</Link>
-                        {user ? (
-                            <Link href="/my-trips" className="text-xs uppercase tracking-[0.15em] text-black/40 hover:text-black transition-colors duration-200">My Trips</Link>
-                        ) : (
-                            <Link href="/login" className="text-xs uppercase tracking-[0.15em] bg-black text-white px-4 py-2 rounded-full hover:bg-black/80 transition-colors duration-200">Sign In</Link>
+                    <Link href="/about" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                        About Us
+                    </Link>
+                    {user && (
+                        <Link href="/my-trips" className="text-emerald-600 hover:text-emerald-800 transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                            My Trips
+                        </Link>
+                    )}
+                </div>
+
+                {/* User / Login */}
+                {user ? (
+                    <div className="relative user-menu-wrapper">
+                        <button
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            className="w-9 h-9 rounded-full border border-black/20 flex items-center justify-center hover:border-black/50 transition-all duration-200 overflow-hidden"
+                        >
+                            {avatarUrl ? (
+                                <img src={avatarUrl} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-black font-bold text-sm uppercase">{user.email?.[0]}</span>
+                            )}
+                        </button>
+                        {showUserMenu && (
+                            <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                                <div className="px-4 py-3 border-b border-gray-100">
+                                    <p className="text-[10px] text-gray-400 truncate tracking-widest">{user.email}</p>
+                                </div>
+                                <Link href="/profile" onClick={() => setShowUserMenu(false)} className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                    Profile
+                                </Link>
+                                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
+                                    Sign Out
+                                </button>
+                            </div>
                         )}
                     </div>
-                </div>
+                ) : (
+                    <button
+                        onClick={() => setIsAuthOpen(true)}
+                        className="text-[11px] uppercase tracking-[0.18em] font-semibold text-black/50 hover:text-black border border-black/20 hover:border-black/50 px-5 py-2 rounded-full transition-all duration-200"
+                    >
+                        Login
+                    </button>
+                )}
             </nav>
 
-            {/* ── Hero Section ──────────────────────────────────────── */}
+            {/* ── Hero Section ── */}
             <section className="pt-32 pb-20 px-6 max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
                     <div>
@@ -123,7 +204,7 @@ export default function AboutPage() {
                 </div>
             </section>
 
-            {/* ── Stats Bar ─────────────────────────────────────────── */}
+            {/* ── Stats Bar ── */}
             <section className="border-y border-black/5 bg-white">
                 <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-2 lg:grid-cols-4 divide-x divide-black/5">
                     {stats.map(({ icon: Icon, value, label }) => (
@@ -136,14 +217,13 @@ export default function AboutPage() {
                 </div>
             </section>
 
-            {/* ── Mission / Values ──────────────────────────────────── */}
+            {/* ── Mission / Values ── */}
             <section className="py-24 px-6 max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-1">
                     {values.map(({ title, text }, i) => (
                         <div
                             key={title}
                             className="bg-white border border-black/5 rounded-2xl p-8 hover:shadow-[0_8px_40px_rgba(0,0,0,0.06)] transition-shadow duration-300"
-                            style={{ animationDelay: `${i * 100}ms` }}
                         >
                             <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mb-5">
                                 <span className="text-xs font-black text-emerald-600">0{i + 1}</span>
@@ -155,7 +235,7 @@ export default function AboutPage() {
                 </div>
             </section>
 
-            {/* ── Team Section ──────────────────────────────────────── */}
+            {/* ── Team Section ── */}
             <section className="pb-24 px-6 max-w-6xl mx-auto">
                 <div className="flex items-end justify-between mb-10">
                     <div>
@@ -167,7 +247,7 @@ export default function AboutPage() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {team.map(({ initials, name, role, bio, color }) => (
                         <div
                             key={name}
@@ -187,7 +267,7 @@ export default function AboutPage() {
                     <div className="flex items-center gap-3">
                         <div className="flex -space-x-2">
                             {['bg-emerald-500', 'bg-indigo-500', 'bg-amber-500'].map((c, i) => (
-                                <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-white flex items-center justify-center`} />
+                                <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-white`} />
                             ))}
                         </div>
                         <p className="text-xs text-black/40">A small team, big passion for the road.</p>
@@ -201,7 +281,7 @@ export default function AboutPage() {
                 </div>
             </section>
 
-            {/* ── CTA Banner ────────────────────────────────────────── */}
+            {/* ── CTA Banner ── */}
             <section className="px-6 pb-24 max-w-6xl mx-auto">
                 <div className="bg-black rounded-3xl px-10 py-14 flex flex-col lg:flex-row items-center justify-between gap-8">
                     <div>
@@ -219,18 +299,18 @@ export default function AboutPage() {
                             <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />
                         </Link>
                         {!user && (
-                            <Link
-                                href="/login"
+                            <button
+                                onClick={() => setIsAuthOpen(true)}
                                 className="flex items-center justify-center gap-2 border border-white/15 text-white text-xs uppercase tracking-[0.15em] px-6 py-3.5 rounded-full hover:bg-white/5 transition-all duration-200"
                             >
                                 Create Account
-                            </Link>
+                            </button>
                         )}
                     </div>
                 </div>
             </section>
 
-            {/* ── Footer ────────────────────────────────────────────── */}
+            {/* ── Footer ── */}
             <footer className="border-t border-black/5 bg-white px-6 py-8">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
                     <div className="flex flex-col leading-none">
@@ -245,6 +325,7 @@ export default function AboutPage() {
                     </div>
                 </div>
             </footer>
+
         </div>
     );
 }

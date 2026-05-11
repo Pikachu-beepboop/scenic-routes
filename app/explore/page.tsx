@@ -144,56 +144,73 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-[#0a0a0a] font-sans">
 
       {/* NAVIGATION */}
-      <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100 bg-white">
-        <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
-          <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
-            Scenic <br /> <span className="ml-4">Routes</span>
-          </div>
-        </Link>
-        <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
-          <Link href="/explore" className="text-black border-b border-black transition">Explore Routes</Link>
-          {/* ✅ FIXED: About Us führt jetzt zu /about */}
-          <Link href="/about" className="hover:text-black transition">About Us</Link>
-          {user && (
-            <Link href="/my-trips" className="hover:text-black transition text-emerald-600">My Trips</Link>
-          )}
-        </div>
-        {user ? (
-          <div className="relative">
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              {avatarUrl ? (
-                <img src={avatarUrl} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
-                  {user.email?.[0]}
-                </div>
-              )}
-            </button>
-            {showUserMenu && (
-              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
-                </div>
-                <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  Profile
-                </Link>
-                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
-                  Sign Out
-                </button>
+      <nav
+          className="flex justify-between items-center px-10 py-4"
+          style={{ background: '#ffffff' }}
+        >
+          {/* Logo */}
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <div className="leading-none">
+              <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
+                Scenic <br /> <span className="ml-4">Routes</span>
               </div>
+            </div>
+          </Link>
+
+          {/* Nav Links */}
+          <div className="hidden md:flex items-center gap-10">
+            <Link href="/explore" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
+              Explore Routes
+            </Link>
+            <Link href="/about" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
+              About Us
+            </Link>
+            {user && (
+              <Link href="/my-trips" className="text-emerald-600 hover:text-emerald-800 transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                My Trips
+              </Link>
             )}
           </div>
-        ) : (
-          <button
-            onClick={() => setIsAuthOpen(true)}
-            className="px-6 py-2 border border-[#003e4d] hover:bg-[#003e4d] hover:text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 shadow-lg duration-300">
-            Login
-          </button>
-        )}
-      </nav>
+
+          {/* User / Login */}
+          {user ? (
+            <div className="relative user-menu-wrapper">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-9 h-9 rounded-full border border-black/20 flex items-center justify-center hover:border-black/50 transition-all duration-200 overflow-hidden"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-black font-bold text-sm uppercase">{user.email?.[0]}</span>
+                )}
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-[10px] text-gray-400 truncate tracking-widest">{user.email}</p>
+                  </div>
+                  <Link href="/profile" onClick={() => setShowUserMenu(false)} className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    Profile
+                  </Link>
+                  <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="text-[11px] uppercase tracking-[0.18em] font-semibold text-black/50 hover:text-black border border-black/20 hover:border-black/50 px-5 py-2 rounded-full transition-all duration-200"
+            >
+              Login
+            </button>
+          )}
+        </nav>
 
       {/* HERO */}
       <section className="relative h-[70vh] flex items-center overflow-hidden">

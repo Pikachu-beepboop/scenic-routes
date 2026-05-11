@@ -11,9 +11,6 @@ import {
 import Link from 'next/link';
 import AuthModal from "@/app/AuthModal";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 interface Route {
     id: string;
     title: string;
@@ -30,9 +27,6 @@ interface Route {
     [key: string]: unknown;
 }
 
-// ---------------------------------------------------------------------------
-// Helper: Title-Highlighting
-// ---------------------------------------------------------------------------
 function HighlightedTitle({ title }: { title: string }) {
     if (!title) return null;
 
@@ -67,9 +61,6 @@ function HighlightedTitle({ title }: { title: string }) {
     );
 }
 
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
 export default function RouteDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -79,27 +70,26 @@ export default function RouteDetailPage() {
     const [isSaved, setIsSaved] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const [avatarUrl, setAvatarUrl] = useState('');
 
     const { scrollY } = useScroll();
 
-    // Navbar: erscheint erst beim Scrollen
     const navOpacity = useTransform(scrollY, [250, 450], [0, 1]);
     const navY = useTransform(scrollY, [250, 450], [-20, 0]);
     const navBg = useTransform(scrollY, [250, 450], ['rgba(0,0,0,0)', 'rgba(0,0,0,0.85)']);
     const navBlur = useTransform(scrollY, [250, 450], ['blur(0px)', 'blur(20px)']);
-
-    // Hero Parallax
     const heroY = useTransform(scrollY, [0, 1000], [0, 300]);
     const heroOpacity = useTransform(scrollY, [0, 800], [1, 0.2]);
 
-    // ---------------------------------------------------------------------------
-    // Auth
-    // ---------------------------------------------------------------------------
     useEffect(() => {
         const init = async () => {
             const { data: { user: currentUser } } = await supabase.auth.getUser();
             setUser(currentUser);
-            if (currentUser) checkIfSaved(currentUser.id);
+            if (currentUser) {
+                checkIfSaved(currentUser.id);
+                fetchProfile(currentUser.id);
+            }
         };
         init();
 
@@ -109,15 +99,18 @@ export default function RouteDetailPage() {
             if (currentUser) {
                 setIsAuthModalOpen(false);
                 checkIfSaved(currentUser.id);
+                fetchProfile(currentUser.id);
             }
         });
 
         return () => subscription.unsubscribe();
     }, [params.id]);
 
-    // ---------------------------------------------------------------------------
-    // Data Fetching
-    // ---------------------------------------------------------------------------
+    async function fetchProfile(userId: string) {
+        const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+        if (data) setAvatarUrl(data.avatar_url || '');
+    }
+
     useEffect(() => {
         async function loadRoute() {
             setLoading(true);
@@ -160,9 +153,6 @@ export default function RouteDetailPage() {
         }
     };
 
-    // ---------------------------------------------------------------------------
-    // Chapter Entries
-    // ---------------------------------------------------------------------------
     const chapters = Object.entries(route ?? {})
         .filter(([key, value]) => key.startsWith('chapter') && typeof value === 'string' && (value as string).trim() !== '')
         .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
@@ -176,9 +166,6 @@ export default function RouteDetailPage() {
         .map((s: string) => s.trim())
         .filter(Boolean);
 
-    // ---------------------------------------------------------------------------
-    // Loading State
-    // ---------------------------------------------------------------------------
     if (loading) {
         return (
             <div className="h-screen bg-black flex items-center justify-center">
@@ -187,15 +174,12 @@ export default function RouteDetailPage() {
         );
     }
 
-    // ---------------------------------------------------------------------------
-    // Render
-    // ---------------------------------------------------------------------------
     return (
-        <div className="bg-black text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden">
+        <div className="bg-black text-white text-[#0a0a0a] font-sans selection:bg-emerald-500/30 overflow-x-hidden">
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-            {/* ── Back Button ─────────────────────────────────────────── */}
+            {/* ── Back Button ── */}
             <div className="fixed top-10 left-10 z-[60]">
                 <button
                     onClick={() => router.back()}
@@ -213,7 +197,7 @@ export default function RouteDetailPage() {
                 </button>
             </div>
 
-            {/* ── Scroll-triggered Navbar ──────────────────────────────── */}
+            {/* ── Scroll-triggered Navbar ── */}
             <motion.nav
                 style={{
                     opacity: navOpacity,
@@ -239,20 +223,54 @@ export default function RouteDetailPage() {
                         )}
                     </div>
 
-                    <button
-                        onClick={() => !user && setIsAuthModalOpen(true)}
-                        aria-label="Account"
-                        className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-emerald-500 hover:text-black hover:scale-110 transition-all duration-700 shadow-2xl"
-                    >
-                        {user
-                            ? <span className="text-sm font-bold uppercase italic">{user.email?.charAt(0)}</span>
-                            : <User size={18} />
-                        }
-                    </button>
+                    {/* ── User Menu ── */}
+                    <div className="relative">
+                        <button
+                            onClick={() => user ? setShowUserMenu(!showUserMenu) : setIsAuthModalOpen(true)}
+                            aria-label="Account"
+                            className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-emerald-500 hover:text-black hover:scale-110 transition-all duration-700 shadow-2xl overflow-hidden"
+                        >
+                            {user ? (
+                                avatarUrl
+                                    ? <img src={avatarUrl} className="w-full h-full object-cover" />
+                                    : <span className="text-sm font-bold uppercase italic">{user.email?.charAt(0)}</span>
+                            ) : (
+                                <User size={18} />
+                            )}
+                        </button>
+
+                        {showUserMenu && user && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
+                                <div className="absolute right-0 top-14 w-52 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden z-20">
+                                    <div className="px-4 py-3 border-b border-gray-100">
+                                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                                    </div>
+                                    <Link
+                                        href="/profile"
+                                        onClick={() => setShowUserMenu(false)}
+                                        className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Profile
+                                    </Link>
+                                    <button
+                                        onClick={async () => {
+                                            await supabase.auth.signOut();
+                                            setShowUserMenu(false);
+                                            router.push('/');
+                                        }}
+                                        className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                    >
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </motion.nav>
 
-            {/* ── 1. Hero ───────────────────────────────────────────────── */}
+            {/* ── 1. Hero ── */}
             <section className="relative h-screen w-full overflow-hidden flex items-end justify-start px-12 pb-24 md:px-20 md:pb-32">
                 <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
                     <img
@@ -287,7 +305,7 @@ export default function RouteDetailPage() {
                 </div>
             </section>
 
-            {/* ── 2. Quick Stats Bar ────────────────────────────────────── */}
+            {/* ── 2. Quick Stats Bar ── */}
             <div className="sticky top-0 z-40 w-full backdrop-blur-3xl bg-black/70 border-y border-white/5 shadow-2xl">
                 <div className="max-w-7xl mx-auto px-12 py-12 grid grid-cols-2 md:grid-cols-4 gap-12 text-[10px] font-bold uppercase tracking-[0.6em] opacity-70">
                     {[
@@ -306,10 +324,8 @@ export default function RouteDetailPage() {
                 </div>
             </div>
 
-            {/* ── 3. Story Section ──────────────────────────────────────── */}
+            {/* ── 3. Story Section ── */}
             <section className="max-w-7xl mx-auto px-12 py-32 md:py-64 space-y-32">
-
-                {/* Intro */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
@@ -345,7 +361,6 @@ export default function RouteDetailPage() {
                     </motion.div>
                 </div>
 
-                {/* Chapter Slider */}
                 {chapters.length > 0 && (
                     <div className="space-y-16">
                         <div
@@ -382,7 +397,6 @@ export default function RouteDetailPage() {
                             ))}
                         </div>
 
-                        {/* Slider Controls */}
                         <div className="flex items-center gap-10 px-2">
                             <button
                                 type="button"
@@ -392,7 +406,6 @@ export default function RouteDetailPage() {
                             >
                                 <ArrowLeft size={28} />
                             </button>
-
                             <div className="flex-1 h-[1px] bg-zinc-800 relative rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ scaleX: 0 }}
@@ -402,7 +415,6 @@ export default function RouteDetailPage() {
                                     className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500 to-emerald-500/0 origin-left"
                                 />
                             </div>
-
                             <button
                                 type="button"
                                 onClick={() => document.getElementById('story-slider')?.scrollBy({ left: 500, behavior: 'smooth' })}
@@ -416,12 +428,10 @@ export default function RouteDetailPage() {
                 )}
             </section>
 
-            {/* ── 4. Map Section ────────────────────────────────────────── */}
+            {/* ── 4. Map Section ── */}
             <section className="max-w-7xl mx-auto px-6 md:px-12 pb-48">
                 <div className="bg-zinc-900/80 rounded-[3rem] border border-white/20 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-md">
                     <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[650px]">
-
-                        {/* Route Info Panel */}
                         <div className="lg:col-span-4 p-10 md:p-14 flex flex-col justify-between border-r border-white/10 bg-black/40">
                             <div className="space-y-12">
                                 <div className="space-y-4">
@@ -435,37 +445,20 @@ export default function RouteDetailPage() {
                                     </p>
                                 </div>
 
-                                {/* Timeline */}
                                 <div className="space-y-10 relative">
                                     <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-emerald-500/20" />
-
-                                    {/* Start Point */}
                                     {route?.['start point'] && (
-                                        <TimelineStop
-                                            label={route['start point']}
-                                            sublabel="Departure Point"
-                                            active
-                                        />
+                                        <TimelineStop label={route['start point']} sublabel="Departure Point" active />
                                     )}
-
-                                    {/* Highlights */}
                                     {highlights.map((stop, i) => (
                                         <TimelineStop key={i} label={stop} />
                                     ))}
-
-                                    {/* End Point */}
                                     {route?.['end point'] && (
-                                        <TimelineStop
-                                            label={route['end point']}
-                                            sublabel="Final Destination"
-                                            active
-                                            pulse
-                                        />
+                                        <TimelineStop label={route['end point']} sublabel="Final Destination" active pulse />
                                     )}
                                 </div>
                             </div>
 
-                            {/* CTA — BUG FIX: öffnendes <a>-Tag war vorher fehlend */}
                             <div className="pt-12">
                                 <a
                                     href={route?.['Maps URL']}
@@ -479,7 +472,6 @@ export default function RouteDetailPage() {
                             </div>
                         </div>
 
-                        {/* Map Embed */}
                         <div className="lg:col-span-8 relative h-[500px] lg:h-auto overflow-hidden">
                             {route?.['Google Maps'] && (
                                 <iframe
@@ -498,7 +490,7 @@ export default function RouteDetailPage() {
                 </div>
             </section>
 
-            {/* ── Footer ───────────────────────────────────────────────── */}
+            {/* ── Footer ── */}
             <footer className="relative bg-gradient-to-b from-black via-zinc-950 to-black border-t border-white/5 overflow-hidden">
                 <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
                     backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(16,185,129,0.15) 1px, transparent 0)',
@@ -507,8 +499,6 @@ export default function RouteDetailPage() {
 
                 <div className="relative max-w-7xl mx-auto px-12 pt-32 pb-16">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-20 border-b border-white/5">
-
-                        {/* Brand */}
                         <div className="lg:col-span-4 space-y-8">
                             <Link href="/" className="flex items-center gap-4 group w-fit">
                                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
@@ -519,26 +509,19 @@ export default function RouteDetailPage() {
                                     <span className="text-xs uppercase tracking-[0.3em] text-zinc-600">Since 2026</span>
                                 </div>
                             </Link>
-
                             <p className="text-zinc-500 text-sm leading-relaxed max-w-xs font-light">
                                 Curating the world's most breathtaking driving routes for those who seek the road less travelled.
                             </p>
-
                             <div className="flex gap-4">
                                 {['IG'].map(social => (
-                                    <a
-                                        key={social}
-                                        href="#"
-                                        aria-label={social}
-                                        className="w-11 h-11 rounded-xl bg-zinc-900/50 border border-white/5 flex items-center justify-center text-[10px] font-bold text-zinc-600 hover:text-white hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all duration-500 hover:scale-110"
-                                    >
+                                    <a key={social} href="#" aria-label={social}
+                                        className="w-11 h-11 rounded-xl bg-zinc-900/50 border border-white/5 flex items-center justify-center text-[10px] font-bold text-zinc-600 hover:text-white hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all duration-500 hover:scale-110">
                                         {social}
                                     </a>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Links */}
                         <div className="lg:col-span-5 grid grid-cols-2 gap-12">
                             {[
                                 { heading: 'Discover', links: ['Explore Routes', 'Mountains', 'Coastal Roads', 'Forest Paths', 'Desert Drives'] },
@@ -549,9 +532,7 @@ export default function RouteDetailPage() {
                                     <ul className="space-y-4">
                                         {links.map(link => (
                                             <li key={link}>
-                                                <a href="#" className="text-sm text-zinc-500 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">
-                                                    {link}
-                                                </a>
+                                                <a href="#" className="text-sm text-zinc-500 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">{link}</a>
                                             </li>
                                         ))}
                                     </ul>
@@ -559,22 +540,15 @@ export default function RouteDetailPage() {
                             ))}
                         </div>
 
-                        {/* Newsletter */}
                         <div className="lg:col-span-3 space-y-6">
                             <div className="space-y-3">
                                 <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">Stay Inspired</h4>
                                 <p className="text-xs text-zinc-600 leading-relaxed">Get the best routes delivered to your inbox every week.</p>
                             </div>
                             <div className="relative">
-                                <input
-                                    type="email"
-                                    placeholder="your@email.com"
-                                    className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white placeholder-zinc-700 outline-none focus:border-emerald-500/50 transition-all duration-500"
-                                />
-                                <button
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-emerald-500 hover:bg-emerald-400 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
-                                    aria-label="Newsletter abonnieren"
-                                >
+                                <input type="email" placeholder="your@email.com"
+                                    className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white placeholder-zinc-700 outline-none focus:border-emerald-500/50 transition-all duration-500" />
+                                <button className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-emerald-500 hover:bg-emerald-400 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95" aria-label="Newsletter abonnieren">
                                     <Send size={16} className="text-black" />
                                 </button>
                             </div>
@@ -592,12 +566,11 @@ export default function RouteDetailPage() {
                             ))}
                         </div>
                     </div>
-
                     <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
                 </div>
             </footer>
 
-            {/* ── Floating Heart ────────────────────────────────────────── */}
+            {/* ── Floating Heart ── */}
             <div className="fixed bottom-16 right-16 z-50">
                 <motion.button
                     whileHover={{ scale: 1.2 }}
@@ -606,19 +579,13 @@ export default function RouteDetailPage() {
                     aria-label={isSaved ? 'Route entfernen' : 'Route speichern'}
                     className="p-5 bg-zinc-900 border border-white/10 rounded-full shadow-2xl"
                 >
-                    <Heart
-                        className={`w-8 h-8 transition-all duration-700 ease-out ${isSaved ? 'text-red-500 fill-red-500 scale-125' : 'text-white'
-                            }`}
-                    />
+                    <Heart className={`w-8 h-8 transition-all duration-700 ease-out ${isSaved ? 'text-red-500 fill-red-500 scale-125' : 'text-white'}`} />
                 </motion.button>
             </div>
         </div>
     );
 }
 
-// ---------------------------------------------------------------------------
-// Sub-component: Timeline Stop
-// ---------------------------------------------------------------------------
 interface TimelineStopProps {
     label: string;
     sublabel?: string;
@@ -629,27 +596,17 @@ interface TimelineStopProps {
 function TimelineStop({ label, sublabel, active = false, pulse = false }: TimelineStopProps) {
     return (
         <div className="relative pl-10 group cursor-default">
-            <div
-                className={`absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 bg-black z-10 flex items-center justify-center transition-all duration-300
-                    ${active
-                        ? 'border-emerald-500'
-                        : 'border-emerald-500/40 group-hover:border-emerald-500 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                    }`}
-            >
-                <div
-                    className={`rounded-full bg-emerald-500 transition-all duration-300
-                        ${active ? 'w-2 h-2' : 'w-1.5 h-1.5 opacity-60 group-hover:opacity-100'}
-                        ${pulse ? 'animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]' : ''}
-                    `}
-                />
+            <div className={`absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 bg-black z-10 flex items-center justify-center transition-all duration-300
+                ${active ? 'border-emerald-500' : 'border-emerald-500/40 group-hover:border-emerald-500 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]'}`}>
+                <div className={`rounded-full bg-emerald-500 transition-all duration-300
+                    ${active ? 'w-2 h-2' : 'w-1.5 h-1.5 opacity-60 group-hover:opacity-100'}
+                    ${pulse ? 'animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]' : ''}`} />
             </div>
             <div className="space-y-1">
                 <h4 className={`font-medium transition-colors duration-300 ${active ? 'text-white italic' : 'text-white/80 group-hover:text-emerald-400'}`}>
                     {label}
                 </h4>
-                {sublabel && (
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-widest">{sublabel}</p>
-                )}
+                {sublabel && <p className="text-zinc-500 text-[10px] uppercase tracking-widest">{sublabel}</p>}
             </div>
         </div>
     );
