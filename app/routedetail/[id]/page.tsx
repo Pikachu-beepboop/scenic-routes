@@ -19,11 +19,11 @@ interface Route {
     duration: string;
     distance_km: number;
     country: string;
-    'start point'?: string;
-    'end point'?: string;
-    'route highlights'?: string;
-    'Maps URL'?: string;
-    'Google Maps'?: string;
+    'start_point'?: string;
+    'end_point'?: string;
+    'route_highlights'?: string;
+    'maps_URL'?: string;
+    'google_maps'?: string;
     [key: string]: unknown;
 }
 
@@ -161,7 +161,7 @@ export default function RouteDetailPage() {
             return { key, title: lines[0], body: lines.slice(1).join('\n') };
         });
 
-    const highlights: string[] = (route?.['route highlights'] ?? '')
+    const highlights: string[] = (route?.['route_highlights'] ?? '')
         .split('\n')
         .map((s: string) => s.trim())
         .filter(Boolean);
@@ -439,29 +439,29 @@ export default function RouteDetailPage() {
                                         The Route<span className="text-emerald-500">.</span>
                                     </h2>
                                     <p className="text-zinc-500 text-xs leading-relaxed uppercase tracking-[0.2em] font-medium italic">
-                                        {route?.['start point']}
+                                        {route?.['start_point']}
                                         <span className="text-emerald-500/50 mx-2">—</span>
-                                        {route?.['end point']}
+                                        {route?.['end_point']}
                                     </p>
                                 </div>
 
                                 <div className="space-y-10 relative">
                                     <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-emerald-500/20" />
-                                    {route?.['start point'] && (
-                                        <TimelineStop label={route['start point']} sublabel="Departure Point" active />
+                                    {route?.['start_point'] && (
+                                        <TimelineStop label={route['start_point']} sublabel="Departure Point" active />
                                     )}
                                     {highlights.map((stop, i) => (
                                         <TimelineStop key={i} label={stop} />
                                     ))}
-                                    {route?.['end point'] && (
-                                        <TimelineStop label={route['end point']} sublabel="Final Destination" active pulse />
+                                    {route?.['end_point'] && (
+                                        <TimelineStop label={route['end_point']} sublabel="Final Destination" active pulse />
                                     )}
                                 </div>
                             </div>
 
                             <div className="pt-12">
                                 <a
-                                    href={route?.['Maps URL']}
+                                    href={route?.['maps_URL']}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="group flex items-center justify-center gap-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-5 rounded-2xl transition-all duration-500 uppercase tracking-widest text-[11px] w-full shadow-2xl active:scale-95"
@@ -473,9 +473,9 @@ export default function RouteDetailPage() {
                         </div>
 
                         <div className="lg:col-span-8 relative h-[500px] lg:h-auto overflow-hidden">
-                            {route?.['Google Maps'] && (
+                            {route?.['google_maps'] && (
                                 <iframe
-                                    src={route['Google Maps']}
+                                    src={route['google_maps']}
                                     width="100%"
                                     height="100%"
                                     style={{ border: 0 }}
