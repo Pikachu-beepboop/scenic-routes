@@ -4,245 +4,348 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import {
+    User, MapPin, Heart, Settings, LogOut,
+    Navigation, Star, Pencil, ChevronRight
+} from 'lucide-react';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState('');
-  const router = useRouter();
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState('');
+    const [activeSection, setActiveSection] = useState<'profile' | 'mytrips' | 'favorites' | 'settings'>('profile');
+    const router = useRouter();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      if (!u) { router.push('/'); return; }
-      setUser(u);
-      fetchProfile(u.id);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data }) => {
+            const u = data.session?.user ?? null;
+            if (!u) { router.push('/'); return; }
+            setUser(u);
+            fetchProfile(u.id);
+        });
+        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+        return () => listener.subscription.unsubscribe();
+    }, []);
 
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) {
-      setFullName(data.full_name || '');
-      setEmail(data.email || '');
-      setAvatarUrl(data.avatar_url || '');
-      setAvatarPreview(data.avatar_url || '');
+    async function fetchProfile(userId: string) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+        if (data) {
+            setFullName(data.full_name || '');
+            setEmail(data.email || '');
+            setAvatarUrl(data.avatar_url || '');
+            setAvatarPreview(data.avatar_url || '');
+        }
+        setLoading(false);
     }
-    setLoading(false);
-  }
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  }
+    function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
+    }
 
-  async function handleSave() {
-    setSaving(true);
-    setError('');
-    setSuccess('');
+    async function handleSave() {
+        setSaving(true);
+        setError('');
+        setSuccess('');
+        let uploadedAvatarUrl = avatarUrl;
 
-    let uploadedAvatarUrl = avatarUrl;
+        if (avatarFile) {
+            const fileExt = avatarFile.name.split('.').pop();
+            const fileName = `${user.id}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('Avatars').upload(fileName, avatarFile, { upsert: true });
+            if (uploadError) { setError('Error uploading avatar: ' + uploadError.message); setSaving(false); return; }
+            const { data: urlData } = supabase.storage.from('Avatars').getPublicUrl(fileName);
+            uploadedAvatarUrl = urlData.publicUrl;
+        }
 
-    // Загрузка аватара
-    if (avatarFile) {
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${user.id}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('Avatars')
-        .upload(fileName, avatarFile, { upsert: true });
-      if (uploadError) {
-        setError('Error uploading avatar: ' + uploadError.message);
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ full_name: fullName, avatar_url: uploadedAvatarUrl, updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+        if (profileError) { setError(profileError.message); setSaving(false); return; }
+
+        if (email !== user.email) {
+            const { error: emailError } = await supabase.auth.updateUser({ email });
+            if (emailError) { setError(emailError.message); setSaving(false); return; }
+        }
+
+        if (newPassword) {
+            if (newPassword !== confirmPassword) { setError('Passwords do not match.'); setSaving(false); return; }
+            if (newPassword.length < 6) { setError('Password must be at least 6 characters.'); setSaving(false); return; }
+            const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword });
+            if (passwordError) { setError(passwordError.message); setSaving(false); return; }
+        }
+
+        setSuccess('Profile updated successfully!');
+        setAvatarUrl(uploadedAvatarUrl);
+        setNewPassword('');
+        setConfirmPassword('');
         setSaving(false);
-        return;
-      }
-      const { data: urlData } = supabase.storage.from('Avatars').getPublicUrl(fileName);
-      uploadedAvatarUrl = urlData.publicUrl;
     }
 
-    // Обновление профиля
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ full_name: fullName, avatar_url: uploadedAvatarUrl, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
-
-    if (profileError) { setError(profileError.message); setSaving(false); return; }
-
-    // Обновление email
-    if (email !== user.email) {
-      const { error: emailError } = await supabase.auth.updateUser({ email });
-      if (emailError) { setError(emailError.message); setSaving(false); return; }
+    async function handleLogout() {
+        await supabase.auth.signOut();
+        router.push('/');
     }
 
-    // Обновление пароля
-    if (newPassword) {
-      if (newPassword !== confirmPassword) {
-        setError('Passwords do not match.');
-        setSaving(false);
-        return;
-      }
-      if (newPassword.length < 6) {
-        setError('Password must be at least 6 characters.');
-        setSaving(false);
-        return;
-      }
-      const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword });
-      if (passwordError) { setError(passwordError.message); setSaving(false); return; }
-    }
-
-    setSuccess('Profile updated successfully!');
-    setAvatarUrl(uploadedAvatarUrl);
-    setNewPassword('');
-    setConfirmPassword('');
-    setSaving(false);
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push('/');
-  }
-
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-white">
-
-      {/* NAVIGATION */}
-      <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100 bg-white">
-        <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
-          <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
-            Scenic <br /> <span className="ml-4">Routes</span>
-          </div>
-        </Link>
-        <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
-          <Link href="/explore" className="hover:text-black transition">Explore Routes</Link>
-          <a href="#" className="hover:text-black transition">About us</a>
-          {user && <Link href="/my-trips" className="hover:text-black transition text-emerald-600">My Trips</Link>}
+    if (loading) return (
+        <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+            <div className="w-10 h-10 border-[3px] border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
         </div>
-        {user ? (
-          <div className="relative">
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              {avatarPreview ? (
-                <img src={avatarPreview} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
-                  {user.email?.[0]}
-                </div>
-              )}
-            </button>
-            {showUserMenu && (
-              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
-                </div>
-                <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Profile</Link>
-                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">Sign Out</button>
-              </div>
-            )}
-          </div>
-        ) : null}
-      </nav>
+    );
 
-      <main className="max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-bold text-black mb-2">Profile</h1>
-        <p className="text-gray-400 mb-10">Manage your account settings</p>
+    const navItems = [
+        { id: 'profile',    label: 'Profile',    icon: User },
+        { id: 'mytrips',   label: 'My Trips',   icon: Navigation },
+        { id: 'favorites', label: 'Favorites',  icon: Heart },
+        { id: 'settings',  label: 'Settings',   icon: Settings },
+    ] as const;
 
-        {/* AVATAR */}
-        <div className="flex items-center gap-6 mb-10">
-          <div className="relative">
-            {avatarPreview ? (
-              <img src={avatarPreview} className="w-24 h-24 rounded-full object-cover border-4 border-gray-100" />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-3xl uppercase border-4 border-gray-100">
-                {user?.email?.[0]}
-              </div>
-            )}
-            <label className="absolute bottom-0 right-0 w-8 h-8 bg-[#003e4d] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#004e61] transition-colors">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-              </svg>
-              <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-            </label>
-          </div>
-          <div>
-            <p className="font-bold text-lg">{fullName || user?.email}</p>
-            <p className="text-sm text-gray-400">{user?.email}</p>
-          </div>
+    const stats = [
+        { icon: '/mountains.png', label: 'Trips Completed', value: 12 },
+        { icon: null,             label: 'Routes Driven',   value: 5,  svgIcon: true },
+        { icon: null,             label: 'Favorites',       value: 8,  starIcon: true },
+    ];
+
+    return (
+        <div className="min-h-screen bg-[#0d1117] text-white font-sans overflow-hidden">
+
+            {/* ── Background: scenic road blur ──────────────────────── */}
+            <div
+                className="fixed inset-0 z-0"
+                style={{
+                    backgroundImage: `url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: 'brightness(1) saturate(1 .2) blur(8px)',
+                }}
+            />
+            <div className="fixed inset-0 z-0 bg-gradient-to-br from-black/60 via-[#0d1117]/80 to-black/40" />
+
+            {/* ── Page Layout ───────────────────────────────────────── */}
+            <div className="relative z-10 flex min-h-screen">
+
+                {/* ── Sidebar ───────────────────────────────────────── */}
+                <aside className="w-64 flex-shrink-0 flex flex-col justify-between py-10 px-6 border-r border-white/5 bg-black/20 backdrop-blur-2xl">
+
+                    {/* Brand */}
+                    <div className="space-y-10">
+                        <Link href="/" className="flex flex-col leading-[0.75]">
+                            <span className="text-xl font-black uppercase tracking-tighter italic text-white">Scenic</span>
+                            <span className="text-base font-light uppercase tracking-[0.2em] text-white/50">Routes</span>
+                        </Link>
+
+                        {/* User Card */}
+                        <div className="flex items-center gap-3">
+                            <div className="relative flex-shrink-0">
+                                {avatarPreview ? (
+                                    <img src={avatarPreview} className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/40" />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-bold text-lg uppercase border-2 border-emerald-500/40">
+                                        {user?.email?.[0]}
+                                    </div>
+                                )}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#0d1117]" />
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-semibold text-white truncate">{fullName || 'Traveller'}</p>
+                                <p className="text-[10px] text-white/40 truncate">{user?.email}</p>
+                                <p className="text-[10px] text-emerald-500/70 mt-0.5">Scenic Route Explorer</p>
+                            </div>
+                        </div>
+
+                        {/* Nav Items */}
+                        <nav className="space-y-1">
+                            {navItems.map(({ id, label, icon: Icon }) => {
+                                const isActive = activeSection === id;
+                                return (
+                                    <button
+                                        key={id}
+                                        onClick={() => {
+                                            if (id === 'mytrips') { router.push('/my-trips'); return; }
+                                            setActiveSection(id);
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300
+                                            ${isActive
+                                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                                                : 'text-white/50 hover:text-white hover:bg-white/5 border border-transparent'
+                                            }`}
+                                    >
+                                        <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+                                        {label}
+                                        {isActive && <ChevronRight size={12} className="ml-auto opacity-50" />}
+                                    </button>
+                                );
+                            })}
+                        </nav>
+                    </div>
+
+                    {/* Logout */}
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/30 hover:text-red-400 hover:bg-red-500/5 transition-all duration-300 border border-transparent hover:border-red-500/10"
+                    >
+                        <LogOut size={16} strokeWidth={1.5} />
+                        Logout
+                    </button>
+                </aside>
+
+                {/* ── Main Content ──────────────────────────────────── */}
+                <main className="flex-1 flex items-center justify-center p-8 lg:p-16">
+                    <div className="w-full max-w-md">
+
+                        {/* Glass Card */}
+                        <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl bg-white/5">
+
+                            {/* Edit Icon top-right */}
+                            <div className="absolute top-5 right-5 z-10">
+                                <label className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center cursor-pointer transition-all duration-300 hover:border-emerald-500/30">
+                                    <Pencil size={14} className="text-white/60" />
+                                    <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                                </label>
+                            </div>
+
+                            {/* Profile Header */}
+                            <div className="px-8 pt-8 pb-6 border-b border-white/5">
+                                <div className="flex items-center gap-5">
+                                    <div className="relative">
+                                        {avatarPreview ? (
+                                            <img src={avatarPreview} className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30" />
+                                        ) : (
+                                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-bold text-2xl uppercase border-2 border-emerald-500/30">
+                                                {user?.email?.[0]}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white">{fullName || user?.email?.split('@')[0]}</h2>
+                                        <p className="text-xs text-white/40 mt-0.5">{user?.email}</p>
+                                        <p className="text-xs text-emerald-500/70 mt-1">Scenic Route Explorer</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Form */}
+                            <div className="px-8 py-6 space-y-4">
+                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-5">
+                                    Profile Settings
+                                </h3>
+
+                                {/* Full Name */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                        Full Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={fullName}
+                                        onChange={e => setFullName(e.target.value)}
+                                        placeholder="Your name"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                    />
+                                </div>
+
+                                {/* Email */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                    />
+                                </div>
+
+                                {/* New Password */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                        New Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={e => setNewPassword(e.target.value)}
+                                        placeholder="Leave blank to keep current"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                    />
+                                </div>
+
+                                {/* Confirm Password */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                        Confirm New Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={e => setConfirmPassword(e.target.value)}
+                                        placeholder="Confirm new password"
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                    />
+                                </div>
+
+                                {error   && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
+                                {success && <p className="text-emerald-400 text-xs bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">{success}</p>}
+
+                                {/* Save Button */}
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-[0.2em] transition-all duration-300 active:scale-[0.98] shadow-[0_8px_24px_rgba(16,185,129,0.3)] mt-2"
+                                >
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+
+                            {/* Stats Bar */}
+                            <div className="px-8 py-5 border-t border-white/5 grid grid-cols-3 divide-x divide-white/5">
+                                {/* Trips */}
+                                <div className="flex flex-col items-center gap-1.5 px-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <img src="/mountains.png" alt="" className="w-5 h-5 object-contain invert opacity-60" />
+                                        <span className="text-xl font-black text-white">12</span>
+                                    </div>
+                                    <p className="text-[9px] text-white/30 uppercase tracking-widest text-center">Trips Completed</p>
+                                </div>
+
+                                {/* Routes */}
+                                <div className="flex flex-col items-center gap-1.5 px-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Navigation size={16} className="text-white/50" strokeWidth={1.5} />
+                                        <span className="text-xl font-black text-white">5</span>
+                                    </div>
+                                    <p className="text-[9px] text-white/30 uppercase tracking-widest text-center">Routes Driven</p>
+                                </div>
+
+                                {/* Favorites */}
+                                <div className="flex flex-col items-center gap-1.5 px-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Star size={16} className="text-yellow-500/70" strokeWidth={1.5} />
+                                        <span className="text-xl font-black text-white">8</span>
+                                    </div>
+                                    <p className="text-[9px] text-white/30 uppercase tracking-widest text-center">Favorites</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
         </div>
-
-        {/* FORM */}
-        <div className="flex flex-col gap-5">
-
-          <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
-              placeholder="Your name"
-              className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm outline-none focus:border-[#003e4d] focus:bg-white transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm outline-none focus:border-[#003e4d] focus:bg-white transition-all"
-            />
-          </div>
-
-          <div className="border-t border-gray-100 pt-5">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 block">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder="Leave blank to keep current"
-              className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm outline-none focus:border-[#003e4d] focus:bg-white transition-all mb-3"
-            />
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              className="w-full bg-gray-50 border-2 border-transparent rounded-xl px-4 py-3 text-sm outline-none focus:border-[#003e4d] focus:bg-white transition-all"
-            />
-          </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {success && <p className="text-emerald-500 text-sm">{success}</p>}
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-[#003e4d] hover:bg-[#004e61] text-white py-3 rounded-xl font-bold text-sm uppercase tracking-wide transition-all disabled:opacity-60"
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </main>
-    </div>
-  );
+    );
 }
