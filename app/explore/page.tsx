@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -156,7 +155,8 @@ export default function ExplorePage() {
         </Link>
         <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
           <Link href="/explore" className="text-black border-b border-black transition">Explore Routes</Link>
-          <a href="#" className="hover:text-black transition">About us</a>
+          {/* ✅ FIXED: About Us führt jetzt zu /about */}
+          <Link href="/about" className="hover:text-black transition">About Us</Link>
           {user && (
             <Link href="/my-trips" className="hover:text-black transition text-emerald-600">My Trips</Link>
           )}
@@ -372,7 +372,6 @@ export default function ExplorePage() {
             <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1 relative">
 
               <div className="relative h-78 overflow-hidden">
-                {/* Bild-Link zur Cinematic Seite */}
                 <Link href={`/routedetail/${route.id}`}>
                   <img
                     src={route.image_url}
@@ -381,7 +380,6 @@ export default function ExplorePage() {
                   />
                 </Link>
 
-                {/* Herz-Button bleibt funktionsfähig */}
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -406,9 +404,7 @@ export default function ExplorePage() {
                 <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.description}</p>
 
                 <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* Deine Duration/Distance Icons bleiben hier */}
-                  </div>
+                  <div className="flex items-center gap-3"></div>
                   <Link href={`/routedetail/${route.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800">
                     View Route
                   </Link>
@@ -419,6 +415,7 @@ export default function ExplorePage() {
         </div>
       </main>
 
+      {/* FOOTER */}
       <footer className="w-full bg-[#0a0f1a] text-gray-500 py-12 px-12 mt-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 pb-16 border-b border-white/5">
           <div className="flex flex-col gap-2 flex-shrink-0 min-w-[180px]">
@@ -435,9 +432,11 @@ export default function ExplorePage() {
               ))}
             </div>
             <div className="flex gap-8">
-              {['About Us', 'Contact', 'Privacy', 'Terms'].map(link => (
-                <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
-              ))}
+              {/* ✅ FIXED: About Us im Footer führt jetzt zu /about */}
+              <Link href="/about" className="hover:text-white transition-colors whitespace-nowrap">About Us</Link>
+              <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Contact</a>
+              <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Privacy</a>
+              <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Terms</a>
             </div>
           </div>
           <div className="flex flex-col gap-2 flex-shrink-0">

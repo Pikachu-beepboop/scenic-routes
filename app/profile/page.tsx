@@ -115,61 +115,36 @@ export default function ProfilePage() {
         { id: 'settings',  label: 'Settings',   icon: Settings },
     ] as const;
 
-    const stats = [
-        { icon: '/mountains.png', label: 'Trips Completed', value: 12 },
-        { icon: null,             label: 'Routes Driven',   value: 5,  svgIcon: true },
-        { icon: null,             label: 'Favorites',       value: 8,  starIcon: true },
-    ];
-
     return (
         <div className="min-h-screen bg-[#0d1117] text-white font-sans overflow-hidden">
 
-            {/* ── Background: scenic road blur ──────────────────────── */}
+            {/* ── Background: scenic mountain road ──────────────────── */}
             <div
                 className="fixed inset-0 z-0"
                 style={{
                     backgroundImage: `url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80')`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    filter: 'brightness(1) saturate(1 .2) blur(8px)',
+                    filter: 'brightness(0.85) saturate(1.1) blur(6px)',
                 }}
             />
-            <div className="fixed inset-0 z-0 bg-gradient-to-br from-black/60 via-[#0d1117]/80 to-black/40" />
+            <div className="fixed inset-0 z-0 bg-gradient-to-br from-black/50 via-[#0d1117]/70 to-black/30" />
 
             {/* ── Page Layout ───────────────────────────────────────── */}
             <div className="relative z-10 flex min-h-screen">
 
                 {/* ── Sidebar ───────────────────────────────────────── */}
-                <aside className="w-64 flex-shrink-0 flex flex-col justify-between py-10 px-6 border-r border-white/5 bg-black/20 backdrop-blur-2xl">
+                <aside className="w-56 flex-shrink-0 flex flex-col justify-between py-8 px-5 border-r border-white/5 bg-black/30 backdrop-blur-2xl">
 
                     {/* Brand */}
-                    <div className="space-y-10">
-                        <Link href="/" className="flex flex-col leading-[0.75]">
-                            <span className="text-xl font-black uppercase tracking-tighter italic text-white">Scenic</span>
-                            <span className="text-base font-light uppercase tracking-[0.2em] text-white/50">Routes</span>
+                    <div className="space-y-8">
+                        <Link href="/" className="flex flex-col leading-none">
+                            <span className="text-lg font-black uppercase tracking-tight italic text-white">Scenic</span>
+                            <span className="text-xs font-light uppercase tracking-[0.25em] text-white/40 mt-0.5">Routes</span>
                         </Link>
 
-                        {/* User Card */}
-                        <div className="flex items-center gap-3">
-                            <div className="relative flex-shrink-0">
-                                {avatarPreview ? (
-                                    <img src={avatarPreview} className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/40" />
-                                ) : (
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-bold text-lg uppercase border-2 border-emerald-500/40">
-                                        {user?.email?.[0]}
-                                    </div>
-                                )}
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#0d1117]" />
-                            </div>
-                            <div className="overflow-hidden">
-                                <p className="text-sm font-semibold text-white truncate">{fullName || 'Traveller'}</p>
-                                <p className="text-[10px] text-white/40 truncate">{user?.email}</p>
-                                <p className="text-[10px] text-emerald-500/70 mt-0.5">Scenic Route Explorer</p>
-                            </div>
-                        </div>
-
                         {/* Nav Items */}
-                        <nav className="space-y-1">
+                        <nav className="space-y-0.5">
                             {navItems.map(({ id, label, icon: Icon }) => {
                                 const isActive = activeSection === id;
                                 return (
@@ -179,15 +154,14 @@ export default function ProfilePage() {
                                             if (id === 'mytrips') { router.push('/my-trips'); return; }
                                             setActiveSection(id);
                                         }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                                             ${isActive
-                                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
-                                                : 'text-white/50 hover:text-white hover:bg-white/5 border border-transparent'
+                                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/15'
+                                                : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'
                                             }`}
                                     >
-                                        <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+                                        <Icon size={15} strokeWidth={isActive ? 2 : 1.5} />
                                         {label}
-                                        {isActive && <ChevronRight size={12} className="ml-auto opacity-50" />}
                                     </button>
                                 );
                             })}
@@ -197,57 +171,68 @@ export default function ProfilePage() {
                     {/* Logout */}
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/30 hover:text-red-400 hover:bg-red-500/5 transition-all duration-300 border border-transparent hover:border-red-500/10"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/25 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200 border border-transparent"
                     >
-                        <LogOut size={16} strokeWidth={1.5} />
+                        <LogOut size={15} strokeWidth={1.5} />
                         Logout
                     </button>
                 </aside>
 
                 {/* ── Main Content ──────────────────────────────────── */}
-                <main className="flex-1 flex items-center justify-center p-8 lg:p-16">
-                    <div className="w-full max-w-md">
+                <main className="flex-1 flex items-center justify-center p-8">
+                    <div className="w-full max-w-sm">
 
                         {/* Glass Card */}
-                        <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl bg-white/5">
-
-                            {/* Edit Icon top-right */}
-                            <div className="absolute top-5 right-5 z-10">
-                                <label className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center cursor-pointer transition-all duration-300 hover:border-emerald-500/30">
-                                    <Pencil size={14} className="text-white/60" />
+                        <div
+                            className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
+                            style={{
+                                background: 'rgba(13, 17, 23, 0.55)',
+                                backdropFilter: 'blur(24px)',
+                                WebkitBackdropFilter: 'blur(24px)',
+                            }}
+                        >
+                            {/* Edit / Upload Avatar Icon top-right */}
+                            <div className="absolute top-4 right-4 z-10">
+                                <label className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center cursor-pointer transition-all duration-200">
+                                    <Pencil size={13} className="text-white/50" />
                                     <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                                 </label>
                             </div>
 
                             {/* Profile Header */}
-                            <div className="px-8 pt-8 pb-6 border-b border-white/5">
-                                <div className="flex items-center gap-5">
-                                    <div className="relative">
+                            <div className="px-6 pt-6 pb-5 border-b border-white/5">
+                                <div className="flex items-center gap-4">
+                                    <div className="relative flex-shrink-0">
                                         {avatarPreview ? (
-                                            <img src={avatarPreview} className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30" />
+                                            <img
+                                                src={avatarPreview}
+                                                className="w-14 h-14 rounded-xl object-cover border border-emerald-500/25"
+                                            />
                                         ) : (
-                                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-bold text-2xl uppercase border-2 border-emerald-500/30">
-                                                {user?.email?.[0]}
+                                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-700 to-teal-900 flex items-center justify-center text-white font-bold text-xl uppercase border border-emerald-500/25">
+                                                {(fullName || user?.email || 'U')[0].toUpperCase()}
                                             </div>
                                         )}
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">{fullName || user?.email?.split('@')[0]}</h2>
-                                        <p className="text-xs text-white/40 mt-0.5">{user?.email}</p>
-                                        <p className="text-xs text-emerald-500/70 mt-1">Scenic Route Explorer</p>
+                                        <h2 className="text-base font-bold text-white leading-tight">
+                                            {fullName || user?.email?.split('@')[0]}
+                                        </h2>
+                                        <p className="text-[11px] text-white/35 mt-0.5">{user?.email}</p>
+                                        <p className="text-[11px] text-emerald-500/60 mt-0.5">Scenic Route Explorer</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Form */}
-                            <div className="px-8 py-6 space-y-4">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-5">
+                            <div className="px-6 py-5 space-y-4">
+                                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
                                     Profile Settings
                                 </h3>
 
                                 {/* Full Name */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
                                         Full Name
                                     </label>
                                     <input
@@ -255,26 +240,26 @@ export default function ProfilePage() {
                                         value={fullName}
                                         onChange={e => setFullName(e.target.value)}
                                         placeholder="Your name"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                        className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/15 outline-none focus:border-emerald-500/30 focus:bg-white/8 transition-all duration-200"
                                     />
                                 </div>
 
                                 {/* Email */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
                                         Email
                                     </label>
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                        className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/15 outline-none focus:border-emerald-500/30 focus:bg-white/8 transition-all duration-200"
                                     />
                                 </div>
 
                                 {/* New Password */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
                                         New Password
                                     </label>
                                     <input
@@ -282,13 +267,13 @@ export default function ProfilePage() {
                                         value={newPassword}
                                         onChange={e => setNewPassword(e.target.value)}
                                         placeholder="Leave blank to keep current"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                        className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/15 outline-none focus:border-emerald-500/30 focus:bg-white/8 transition-all duration-200"
                                     />
                                 </div>
 
                                 {/* Confirm Password */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
                                         Confirm New Password
                                     </label>
                                     <input
@@ -296,7 +281,7 @@ export default function ProfilePage() {
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
                                         placeholder="Confirm new password"
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-emerald-500/40 focus:bg-white/8 transition-all duration-300"
+                                        className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/15 outline-none focus:border-emerald-500/30 focus:bg-white/8 transition-all duration-200"
                                     />
                                 </div>
 
@@ -307,39 +292,39 @@ export default function ProfilePage() {
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-[0.2em] transition-all duration-300 active:scale-[0.98] shadow-[0_8px_24px_rgba(16,185,129,0.3)] mt-2"
+                                    className="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:opacity-50 text-black font-bold py-3 rounded-lg text-[10px] uppercase tracking-[0.25em] transition-all duration-200 active:scale-[0.99] shadow-[0_4px_20px_rgba(16,185,129,0.25)] mt-1"
                                 >
                                     {saving ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
 
                             {/* Stats Bar */}
-                            <div className="px-8 py-5 border-t border-white/5 grid grid-cols-3 divide-x divide-white/5">
+                            <div className="px-6 py-4 border-t border-white/5 grid grid-cols-3 divide-x divide-white/5">
                                 {/* Trips */}
-                                <div className="flex flex-col items-center gap-1.5 px-4">
+                                <div className="flex flex-col items-center gap-1 px-2">
                                     <div className="flex items-center gap-1.5">
-                                        <img src="/mountains.png" alt="" className="w-5 h-5 object-contain invert opacity-60" />
-                                        <span className="text-xl font-black text-white">12</span>
+                                        <img src="/mountains.png" alt="" className="w-4 h-4 object-contain invert opacity-50" />
+                                        <span className="text-lg font-black text-white">12</span>
                                     </div>
-                                    <p className="text-[9px] text-white/30 uppercase tracking-widest text-center">Trips Completed</p>
+                                    <p className="text-[8px] text-white/25 uppercase tracking-widest text-center leading-tight">Trips Completed</p>
                                 </div>
 
                                 {/* Routes */}
-                                <div className="flex flex-col items-center gap-1.5 px-4">
+                                <div className="flex flex-col items-center gap-1 px-2">
                                     <div className="flex items-center gap-1.5">
-                                        <Navigation size={16} className="text-white/50" strokeWidth={1.5} />
-                                        <span className="text-xl font-black text-white">5</span>
+                                        <Navigation size={14} className="text-white/40" strokeWidth={1.5} />
+                                        <span className="text-lg font-black text-white">5</span>
                                     </div>
-                                    <p className="text-[9px] text-white/30 uppercase tracking-widest text-center">Routes Driven</p>
+                                    <p className="text-[8px] text-white/25 uppercase tracking-widest text-center leading-tight">Routes Driven</p>
                                 </div>
 
                                 {/* Favorites */}
-                                <div className="flex flex-col items-center gap-1.5 px-4">
+                                <div className="flex flex-col items-center gap-1 px-2">
                                     <div className="flex items-center gap-1.5">
-                                        <Star size={16} className="text-yellow-500/70" strokeWidth={1.5} />
-                                        <span className="text-xl font-black text-white">8</span>
+                                        <Star size={14} className="text-yellow-500/60" strokeWidth={1.5} />
+                                        <span className="text-lg font-black text-white">8</span>
                                     </div>
-                                    <p className="text-[9px] text-white/30 uppercase tracking-widest text-center">Favorites</p>
+                                    <p className="text-[8px] text-white/25 uppercase tracking-widest text-center leading-tight">Favorites</p>
                                 </div>
                             </div>
                         </div>

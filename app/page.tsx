@@ -1,23 +1,22 @@
-
 "use client";
- 
+
 import { useState, useEffect } from "react";
 import localFont from 'next/font/local';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthModal from './AuthModal';
 import { supabase } from '../lib/supabase';
- 
+
 const firstFont = localFont({
   src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf',
   weight: '700',
 });
- 
+
 const thirdFont = localFont({
   src: './fonts/colitez-serif/ColitezSerif-Italic.otf',
   weight: '700',
 });
- 
+
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
@@ -77,7 +76,7 @@ export default function Home() {
       setDurations(unique);
     }
   }
- 
+
   function getCurrentSeason() {
     const month = new Date().getMonth() + 1;
     if (month >= 3 && month <= 5) return 'spring';
@@ -104,7 +103,6 @@ export default function Home() {
     fetchRoutes();
   }, []);
 
-
   useEffect(() => {
     const interval = setInterval(() => {
       setPhotoIndexes(prev => prev.map((idx, i) =>
@@ -115,14 +113,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-  if (user) fetchProfile(user.id);
-}, [user]);
+    if (user) fetchProfile(user.id);
+  }, [user]);
 
-async function fetchProfile(userId: string) {
-  const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
-  if (data) setAvatarUrl(data.avatar_url || '');
-}
- 
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+    if (data) setAvatarUrl(data.avatar_url || '');
+  }
+
   const mockRoutes = [
     {
       id: 1,
@@ -149,11 +147,11 @@ async function fetchProfile(userId: string) {
       description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
     }
   ];
- 
+
   return (
     <>
       <main className="min-h-screen bg-white">
- 
+
         {/* NAVIGATION */}
         <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
           <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
@@ -162,39 +160,40 @@ async function fetchProfile(userId: string) {
             </div>
           </Link>
           <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-gray-500">
-  <Link href="/explore" className="hover:text-black transition">Explore Routes</Link>
-  <a href="#" className="hover:text-black transition">About us</a>
-  {user && (
-    <Link href="/my-trips" className="hover:text-black transition text-emerald-600">
-      My Trips
-    </Link>
-  )}
-</div>
+            <Link href="/explore" className="hover:text-black transition">Explore Routes</Link>
+            {/* ✅ FIXED: About Us führt jetzt zu /about */}
+            <Link href="/about" className="hover:text-black transition">About Us</Link>
+            {user && (
+              <Link href="/my-trips" className="hover:text-black transition text-emerald-600">
+                My Trips
+              </Link>
+            )}
+          </div>
 
           {user ? (
             <div className="relative">
               <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-  {avatarUrl ? (
-    <img src={avatarUrl} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
-  ) : (
-    <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
-      {user.email?.[0]}
-    </div>
-  )}
-</button>
+                {avatarUrl ? (
+                  <img src={avatarUrl} className="w-9 h-9 rounded-full object-cover border-2 border-[#003e4d]" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-[#003e4d] flex items-center justify-center text-white font-bold text-sm uppercase">
+                    {user.email?.[0]}
+                  </div>
+                )}
+              </button>
               {showUserMenu && (
-  <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-    <div className="px-4 py-3 border-b border-gray-100">
-      <p className="text-xs text-gray-400 truncate">{user.email}</p>
-    </div>
-    <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-      Profile
-    </Link>
-    <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
-      Sign Out
-    </button>
-  </div>
-)}
+                <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  </div>
+                  <Link href="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    Profile
+                  </Link>
+                  <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <button
@@ -204,15 +203,15 @@ async function fetchProfile(userId: string) {
             </button>
           )}
         </nav>
- 
+
         {/* HERO */}
         <section className="relative px-12 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
- 
+
           <h1 className="pl-6 pr-5 pb-2 text-[120px] md:text-[165px] leading-[0.93] uppercase tracking-[0.04em] mb-8 italic antialiased font-normal bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-10 duration-1000"
             style={{ WebkitTextStroke: '20px transparent' }}>
             Scenic <br /> Routes
           </h1>
- 
+
           <div className="relative mt-7 mb-14 mx-auto w-full max-w-[750px] px-8 py-12 border-0">
             <div className="absolute top-0 left-0 w-[42%] h-[2px] bg-gray-300 shadow-sm"></div>
             <div className="absolute top-0 right-0 w-[42%] h-[2px] bg-gray-300 shadow-sm"></div>
@@ -227,7 +226,7 @@ async function fetchProfile(userId: string) {
               mountains, coastlines and natural landscapes
             </p>
           </div>
- 
+
           {/* SEARCH */}
           <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000">
 
@@ -256,7 +255,7 @@ async function fetchProfile(userId: string) {
                 </div>
               )}
             </div>
- 
+
             <div className="w-[1px] h-10 bg-white/10 mx-1" />
 
             {/* Dropdown Duration */}
@@ -284,7 +283,7 @@ async function fetchProfile(userId: string) {
                 </div>
               )}
             </div>
- 
+
             <button
               onClick={() => router.push(`/explore?destination=${selected}&date=${selectedDate}`)}
               className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
@@ -292,7 +291,7 @@ async function fetchProfile(userId: string) {
             </button>
           </div>
         </section>
- 
+
         {/* POPULAR DESTINATIONS */}
         <section className="p-12 bg-white">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
@@ -307,23 +306,19 @@ async function fetchProfile(userId: string) {
                 Explore
               </button>
             </div>
- 
+
             <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               {mockRoutes.map((route, index) => (
                 <div
                   key={route.id}
-                  className={`group relative overflow-hidden transition-all duration-700 cursor-pointer h-[500px] shadow-2xl rounded-4xl ${
-                    index === 0 ? 'mt-55' : index === 1 ? 'mt-40' : 'mt-25'
-                  }`}
+                  className={`group relative overflow-hidden transition-all duration-700 cursor-pointer h-[500px] shadow-2xl rounded-4xl ${index === 0 ? 'mt-55' : index === 1 ? 'mt-40' : 'mt-25'}`}
                 >
                   {route.images.map((img, imgIndex) => (
                     <img
                       key={img}
                       src={img}
                       alt={route.title}
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                        imgIndex === photoIndexes[index] ? 'opacity-100' : 'opacity-0'
-                      }`}
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${imgIndex === photoIndexes[index] ? 'opacity-100' : 'opacity-0'}`}
                     />
                   ))}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent opacity-80" />
@@ -342,7 +337,7 @@ async function fetchProfile(userId: string) {
             </div>
           </div>
         </section>
- 
+
         {/* QUOTE */}
         <section className="relative w-full mt-35 py-50 px-6 flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
@@ -355,7 +350,7 @@ async function fetchProfile(userId: string) {
             </h2>
           </div>
         </section>
- 
+
         {/* BADGE */}
         <div className="mt-30 flex justify-center">
           <div className="inline-flex items-center gap-1.5 bg-[#f0f0f0] px-3 py-1 rounded-full shadow-sm">
@@ -365,14 +360,14 @@ async function fetchProfile(userId: string) {
             <span className="text-[15px] font-medium text-emerald-800 tracking-tight">Perfect for Spring 2026</span>
           </div>
         </div>
- 
+
         {/* ROUTES FROM SUPABASE */}
         <section className="py-5 max-w-7xl mx-auto px-5">
           <div className="text-center mb-25">
             <h2 className="text-5xl font-bold">Best Routes Right Now</h2>
             <p className="mt-5 text-[20px] text-gray-500">Handpicked routes for spring conditions.</p>
           </div>
- 
+
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -414,13 +409,13 @@ async function fetchProfile(userId: string) {
               ))}
             </div>
           )}
- 
+
           <div className="mt-10 flex justify-center items-center gap-2 text-emerald-600 text-sm font-medium">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             Weather data updated • Conditions optimal for travel
           </div>
         </section>
- 
+
         {/* FOOTER */}
         <footer className="w-full bg-[#0a0f1a] text-gray-500 py-12 px-12 mt-20">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 pb-16 border-b border-white/5">
@@ -440,9 +435,11 @@ async function fetchProfile(userId: string) {
                 ))}
               </div>
               <div className="flex gap-8">
-                {['About Us', 'Contact', 'Privacy', 'Terms'].map(link => (
-                  <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
-                ))}
+                {/* ✅ FIXED: About Us im Footer führt jetzt zu /about */}
+                <Link href="/about" className="hover:text-white transition-colors whitespace-nowrap">About Us</Link>
+                <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Contact</a>
+                <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Privacy</a>
+                <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Terms</a>
               </div>
             </div>
             <div className="flex flex-col gap-2 flex-shrink-0">
@@ -457,7 +454,7 @@ async function fetchProfile(userId: string) {
             <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
           </div>
         </footer>
- 
+
       </main>
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
