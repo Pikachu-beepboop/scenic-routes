@@ -542,7 +542,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="dest-map">
-  <img src="/map.png" alt="World map" onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
+  <img src="/karte2.png" alt="World map" onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
 </div>
         </section>
 
