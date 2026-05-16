@@ -13,7 +13,7 @@ export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [fullName, setFullName] = useState('');
+    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -41,7 +41,7 @@ export default function ProfilePage() {
     async function fetchProfile(userId: string) {
         const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
         if (data) {
-            setFullName(data.full_name || '');
+            setUsername(data.username || '');
             setEmail(data.email || '');
             setAvatarUrl(data.avatar_url || '');
             setAvatarPreview(data.avatar_url || '');
@@ -74,7 +74,7 @@ export default function ProfilePage() {
 
         const { error: profileError } = await supabase
             .from('profiles')
-            .update({ full_name: fullName, avatar_url: uploadedAvatarUrl, updated_at: new Date().toISOString() })
+            .update({ username: username, avatar_url: uploadedAvatarUrl, updated_at: new Date().toISOString() })
             .eq('id', user.id);
         if (profileError) { setError(profileError.message); setSaving(false); return; }
 
@@ -210,13 +210,13 @@ export default function ProfilePage() {
                                             />
                                         ) : (
                                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-700 to-teal-900 flex items-center justify-center text-white font-bold text-xl uppercase border border-emerald-500/25">
-                                                {(fullName || user?.email || 'U')[0].toUpperCase()}
+                                                {(username || user?.email || 'U')[0].toUpperCase()}
                                             </div>
                                         )}
                                     </div>
                                     <div>
                                         <h2 className="text-base font-bold text-white leading-tight">
-                                            {fullName || user?.email?.split('@')[0]}
+                                            {username || user?.email?.split('@')[0]}
                                         </h2>
                                         <p className="text-[11px] text-white/35 mt-0.5">{user?.email}</p>
                                         <p className="text-[11px] text-emerald-500/60 mt-0.5">Scenic Route Explorer</p>
@@ -230,16 +230,16 @@ export default function ProfilePage() {
                                     Profile Settings
                                 </h3>
 
-                                {/* Full Name */}
+                                {/* Username */}
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
-                                        Full Name
+                                        Username
                                     </label>
                                     <input
                                         type="text"
-                                        value={fullName}
-                                        onChange={e => setFullName(e.target.value)}
-                                        placeholder="Your name"
+                                        value={username}
+                                        onChange={e => setUsername(e.target.value)}
+                                        placeholder="Your username"
                                         className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/15 outline-none focus:border-emerald-500/30 focus:bg-white/8 transition-all duration-200"
                                     />
                                 </div>
