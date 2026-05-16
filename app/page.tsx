@@ -1,473 +1,1168 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import localFont from 'next/font/local';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import AuthModal from './AuthModal';
-import { supabase } from '../lib/supabase';
+// ─────────────────────────────────────────────────────────────────────────────
+// app/page.tsx  —  Scenic Routes Homepage
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Sections (in order):
+//   1. NAV          — fixed top bar, scrolled-state via class
+//   2. HERO         — full-height, auto-cycling background images (crossfade)
+//   3. POPULAR      — large carousel card with prev/next + dot navigation
+//   4. BUILDER      — 3-step route planner with timeline layout
+//   5. TESTIMONIAL  — rotating quote slider
+//   6. FEATURES     — 4-card "why us" grid
+//   7. FOOTER       — links + newsletter
+//
+// Data flow:
+//   - Supabase `routes` table → displayRoutes (fallback to FALLBACK_ROUTES)
+//   - Supabase `profiles`    → avatar URL
+//   - Supabase `newsletter_subscribers` → newsletter form
+//   - Supabase auth          → login / logout
+//
+// ─────────────────────────────────────────────────────────────────────────────
 
-const firstFont = localFont({
-  src: './fonts/Julius_Sans_One/JuliusSansOne-Regular.ttf',
-  weight: '700',
-});
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import Link from "next/link";
+import { supabase } from "../lib/supabase";
+import AuthModal from "./AuthModal";
 
-const thirdFont = localFont({
-  src: './fonts/colitez-serif/ColitezSerif-Italic.otf',
-  weight: '700',
-});
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-export default function Home() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isOpenDate, setIsOpenDate] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [selected, setSelected] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [routes, setRoutes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [countries, setCountries] = useState<string[]>([]);
-  const [durations, setDurations] = useState<string[]>([]);
-  const [user, setUser] = useState<any>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const router = useRouter();
-  const [photoIndexes, setPhotoIndexes] = useState([0, 0, 0]);
-  const [avatarUrl, setAvatarUrl] = useState('');
+/** Always produces the same string on server + client → no hydration mismatch */
+const fmtKm = (km?: number) =>
+  km != null ? `${km.toLocaleString("en-US")} km` : "—";
 
-  useEffect(() => {
-    const handleClickOutside = (event: Event) => {
-      const target = event.target as Element;
-      if (!target.closest('.custom-dropdown') && !target.closest('.user-menu-wrapper')) {
-        setIsOpen(false);
-        setIsOpenDate(false);
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+// ─── Static data ─────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+const FALLBACK_ROUTES = [
+  { id: "1", title: "Dolomites",          country: "Italy",        distance_km: 320,  image_url: "/stelvio.jpg",       duration: "6 Days",           type: "Mountain Road",  terrain: "Mountains", description: "Legendary hairpin roads through pale limestone towers." },
+  { id: "2", title: "Iceland Ring Road",  country: "Iceland",      distance_km: 1332, image_url: "/iceland.jpg",       duration: "Multi-day journey", type: "Circular Route", terrain: "Mountains", description: "A complete circumnavigation of Iceland's raw wilderness." },
+  { id: "3", title: "Amalfi Coast",       country: "Italy",        distance_km: 250,  image_url: "/pacific.jpg",       duration: "Weekend trip",      type: "Coastal Highway",terrain: "Coastal",   description: "Dramatic cliffs, turquoise sea and timeless Italian villages." },
+  { id: "4", title: "Swiss Alps",         country: "Switzerland",  distance_km: 280,  image_url: "/grossglockner.jpg", duration: "Full day (4-8h)",   type: "Alpine Pass",    terrain: "Mountains", description: "World-class passes through the heart of the Alps." },
+  { id: "5", title: "Trollstigen",        country: "Norway",       distance_km: 27,   image_url: "/trollstigen.jpg",   duration: "Half day (< 4h)",   type: "Scenic Pass",    terrain: "Mountains", description: "Norway's most dramatic mountain road with 11 hairpins." },
+  { id: "6", title: "Black Forest Road",  country: "Germany",      distance_km: 60,   image_url: "/blackforest.jpg",   duration: "Half day (< 4h)",   type: "Forest Route",   terrain: "Forest",    description: "A legendary drive through deep forest and sweeping viewpoints." },
+];
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null);
-    setShowUserMenu(false);
-  }
+const TESTIMONIALS = [
+  { quote: "Scenic Routes didn't just plan a trip — they crafted the most unforgettable journey of our lives.", name: "Alex Morgan",   role: "World Traveler",       since: "Member since 2022" },
+  { quote: "Every detail was perfect. The routes, the timing, the hidden gems along the way — absolutely flawless.",  name: "Sarah Chen",    role: "Photographer",         since: "Member since 2023" },
+  { quote: "I've driven roads all over the world. Scenic Routes showed me places I never would have found alone.",    name: "Marcus Klein",  role: "Automotive Journalist",since: "Member since 2021" },
+];
 
-  async function fetchCountries() {
-    const { data } = await supabase.from('routes').select('country');
-    if (data) {
-      const unique = [...new Set(data.map((r: any) => r.country))].sort() as string[];
-      setCountries(unique);
-    }
-  }
+const FEATURES = [
+  { icon: "◎", title: "Curated Experiences", text: "Handpicked scenic routes with useful travel details." },
+  { icon: "△", title: "Smart Filters",       text: "Find routes by terrain, duration, country and rating." },
+  { icon: "⬡", title: "Scenic Details",      text: "Every route includes distance, country, route type and duration." },
+  { icon: "◈", title: "Built For Drivers",   text: "Designed for people who love beautiful roads and unforgettable drives." },
+];
 
-  async function fetchDurations() {
-    const { data } = await supabase.from('routes').select('duration');
-    if (data) {
-      const unique = [...new Set(data.map((r: any) => r.duration))].sort() as string[];
-      setDurations(unique);
-    }
-  }
+const FOOTER_COLS = {
+  Explore:  ["All Routes", "Destinations", "Experiences", "Journal"],
+  Company:  ["About Us",   "Membership",   "Gift Cards",  "Careers"],
+  Support:  ["FAQs",       "Travel Policies", "Contact Us", "Privacy Policy"],
+};
 
-  function getCurrentSeason() {
-    const month = new Date().getMonth() + 1;
-    if (month >= 3 && month <= 5) return 'spring';
-    if (month >= 6 && month <= 8) return 'summer';
-    if (month >= 9 && month <= 11) return 'autumn';
-    return 'winter';
-  }
+// Builder steps — `as const` keeps key types narrow (no stale closures)
+const BUILDER_STEPS = [
+  { step: 1, label: "Terrain",  title: "What kind of road are you chasing?",  subtitle: "Choose the landscape that fits your next drive.",       key: "terrain",  options: ["Forest","Deserts","Coastal","Mountains"] },
+  { step: 2, label: "Duration", title: "How long should the escape be?",       subtitle: "Pick the travel time that matches your plan.",          key: "duration", options: ["Half day (< 4h)","Full day (4-8h)","Weekend trip","Multi-day journey"] },
+  { step: 3, label: "Country",  title: "Where should the journey begin?",      subtitle: "Choose a country and discover matching scenic routes.",  key: "country",  options: ["Austria","France","Germany","Iceland","Italy"] },
+] as const;
 
-  async function fetchRoutes() {
-    setLoading(true);
-    const season = getCurrentSeason();
-    const { data } = await supabase
-      .from('routes')
-      .select('*')
-      .eq('season', season)
-      .limit(3);
-    if (data) setRoutes(data);
-    setLoading(false);
-  }
+type BuilderKey = "terrain" | "duration" | "country";
+type Route = {
+  id: string; title: string; country: string;
+  distance_km?: number; image_url?: string; duration?: string;
+  type?: string; terrain?: string; description?: string;
+};
 
-  useEffect(() => {
-    fetchCountries();
-    fetchDurations();
-    fetchRoutes();
-  }, []);
+// ─── Sub-component: Popular carousel ─────────────────────────────────────────
+// Displays one large card at a time with prev/next arrows and dot navigation.
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPhotoIndexes(prev => prev.map((idx, i) =>
-        (idx + 1) % mockRoutes[i].images.length
-      ));
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+function PopularCarousel({ routes }: { routes: Route[] }) {
+  const [idx, setIdx] = useState(0);
+  const items = routes.slice(0, 6);
+  const route = items[idx] ?? items[0];
 
-  useEffect(() => {
-    if (user) fetchProfile(user.id);
-  }, [user]);
+  if (!route) return null;
 
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
-    if (data) setAvatarUrl(data.avatar_url || '');
-  }
-
-  const mockRoutes = [
-    {
-      id: 1,
-      title: "Norway Fjords",
-      country: "Norway",
-      time: "2 days",
-      images: ["/Norway fjords.jpg", "/Norway fjords 2.jpg", "/Norway fjords 3.jpg"],
-      description: "Experience the breathtaking beauty of Norway's fjords.",
-    },
-    {
-      id: 2,
-      title: "Toscana",
-      country: "Italia",
-      time: "5 days",
-      images: ["/Toscana 2.jpg", "/Toscana 1.jpg", "/Toscana 3.jpg"],
-      description: "Discover the rolling hills, vineyards, and Renaissance art of Tuscany.",
-    },
-    {
-      id: 3,
-      title: "Fujiyoshida",
-      country: "Japan",
-      time: "1 week",
-      images: ["/Fujiyoshida.jpg", "/fujiyoshida 2.jpg", "/fujiyoshida 3.jpg"],
-      description: "Explore the scenic beauty of Fujiyoshida, nestled at the base of Mount Fuji.",
-    }
-  ];
+  const prev = () => setIdx(i => (i === 0 ? items.length - 1 : i - 1));
+  const next = () => setIdx(i => (i + 1) % items.length);
 
   return (
-    <>
-      <main className="min-h-screen bg-white text-[#0a0a0a] font-sans">
+    <section className="popular-section">
+      <div className="container">
 
-        {/* ── NAVIGATION ── */}
-        <nav
-          className="flex justify-between items-center px-10 py-4"
-          style={{ background: '#ffffff' }}
-        >
-          {/* Logo */}
-          <Link href="/" className="hover:opacity-80 transition-opacity">
-            <div className="leading-none">
-              <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
-                Scenic <br /> <span className="ml-4">Routes</span>
+        {/* Header */}
+        <div className="popular-header">
+          <div>
+            <p className="section-eyebrow">Popular Destinations</p>
+            <h2 className="section-h2">Roads made<br />for the journey.</h2>
+          </div>
+          <Link href="/explore" className="view-all-btn">View all destinations →</Link>
+        </div>
+
+        {/* Card */}
+        <div className="popular-card-wrap">
+          <button className="carousel-arrow carousel-left"  onClick={prev} aria-label="Previous">←</button>
+          <button className="carousel-arrow carousel-right" onClick={next} aria-label="Next">→</button>
+
+          <Link href={`/routedetail/${route.id}`} className="popular-card">
+            <img src={route.image_url || "/iceland.jpg"} alt={route.title}
+              onError={e => { e.currentTarget.src = "/iceland.jpg"; }} />
+            <div className="popular-card-overlay" />
+
+            <span className="popular-card-counter">
+              {String(idx + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
+            </span>
+            <span className="popular-card-type">
+              {route.terrain || route.type || "Scenic Route"}
+            </span>
+
+            <div className="popular-card-content">
+              <p>{route.country}</p>
+              <h3>{route.title}</h3>
+              <span>{route.description || "One of the world's most scenic driving routes."}</span>
+              <div className="popular-card-meta">
+                <small>{route.duration || "Plan trip"}</small>
+                <small>{fmtKm(route.distance_km)}</small>
+                <small>View route →</small>
               </div>
             </div>
           </Link>
-
-          {/* Nav Links */}
-          <div className="hidden md:flex items-center gap-10">
-            <Link href="/explore" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
-              Explore Routes
-            </Link>
-            <Link href="/about" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
-              About Us
-            </Link>
-            {user && (
-              <Link href="/my-trips" className="text-emerald-600 hover:text-emerald-800 transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
-                My Trips
-              </Link>
-            )}
-          </div>
-
-          {/* User / Login */}
-          {user ? (
-            <div className="relative user-menu-wrapper">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-9 h-9 rounded-full border border-black/20 flex items-center justify-center hover:border-black/50 transition-all duration-200 overflow-hidden"
-              >
-                {avatarUrl ? (
-                  <img src={avatarUrl} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-black font-bold text-sm uppercase">{user.email?.[0]}</span>
-                )}
-              </button>
-              {showUserMenu && (
-                <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-[10px] text-gray-400 truncate tracking-widest">{user.email}</p>
-                  </div>
-                  <Link href="/profile" onClick={() => setShowUserMenu(false)} className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    Profile
-                  </Link>
-                  <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsAuthOpen(true)}
-              className="text-[11px] uppercase tracking-[0.18em] font-semibold text-black/50 hover:text-black border border-black/20 hover:border-black/50 px-5 py-2 rounded-full transition-all duration-200"
-            >
-              Login
-            </button>
-          )}
-        </nav>
-
-        {/* HERO */}
-        <section className="relative px-12 text-center bg-cover bg-[center_bottom_-150px] bg-no-repeat min-h-screen flex flex-col items-center justify-center" style={{ backgroundImage: 'url("/mountains-forest.avif")' }}>
-
-          <h1 className="pl-6 pr-5 pb-2 text-[120px] md:text-[165px] leading-[0.93] uppercase tracking-[0.04em] mb-8 italic antialiased font-normal bg-gradient-to-b from-white via-white to-gray-400 bg-clip-text text-transparent drop-shadow-[0_10px_30px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-10 duration-1000"
-            style={{ WebkitTextStroke: '20px transparent' }}>
-            Scenic <br /> Routes
-          </h1>
-
-          <div className="relative mt-7 mb-14 mx-auto w-full max-w-[750px] px-8 py-12 border-0">
-            <div className="absolute top-0 left-0 w-[42%] h-[2px] bg-gray-300 shadow-sm"></div>
-            <div className="absolute top-0 right-0 w-[42%] h-[2px] bg-gray-300 shadow-sm"></div>
-            <div className="absolute top-0 left-0 w-[2px] h-full bg-gray-300 shadow-sm"></div>
-            <div className="absolute top-0 right-0 w-[2px] h-full bg-gray-300 shadow-sm"></div>
-            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gray-300 shadow-sm"></div>
-            <div className="absolute -top-17 left-1/2 -translate-x-1/2 bg-transparent px-4">
-              <img src="/mountains.png" alt="mountains" className="w-30 h-30 object-contain invert brightness-200" />
-            </div>
-            <p className={`${firstFont.className} text-sm md:text-[18px] text-white font-bold tracking-[0.15em] uppercase leading-relaxed drop-shadow-md`}>
-              The most beautiful roads to explore through <br />
-              mountains, coastlines and natural landscapes
-            </p>
-          </div>
-
-          {/* SEARCH */}
-          <div className="flex items-center bg-white/5 backdrop-blur-md border border-white/20 rounded-[32px] p-2 shadow-2xl max-w-fit mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000">
-            <div className="relative w-95 custom-dropdown group">
-              <div
-                onClick={() => { setIsOpen(!isOpen); setIsOpenDate(false); }}
-                className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpen ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
-              >
-                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Country</span>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{selected || 'Choose destination'}</span>
-                  <span className={`transition-transform duration-300 text-[10px] ${isOpen ? "rotate-180" : ""}`}>▼</span>
-                </div>
-              </div>
-              {isOpen && (
-                <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                    <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelected(''); setIsOpen(false); }}>All</div>
-                    {countries.map((country) => (
-                      <div key={country} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelected(country); setIsOpen(false); }}>
-                        {country}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="w-[1px] h-10 bg-white/10 mx-1" />
-
-            <div className="relative w-95 custom-dropdown group">
-              <div
-                onClick={() => { setIsOpenDate(!isOpenDate); setIsOpen(false); }}
-                className={`cursor-pointer px-6 py-3 text-white transition-all flex flex-col justify-center z-50 relative h-full ${isOpenDate ? "bg-[#0a241a]/80 rounded-2xl" : "hover:bg-white/5 rounded-2xl"}`}
-              >
-                <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold mb-1">Duration</span>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{selectedDate || 'Choose duration'}</span>
-                  <span className={`transition-transform duration-300 text-[10px] ${isOpenDate ? "rotate-180" : ""}`}>▼</span>
-                </div>
-              </div>
-              {isOpenDate && (
-                <div className="absolute top-[112%] left-0 w-full z-[100] bg-[#0a241a] backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="overflow-y-auto max-h-48 custom-scrollbar">
-                    <div className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => { setSelectedDate(''); setIsOpenDate(false); }}>All</div>
-                    {durations.map((duration) => (
-                      <div key={duration} className="px-6 py-3 text-emerald-50 hover:bg-white/10 cursor-pointer transition-colors border-t border-white/5" onClick={() => { setSelectedDate(duration); setIsOpenDate(false); }}>
-                        {duration}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => router.push(`/explore?destination=${selected}&date=${selectedDate}`)}
-              className="ml-2 bg-white text-black hover:bg-emerald-400 hover:text-white px-8 py-4 rounded-[24px] font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg">
-              FIND ROUTE
-            </button>
-          </div>
-        </section>
-
-        {/* POPULAR DESTINATIONS */}
-        <section className="p-12 bg-white">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
-            <div className="md:col-span-1 mb-25">
-              <h2 className={`${firstFont.className} text-5xl font-bold leading-tight mb-6 text-black`}>
-                Popular <br /> Destinations
-              </h2>
-              <p className={`${firstFont.className} text-gray-500 text-md mb-5 max-w-[330px]`}>
-                Explore the world's most sought-after regions for scenic road trips.
-              </p>
-              <button className="px-8 py-3 border border-black rounded-full text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300">
-                Explore
-              </button>
-            </div>
-
-            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              {mockRoutes.map((route, index) => (
-                <div
-                  key={route.id}
-                  className={`group relative overflow-hidden transition-all duration-700 cursor-pointer h-[500px] shadow-2xl rounded-4xl ${index === 0 ? 'mt-55' : index === 1 ? 'mt-40' : 'mt-25'}`}
-                >
-                  {route.images.map((img, imgIndex) => (
-                    <img
-                      key={img}
-                      src={img}
-                      alt={route.title}
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${imgIndex === photoIndexes[index] ? 'opacity-100' : 'opacity-0'}`}
-                    />
-                  ))}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent opacity-80" />
-                  <div className="relative z-10 p-6">
-                    <h3 className="text-white text-lg font-light tracking-wide drop-shadow-lg">{route.title}</h3>
-                    <p className="text-white/90 text-sm mt-1 drop-shadow-md">{route.country} • {route.time}</p>
-                    {route.description && (
-                      <div className="mt-90 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
-                        <span className="text-white text-md font-light drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-[180px] block">{route.description}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors ease-in-out duration-20" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* QUOTE */}
-        <section className="relative w-full mt-35 py-50 px-6 flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <img src="/roadimage.avif" alt="Open Road" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/50" />
-          </div>
-          <div className="relative z-10 max-w-8xl px-2 text-center">
-            <h2 className={`${thirdFont.className} text-white text-4xl md:text-6xl font-semibold leading-[1.5] tracking-tight drop-shadow-2xl`}>
-              Experience the freedom of the <span className="block md:inline">open road. Discover hidden mountain passes, coastal highways, and breathtaking landscapes.</span>
-            </h2>
-          </div>
-        </section>
-
-        {/* BADGE */}
-        <div className="mt-30 flex justify-center">
-          <div className="inline-flex items-center gap-1.5 bg-[#f0f0f0] px-3 py-1 rounded-full shadow-sm">
-            <svg className="w-5 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-            </svg>
-            <span className="text-[15px] font-medium text-emerald-800 tracking-tight">Perfect for Spring 2026</span>
-          </div>
         </div>
 
-        {/* ROUTES FROM SUPABASE */}
-        <section className="py-5 max-w-7xl mx-auto px-5">
-          <div className="text-center mb-25">
-            <h2 className="text-5xl font-bold">Best Routes Right Now</h2>
-            <p className="mt-5 text-[20px] text-gray-500">Handpicked routes for spring conditions.</p>
+        {/* Dots */}
+        <div className="popular-dots">
+          {items.map((r, i) => (
+            <button key={r.id} className={i === idx ? "active" : ""}
+              onClick={() => setIdx(i)} aria-label={`Show ${r.title}`}>
+              {String(i + 1).padStart(2, "0")}
+            </button>
+          ))}
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+// ─── Main page component ──────────────────────────────────────────────────────
+
+export default function HomePage() {
+
+  // ── Data & auth state ──────────────────────────────────────────────────────
+  const [routes,       setRoutes]       = useState<Route[]>([]);
+  const [user,         setUser]         = useState<any>(null);
+  const [avatarUrl,    setAvatarUrl]    = useState("");
+  const [email,        setEmail]        = useState("");
+  const [emailSent,    setEmailSent]    = useState(false);
+
+  // ── UI state ───────────────────────────────────────────────────────────────
+  const [isAuthOpen,     setIsAuthOpen]     = useState(false);
+  const [showUserMenu,   setShowUserMenu]   = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [navScrolled,    setNavScrolled]    = useState(false);
+  const [heroVisible,    setHeroVisible]    = useState(false);   // triggers fade-in animation
+  const [testimonialIdx, setTestimonialIdx] = useState(0);
+
+  // ── Hero crossfade state ───────────────────────────────────────────────────
+  // We keep TWO image slots and crossfade between them so there's never a
+  // hard cut. activeSlot alternates 0/1; both imgs are stacked via CSS.
+  const [activeSlot,  setActiveSlot]  = useState(0);          // which img is on top
+  const [slotSrcs,    setSlotSrcs]    = useState(["", ""]);   // src for each slot
+  const [activeIdx,   setActiveIdx]   = useState(0);          // which route is showing
+  const crossfadeInFlight = useRef(false);
+
+  // ── Builder state ──────────────────────────────────────────────────────────
+  const [builderStep,       setBuilderStep]       = useState(1);
+  const [builderSelections, setBuilderSelections] = useState<Record<BuilderKey, string>>({
+    terrain: "", duration: "", country: "",
+  });
+
+  // ── Derived values ─────────────────────────────────────────────────────────
+  const displayRoutes = useMemo(
+    () => (routes.length ? routes : FALLBACK_ROUTES),
+    [routes]
+  );
+
+  // Builder "Discover" URL — only recomputed when selections change
+  const builderHref = useMemo(() => {
+    const p = new URLSearchParams();
+    if (builderSelections.terrain)  p.set("terrain",  builderSelections.terrain);
+    if (builderSelections.duration) p.set("duration", builderSelections.duration);
+    if (builderSelections.country)  p.set("country",  builderSelections.country);
+    return p.toString() ? `/explore?${p}` : "/explore";
+  }, [builderSelections]);
+
+  const currentBuilderStep = BUILDER_STEPS[builderStep - 1];
+
+  // ── Callbacks ──────────────────────────────────────────────────────────────
+
+  /** Toggle a builder chip on/off */
+  const selectBuilder = useCallback((key: BuilderKey, value: string) => {
+    setBuilderSelections(prev => ({
+      ...prev,
+      [key]: prev[key] === value ? "" : value,
+    }));
+  }, []);
+
+  /** Crossfade hero to a new route image */
+  const crossfadeTo = useCallback((src: string) => {
+    if (crossfadeInFlight.current) return;
+    crossfadeInFlight.current = true;
+
+    setActiveSlot(prev => {
+      const next = prev === 0 ? 1 : 0;
+      // Pre-load the new image into the inactive slot, then flip
+      setSlotSrcs(srcs => {
+        const updated = [...srcs] as [string, string];
+        updated[next] = src;
+        return updated;
+      });
+      // Small delay so the browser has time to decode the new image
+      setTimeout(() => {
+        setActiveSlot(next);
+        crossfadeInFlight.current = false;
+      }, 60);
+      return prev; // return prev here — the timeout does the real flip
+    });
+  }, []);
+
+  // ── Effects ────────────────────────────────────────────────────────────────
+
+  // Nav scroll detection (class-based — doesn't re-render <style>)
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Auth + data loading
+  useEffect(() => {
+    let mounted = true;
+
+    // Auth
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setUser(data.session?.user ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_, s) => {
+      setUser(s?.user ?? null);
+    });
+
+    // Routes
+    supabase.from("routes").select("*").limit(6).then(({ data }) => {
+      if (!mounted) return;
+      const r = data?.length ? data : FALLBACK_ROUTES;
+      setRoutes(r);
+      // Seed both slots with the first image so there's no empty flash
+      setSlotSrcs([r[0]?.image_url || "/iceland.jpg", r[0]?.image_url || "/iceland.jpg"]);
+    });
+
+    // Hero entrance animation — two rAFs ensure layout is painted first
+    requestAnimationFrame(() => requestAnimationFrame(() => setHeroVisible(true)));
+
+    // Auto-rotate testimonials every 6 s
+    const tTestimonial = setInterval(
+      () => setTestimonialIdx(p => (p + 1) % TESTIMONIALS.length),
+      6000
+    );
+
+    // Auto-cycle hero image every 4.5 s
+    const tHero = setInterval(() => {
+      setActiveIdx(prev => {
+        const next = (prev + 1) % 3; // cycle through first 3 routes
+        return next;
+      });
+    }, 4500);
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+      clearInterval(tTestimonial);
+      clearInterval(tHero);
+    };
+  }, []);
+
+  // When activeIdx changes → crossfade to the new route's image
+  useEffect(() => {
+    const src = displayRoutes[activeIdx]?.image_url || "/iceland.jpg";
+    crossfadeTo(src);
+  }, [activeIdx, displayRoutes, crossfadeTo]);
+
+  // Load avatar when user logs in
+  useEffect(() => {
+    if (!user) { setAvatarUrl(""); return; }
+    supabase.from("profiles").select("avatar_url").eq("id", user.id).single()
+      .then(({ data }) => setAvatarUrl(data?.avatar_url || ""));
+  }, [user]);
+
+  // Newsletter form submit
+  const handleNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
+    await supabase.from("newsletter_subscribers")
+      .insert({ email: cleanEmail, created_at: new Date().toISOString() });
+    setEmailSent(true);
+    setEmail("");
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <>
+      {/* ─── Global styles ─────────────────────────────────────────────────── */}
+      {/*                                                                        */}
+      {/* IMPORTANT: All selectors are scoped to `.page` so they don't leak     */}
+      {/* into /explore, /routedetail or any other page when Next.js keeps this  */}
+      {/* style tag alive during client-side navigation.                         */}
+      {/*                                                                        */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* ── CSS variables — intentionally global so child components can use them ── */
+        :root {
+          --bg:    #0c0b09;
+          --bg2:   #131109;
+          --bg3:   #1a1710;
+          --gold:  #C9A86A;
+          --cream: #EDE5D4;
+          --muted: rgba(237,229,212,0.56);
+          --dim:   rgba(237,229,212,0.32);
+          --border:rgba(237,229,212,0.12);
+          --serif: 'Cormorant Garamond', Georgia, serif;
+          --sans:  'Inter', system-ui, sans-serif;
+        }
+
+        /* ── Reset — scoped to .page so it doesn't affect other pages ── */
+        .page *, .page *::before, .page *::after { box-sizing:border-box; margin:0; padding:0; }
+        .page a   { color:inherit; text-decoration:none; }
+        .page button { border:none; font:inherit; cursor:pointer; }
+        .page input  { font:inherit; }
+        .page img    { display:block; }
+
+        /* ── Page wrapper ── */
+        .page {
+          min-height:100vh;
+          background: radial-gradient(circle at 18% 0%, rgba(201,168,106,0.09), transparent 30%), var(--bg);
+          color:var(--cream);
+          font-family:var(--sans);
+          overflow-x:hidden;
+          scroll-behavior:smooth;
+        }
+
+        /* ════════════════════════════════════════
+           NAV
+        ════════════════════════════════════════ */
+        .nav {
+          position:fixed; inset:0 0 auto; z-index:200;
+          height:72px; padding:0 clamp(20px,4vw,60px);
+          display:flex; align-items:center; justify-content:space-between;
+          background:transparent; border-bottom:1px solid transparent;
+          transition:background .35s, backdrop-filter .35s, border-color .35s;
+        }
+        .nav.scrolled {
+          background:rgba(12,11,9,0.92);
+          backdrop-filter:blur(20px);
+          border-bottom-color:var(--border);
+        }
+        .nav-logo { display:flex; flex-direction:column; line-height:1; }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-links { display:flex; gap:36px; }
+        .nav-link {
+          position:relative;
+          font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase;
+          color:var(--muted); transition:color .2s;
+        }
+        .nav-link::after {
+          content:""; position:absolute; left:0; bottom:-8px;
+          width:0; height:1px; background:var(--gold); transition:width .25s;
+        }
+        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover::after { width:100%; }
+        .nav-right { display:flex; align-items:center; gap:12px; }
+        .membership-btn {
+          padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px;
+          font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase;
+          color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s;
+        }
+        .membership-btn:hover { background:var(--cream); color:var(--bg); transform:translateY(-1px); }
+        .menu-icon {
+          width:38px; height:38px; display:grid; place-items:center;
+          border:1px solid var(--border); border-radius:50%;
+          background:rgba(237,229,212,0.04); color:var(--muted); font-size:18px;
+          transition:border-color .2s, color .2s;
+        }
+        .menu-icon:hover { border-color:rgba(201,168,106,0.45); color:var(--gold); }
+        .user-avatar {
+          width:38px; height:38px; border-radius:50%;
+          border:1px solid var(--border); background:rgba(237,229,212,0.06);
+          overflow:hidden; display:flex; align-items:center; justify-content:center;
+          font-size:13px; font-weight:700; color:var(--cream);
+        }
+        .user-avatar img { width:100%; height:100%; object-fit:cover; }
+        .user-dropdown {
+          position:absolute; top:50px; right:0; width:210px;
+          background:rgba(20,18,12,0.98); border:1px solid var(--border);
+          border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52);
+        }
+        .user-dropdown-email {
+          padding:12px 14px; border-bottom:1px solid var(--border);
+          font-size:10px; color:var(--dim);
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        }
+        .user-dropdown a,
+        .user-dropdown button {
+          display:block; width:100%; padding:12px 14px;
+          font-size:13px; color:var(--cream); text-align:left;
+          background:none; transition:background .15s;
+        }
+        .user-dropdown a:hover,
+        .user-dropdown button:hover { background:rgba(237,229,212,0.06); }
+        .user-dropdown button { color:#E08080; }
+        .mobile-menu {
+          position:fixed; top:84px; left:16px; right:16px; z-index:199;
+          background:rgba(18,16,10,0.98); border:1px solid var(--border);
+          border-radius:18px; padding:14px;
+          backdrop-filter:blur(20px); box-shadow:0 20px 60px rgba(0,0,0,0.45);
+        }
+        .mobile-menu a {
+          display:block; padding:13px 14px; border-radius:12px;
+          font-size:13px; font-weight:700; letter-spacing:0.12em;
+          text-transform:uppercase; color:var(--cream);
+        }
+        .mobile-menu a:hover { background:rgba(237,229,212,0.06); }
+
+        /* ════════════════════════════════════════
+           HERO
+           Two image slots stacked, crossfaded via opacity.
+           .slot-0 and .slot-1 are always rendered; the active
+           one gets opacity:1, the inactive gets opacity:0.
+        ════════════════════════════════════════ */
+        .hero {
+          position:relative; height:100vh; min-height:760px;
+          display:flex; align-items:center; overflow:hidden;
+        }
+        .hero-bg { position:absolute; inset:-5%; width:110%; height:110%; }
+
+        /* Both slots are stacked on top of each other */
+        .hero-slot {
+          position:absolute; inset:0;
+          transition:opacity 1.2s ease;
+        }
+        .hero-slot img {
+          width:100%; height:100%;
+          object-fit:cover; object-position:center 34%;
+          filter:brightness(0.58) contrast(1.08) saturate(0.95);
+        }
+        /* Active slot = fully visible; inactive = transparent */
+        .hero-slot.active  { opacity:1; z-index:2; }
+        .hero-slot.inactive{ opacity:0; z-index:1; }
+
+        .hero-bg::after {
+          content:""; position:absolute; inset:0; z-index:3;
+          background:
+            radial-gradient(circle at 72% 42%, rgba(201,168,106,0.12), transparent 28%),
+            linear-gradient(to right,  rgba(12,11,9,0.96) 0%, rgba(12,11,9,0.74) 36%, rgba(12,11,9,0.2) 72%, rgba(12,11,9,0.42) 100%),
+            linear-gradient(to bottom, rgba(12,11,9,0.2) 0%, transparent 32%, rgba(12,11,9,0.88) 100%);
+        }
+        .hero-content {
+          position:relative; z-index:10;
+          width:100%; max-width:1440px; margin:0 auto;
+          padding:0 clamp(20px,4vw,60px); padding-top:72px;
+          display:grid;
+          grid-template-columns: minmax(0,1.15fr) minmax(340px,0.85fr);
+          gap:clamp(32px,6vw,90px);
+          align-items:end;
+        }
+
+        /* Hero text — fades up on load */
+        .hero-copy {
+          max-width:780px; padding-bottom:clamp(40px,8vh,90px);
+          opacity:0; transform:translateY(26px);
+          transition:opacity .9s, transform .9s;
+        }
+        .hero-copy.visible { opacity:1; transform:translateY(0); }
+
+        /* Hero featured-routes panel */
+        .hero-route-panel {
+          position:relative; margin-bottom:clamp(40px,8vh,90px);
+          padding:26px; border-radius:24px;
+          background: linear-gradient(135deg, rgba(237,229,212,0.1), rgba(237,229,212,0.03)), rgba(12,11,9,0.42);
+          border:1px solid rgba(237,229,212,0.14); backdrop-filter:blur(28px);
+          box-shadow:0 34px 100px rgba(0,0,0,0.48); overflow:hidden;
+          opacity:0; transform:translateY(26px);
+          transition:opacity .9s .16s, transform .9s .16s;
+        }
+        .hero-route-panel.visible { opacity:1; transform:translateY(0); }
+
+        .hero-eyebrow, .section-eyebrow {
+          font-size:9px; font-weight:800; letter-spacing:0.38em;
+          text-transform:uppercase; color:var(--gold); margin-bottom:24px;
+        }
+        .hero-h1 {
+          font-family:var(--serif);
+          font-size:clamp(64px,9vw,132px); font-weight:300;
+          line-height:0.82; max-width:820px; margin-bottom:30px;
+          letter-spacing:-0.055em; color:var(--cream);
+          text-shadow:0 30px 90px rgba(0,0,0,0.75);
+        }
+        .hero-sub {
+          max-width:500px; font-size:15px; font-weight:300;
+          line-height:1.85; color:rgba(237,229,212,0.68); margin-bottom:36px;
+        }
+        .hero-actions { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+
+        /* ── Shared button ── */
+        .btn-gold {
+          display:inline-flex; align-items:center; justify-content:center; gap:10px;
+          padding:15px 28px; background:var(--gold); color:var(--bg);
+          border:1px solid var(--gold); border-radius:999px;
+          font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase;
+          transition:all .25s;
+          box-shadow:0 14px 40px rgba(201,168,106,0.22), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .btn-gold:hover { background:#d8b978; border-color:#d8b978; transform:translateY(-2px); }
+
+        .watch-btn {
+          display:inline-flex; align-items:center; gap:12px;
+          font-size:10px; font-weight:700; letter-spacing:0.2em;
+          text-transform:uppercase; color:var(--muted); background:none; transition:color .2s;
+        }
+        .watch-btn:hover { color:var(--cream); }
+        .watch-circle {
+          width:38px; height:38px; border-radius:50%;
+          border:1px solid rgba(237,229,212,0.28);
+          display:flex; align-items:center; justify-content:center;
+          font-size:12px; transition:border-color .2s, background .2s;
+        }
+        .watch-btn:hover .watch-circle { border-color:var(--gold); background:rgba(201,168,106,0.1); }
+
+        .hero-stats { display:flex; gap:clamp(26px,4vw,56px); margin-top:52px; }
+        .hero-stats div { display:flex; flex-direction:column; gap:6px; }
+        .hero-stats strong { font-family:var(--serif); font-size:clamp(28px,3vw,42px); font-weight:300; color:var(--cream); line-height:1; }
+        .hero-stats span   { font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; color:rgba(237,229,212,0.42); }
+
+        /* Featured routes list inside hero panel */
+        .featured-label { position:relative; z-index:2; font-size:9px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:rgba(237,229,212,0.42); margin-bottom:18px; }
+        .featured-list  { position:relative; z-index:2; display:flex; flex-direction:column; gap:8px; }
+        .featured-item {
+          display:grid; grid-template-columns:36px 52px 1fr auto; gap:14px;
+          align-items:center; padding:14px 16px; border-radius:16px;
+          color:var(--cream); background:rgba(237,229,212,0.035);
+          border:1px solid transparent;
+          transition:background .25s, border-color .25s, transform .25s;
+        }
+        .featured-item:hover,
+        .featured-item.active {
+          background:rgba(237,229,212,0.085);
+          border-color:rgba(201,168,106,0.28);
+          transform:translateX(-4px);
+        }
+        .featured-num   { font-family:var(--serif); font-size:24px; color:rgba(201,168,106,0.8); line-height:1; }
+        .featured-thumb { width:52px; height:38px; border-radius:8px; overflow:hidden; }
+        .featured-thumb img { width:100%; height:100%; object-fit:cover; }
+        .featured-title   { font-size:12px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:4px; }
+        .featured-country { font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(237,229,212,0.42); }
+        .featured-arrow { color:rgba(237,229,212,0.5); transition:transform .25s, color .25s; }
+        .featured-item:hover .featured-arrow,
+        .featured-item.active .featured-arrow { transform:translateX(4px); color:var(--gold); }
+        .view-all-link {
+          position:relative; z-index:2; display:inline-flex; margin-top:18px;
+          font-size:10px; font-weight:800; letter-spacing:0.2em;
+          text-transform:uppercase; color:rgba(237,229,212,0.5); transition:color .2s;
+        }
+        .view-all-link:hover { color:var(--cream); }
+
+        /* ════════════════════════════════════════
+           SHARED SECTION UTILITIES
+        ════════════════════════════════════════ */
+        .section   { padding:clamp(70px,8vw,110px) clamp(20px,4vw,60px); }
+        .container { max-width:1380px; margin:0 auto; }
+        .section-top {
+          display:flex; align-items:flex-end; justify-content:space-between;
+          gap:24px; margin-bottom:38px;
+        }
+        .section-h2 {
+          font-family:var(--serif); font-size:clamp(36px,4.8vw,64px);
+          font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream);
+        }
+        .view-all-btn {
+          display:flex; align-items:center; gap:10px;
+          font-size:10px; font-weight:800; letter-spacing:0.18em;
+          text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:color .2s;
+        }
+        .view-all-btn:hover { color:var(--cream); }
+
+        /* ════════════════════════════════════════
+           POPULAR CAROUSEL
+        ════════════════════════════════════════ */
+        .popular-section {
+          padding:clamp(76px,8vw,116px) clamp(20px,4vw,60px);
+          background:
+            radial-gradient(circle at 72% 22%, rgba(201,168,106,0.13), transparent 28rem),
+            var(--bg);
+          border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+        }
+        .popular-header {
+          display:flex; align-items:flex-end; justify-content:space-between;
+          gap:24px; margin-bottom:40px;
+        }
+        .popular-card-wrap { position:relative; }
+        .popular-card {
+          position:relative; display:block;
+          height:clamp(520px,58vw,680px); overflow:hidden;
+          border-radius:34px; border:1px solid rgba(237,229,212,0.14);
+          background:var(--bg3); box-shadow:0 36px 110px rgba(0,0,0,0.52);
+          isolation:isolate;
+        }
+        .popular-card img {
+          width:100%; height:100%; object-fit:cover;
+          filter:brightness(0.82) contrast(1.06) saturate(0.98);
+          transition:transform 1s ease, filter 1s ease;
+        }
+        .popular-card:hover img { transform:scale(1.04); filter:brightness(0.94) contrast(1.1) saturate(1.08); }
+        .popular-card-overlay {
+          position:absolute; inset:0; z-index:1;
+          background:
+            linear-gradient(to top,  rgba(0,0,0,0.9), rgba(0,0,0,0.28) 48%, rgba(0,0,0,0.18)),
+            linear-gradient(to right, rgba(0,0,0,0.5), transparent 58%);
+        }
+        .popular-card-counter {
+          position:absolute; top:28px; left:32px; z-index:2;
+          font-family:var(--serif); font-size:clamp(26px,3vw,42px);
+          font-weight:300; letter-spacing:-0.03em; color:rgba(255,255,255,0.76);
+        }
+        .popular-card-type {
+          position:absolute; top:34px; right:34px; z-index:2;
+          color:rgba(255,255,255,0.66); font-size:9px; font-weight:800;
+          letter-spacing:0.24em; text-transform:uppercase;
+        }
+        .popular-card-content {
+          position:absolute; z-index:2;
+          left:clamp(28px,5vw,70px); right:clamp(28px,5vw,70px); bottom:clamp(34px,6vw,74px);
+          max-width:min(1120px, calc(100% - 80px));
+        }
+        .popular-card-content p    { margin-bottom:12px; color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
+        .popular-card-content h3   { margin-bottom:22px; color:#fff; font-family:var(--serif); font-size:clamp(48px,6.2vw,92px); font-weight:300; line-height:0.9; letter-spacing:-0.055em; text-shadow:0 20px 60px rgba(0,0,0,0.65); }
+        .popular-card-content span { display:block; max-width:500px; color:rgba(255,255,255,0.68); font-size:14px; font-weight:300; line-height:1.8; }
+        .popular-card-meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+        .popular-card-meta small {
+          padding:9px 13px; border-radius:999px;
+          border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08);
+          backdrop-filter:blur(12px); color:rgba(255,255,255,0.78);
+          font-size:9px; font-weight:800; letter-spacing:0.13em; text-transform:uppercase;
+        }
+        .carousel-arrow {
+          position:absolute; top:50%; z-index:20; transform:translateY(-50%);
+          width:48px; height:48px; display:grid; place-items:center;
+          border:1px solid rgba(255,255,255,0.22); border-radius:999px;
+          background:rgba(0,0,0,0.35); color:#fff; backdrop-filter:blur(14px);
+          transition:all .2s;
+        }
+        .carousel-arrow:hover { background:var(--gold); border-color:var(--gold); color:var(--bg); }
+        .carousel-left  { left:24px; }
+        .carousel-right { right:24px; }
+        .popular-dots { display:flex; justify-content:center; gap:16px; margin-top:28px; }
+        .popular-dots button {
+          position:relative; min-width:42px; height:36px;
+          color:rgba(237,229,212,0.36); background:transparent;
+          font-size:10px; font-weight:800; letter-spacing:0.18em; transition:color .2s;
+        }
+        .popular-dots button::after {
+          content:""; position:absolute; left:8px; right:8px; bottom:4px;
+          height:2px; border-radius:999px; background:transparent; transition:background .2s;
+        }
+        .popular-dots button.active { color:var(--cream); }
+        .popular-dots button.active::after { background:var(--gold); }
+
+        /* ════════════════════════════════════════
+           BUILDER
+        ════════════════════════════════════════ */
+        .builder-section {
+          background:
+            radial-gradient(circle at 18% 18%, rgba(201,168,106,0.08), transparent 24%),
+            linear-gradient(to bottom, var(--bg), var(--bg2));
+          border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+        }
+        .builder-panel {
+          display:grid; grid-template-columns:0.95fr 1.05fr;
+          max-width:1120px; margin:0 auto;
+          border-radius:30px; border:1px solid var(--border);
+          background:linear-gradient(135deg, rgba(237,229,212,0.055), rgba(237,229,212,0.018));
+          overflow:hidden; box-shadow:0 32px 90px rgba(0,0,0,0.34);
+        }
+        .builder-image {
+          position:relative; min-height:560px; overflow:hidden;
+          border-right:1px solid var(--border);
+        }
+        .builder-image img {
+          width:100%; height:100%; object-fit:cover;
+          filter:brightness(0.72) contrast(1.05) saturate(0.9); transform:scale(1.02);
+        }
+        .builder-image-overlay {
+          position:absolute; inset:0;
+          background:
+            linear-gradient(to bottom, rgba(12,11,9,0.1), rgba(12,11,9,0.52)),
+            radial-gradient(circle at 35% 30%, rgba(237,229,212,0.18), transparent 34%);
+        }
+        .builder-content { padding:clamp(38px,5vw,58px); display:flex; flex-direction:column; justify-content:center; }
+        .builder-intro   { margin-top:18px; max-width:470px; font-size:15px; line-height:1.75; color:rgba(237,229,212,0.62); }
+
+        /* Timeline */
+        .builder-timeline {
+          position:relative; margin:40px 0 36px; display:grid; gap:0;
+        }
+        .builder-timeline::before {
+          content:""; position:absolute; left:26px; top:58px; bottom:58px;
+          width:1px; background:linear-gradient(to bottom, rgba(201,168,106,0.72), rgba(201,168,106,0.2));
+          z-index:0;
+        }
+        .builder-timeline-item {
+          position:relative; z-index:1;
+          display:grid; grid-template-columns:52px 52px 1fr;
+          gap:22px; align-items:center; min-height:110px; padding:18px 0;
+        }
+        .builder-timeline-item:not(:last-child)::after {
+          content:""; position:absolute; left:132px; right:0; bottom:0;
+          height:1px; background:rgba(237,229,212,0.1);
+        }
+        .builder-step-num {
+          position:relative; z-index:3;
+          width:52px; height:52px; display:grid; place-items:center;
+          border-radius:50%; border:1px solid rgba(201,168,106,0.62); background:#15130d;
+          color:var(--cream); font-size:19px; font-weight:700; line-height:1;
+          box-shadow:0 0 22px rgba(201,168,106,0.08);
+        }
+        .builder-step-icon { width:52px; height:52px; display:grid; place-items:center; color:var(--gold); }
+        .builder-step-icon svg { width:32px; height:32px; stroke:currentColor; fill:none; stroke-width:1.45; stroke-linecap:round; stroke-linejoin:round; }
+        .builder-step-copy h3 { font-family:var(--serif); font-size:clamp(26px,2.4vw,34px); font-weight:300; line-height:1; letter-spacing:-0.025em; color:var(--cream); margin-bottom:8px; }
+        .builder-step-copy p  { max-width:340px; color:rgba(237,229,212,0.52); font-size:13px; line-height:1.55; }
+        .builder-cta { width:min(340px,100%); justify-content:center; margin-left:calc(52px + 74px); }
+
+        /* ════════════════════════════════════════
+           TESTIMONIAL
+        ════════════════════════════════════════ */
+        .testimonial-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .testimonial-inner {
+          max-width:1380px; margin:0 auto; padding:70px clamp(20px,4vw,60px);
+          display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:40px;
+        }
+        .quote-mark     { font-family:var(--serif); font-size:90px; color:var(--gold); opacity:0.5; line-height:0.6; }
+        .testimonial-body { text-align:center; }
+        .testimonial-text {
+          font-family:var(--serif); font-size:clamp(22px,2.8vw,34px);
+          font-weight:300; font-style:italic; color:var(--cream); line-height:1.42; margin-bottom:28px;
+        }
+        .testimonial-dots { display:flex; justify-content:center; gap:4px; }
+        /* Dots: 44px hit area wrapper, actual dot via ::after */
+        .testimonial-dot {
+          min-width:44px; min-height:44px;
+          display:flex; align-items:center; justify-content:center;
+          background:transparent; border:none;
+        }
+        .testimonial-dot::after {
+          content:""; display:block; width:8px; height:8px; border-radius:50%;
+          background:var(--border); border:1px solid var(--dim); transition:all .3s;
+        }
+        .testimonial-dot.active::after { width:24px; background:var(--gold); border-color:var(--gold); border-radius:999px; }
+        .testimonial-author { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:170px; }
+        .author-avatar {
+          width:64px; height:64px; border-radius:50%;
+          border:2px solid var(--gold); background:var(--bg3);
+          display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--dim);
+        }
+        .author-name  { font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--cream); text-align:center; }
+        .author-role,
+        .author-since { font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); text-align:center; }
+
+        /* ════════════════════════════════════════
+           FEATURES
+        ════════════════════════════════════════ */
+        .features-section {
+          background:
+            radial-gradient(circle at 80% 20%, rgba(201,168,106,0.08), transparent 26%),
+            var(--bg);
+        }
+        .features-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:48px; }
+        .feature-card {
+          padding:30px 24px 34px;
+          background:rgba(237,229,212,0.035); border:1px solid var(--border); border-radius:22px;
+          transition:border-color .3s, transform .3s, background .3s;
+        }
+        .feature-card:hover { border-color:rgba(201,168,106,0.32); transform:translateY(-4px); background:rgba(237,229,212,0.055); }
+        .feature-icon  { font-size:25px; color:var(--gold); margin-bottom:20px; }
+        .feature-title { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); margin-bottom:12px; }
+        .feature-text  { font-size:13px; color:var(--dim); line-height:1.75; font-weight:300; }
+
+        /* ════════════════════════════════════════
+           FOOTER
+        ════════════════════════════════════════ */
+        .footer { background:var(--bg); border-top:1px solid var(--border); padding:60px clamp(20px,4vw,60px) 30px; }
+        .footer-inner { max-width:1380px; margin:0 auto; }
+        .footer-top {
+          display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1.5fr; gap:40px;
+          padding-bottom:44px; border-bottom:1px solid var(--border); margin-bottom:24px;
+        }
+        .footer-brand   { font-size:15px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); line-height:1.1; margin-bottom:14px; }
+        .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:20px; max-width:220px; }
+        .footer-socials { display:flex; gap:10px; }
+        .footer-social  {
+          width:34px; height:34px; border-radius:50%;
+          border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
+          font-size:13px; color:var(--dim); transition:all .2s;
+        }
+        .footer-social:hover { border-color:var(--gold); color:var(--gold); }
+        .footer-col-title,
+        .footer-nl-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:18px; }
+        .footer-col a    { display:block; font-size:13px; color:rgba(237,229,212,0.4); margin-bottom:11px; font-weight:300; transition:color .2s; }
+        .footer-col a:hover { color:var(--cream); }
+        .footer-nl-sub  { font-size:12px; color:var(--dim); line-height:1.6; margin-bottom:16px; font-weight:300; }
+        .footer-nl-form { display:flex; }
+        .footer-nl-input {
+          flex:1; padding:12px 16px; border:1px solid var(--border); border-right:none;
+          border-radius:999px 0 0 999px; background:rgba(237,229,212,0.04);
+          color:var(--cream); font-size:13px; outline:none;
+        }
+        .footer-nl-input::placeholder { color:var(--dim); }
+        .footer-nl-btn  {
+          width:48px; background:var(--gold); border:1px solid var(--gold);
+          border-radius:0 999px 999px 0; color:var(--bg); font-size:16px; font-weight:800; transition:background .2s;
+        }
+        .footer-nl-btn:hover { background:#d8b978; }
+        .footer-bottom  { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+        .footer-copy    { font-size:10px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; }
+        .footer-legal   { display:flex; gap:24px; }
+        .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; transition:color .2s; }
+        .footer-legal a:hover { color:var(--cream); }
+
+        /* ════════════════════════════════════════
+           RESPONSIVE
+        ════════════════════════════════════════ */
+        @media (max-width:1100px) {
+          .hero-content    { grid-template-columns:1fr; align-items:center; }
+          .hero-copy       { padding-bottom:0; padding-top:90px; }
+          .hero-route-panel{ margin-bottom:40px; }
+          .builder-panel   { max-width:820px; grid-template-columns:1fr; }
+          .builder-image   { min-height:240px; }
+          .builder-content { padding:38px 34px; }
+          .features-grid   { grid-template-columns:repeat(2,1fr); }
+          .footer-top      { grid-template-columns:1fr 1fr; }
+          .testimonial-inner { grid-template-columns:auto 1fr; }
+          .testimonial-author{ display:none; }
+        }
+        @media (max-width:760px) {
+          .nav-links       { display:none; }
+          .hero            { min-height:760px; }
+          .hero-content    { padding-top:120px; }
+          .hero-h1         { font-size:clamp(54px,16vw,78px); }
+          .hero-sub        { font-size:14px; max-width:340px; }
+          .hero-stats      { gap:22px; margin-top:36px; }
+          .hero-stats strong{ font-size:28px; }
+          .hero-route-panel{ padding:18px; border-radius:18px; }
+          .featured-item   { grid-template-columns:28px 44px 1fr auto; gap:10px; padding:12px; }
+          .featured-num    { font-size:18px; }
+          .featured-thumb  { width:44px; height:34px; }
+          .popular-header  { align-items:flex-start; flex-direction:column; }
+          .popular-card    { height:520px; border-radius:26px; }
+          .carousel-arrow  { display:none; }
+          .popular-card-type{ display:none; }
+          .popular-card-content h3 { font-size:clamp(42px,12vw,66px); line-height:0.94; }
+          .builder-content { padding:30px 22px; }
+          .builder-timeline::before { left:22px; top:50px; bottom:50px; }
+          .builder-timeline-item { grid-template-columns:44px 40px 1fr; gap:14px; min-height:96px; }
+          .builder-timeline-item:not(:last-child)::after { left:98px; }
+          .builder-step-num { width:44px; height:44px; font-size:17px; }
+          .builder-step-icon{ width:40px; height:40px; }
+          .builder-step-icon svg { width:27px; height:27px; }
+          .builder-cta     { width:100%; margin-left:0; }
+          .testimonial-inner { grid-template-columns:1fr; text-align:center; gap:20px; }
+          .quote-mark      { display:none; }
+          .features-grid   { grid-template-columns:1fr; }
+          .footer-top      { grid-template-columns:1fr; }
+          .footer-bottom   { flex-direction:column; align-items:flex-start; }
+          .footer-legal    { flex-wrap:wrap; }
+        }
+      `}</style>
+
+      <main className="page">
+
+        {/* ── NAV ─────────────────────────────────────────────── */}
+        <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
+          <Link href="/" className="nav-logo">
+            <span>SCENIC</span>
+            <span>ROUTES</span>
+          </Link>
+
+          <div className="nav-links">
+            {[["Routes","/explore"],["Destinations","/explore"],["Experiences","#experiences"],["Journal","#"],["About","/about"]].map(([label,href])=>(
+              <Link key={label} href={href} className="nav-link">{label}</Link>
+            ))}
           </div>
 
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : routes.length === 0 ? (
-            <div className="text-center text-gray-400 py-24 text-lg">No routes found.</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {routes.map((route) => (
-                <div key={route.id} className="group rounded-4xl border border-gray-100 shadow-sm overflow-hidden bg-white transition-all duration-300 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.2)] hover:-translate-y-1">
-                  <div className="relative h-78 overflow-hidden">
-                    <img src={route.image_url} alt={route.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          <div className="nav-right">
+            {user ? (
+              <div style={{position:"relative"}}>
+                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+                </button>
+                {showUserMenu && (
+                  <div className="user-dropdown">
+                    <div className="user-dropdown-email">{user.email}</div>
+                    <Link href="/profile"  onClick={()=>setShowUserMenu(false)}>Profile</Link>
+                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
+                    <button onClick={async()=>{ await supabase.auth.signOut(); setUser(null); setShowUserMenu(false); }}>
+                      Sign Out
+                    </button>
                   </div>
-                  <div className="p-5">
-                    <span className="text-xs text-gray-400 uppercase tracking-wider">{route.country}</span>
-                    <h3 className="font-bold text-lg mt-1">{route.title}</h3>
-                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{route.description}</p>
-                    <div className="mt-8 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                          </svg>
-                          {route.duration}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M6 18 C6 18 6 8 14 5" />
-                            <line x1="14" y1="5" x2="10" y2="3" />
-                            <line x1="14" y1="5" x2="14" y2="9" />
-                          </svg>
-                          {route.distance_km} km
-                        </span>
-                      </div>
-                      <button className="text-sm font-semibold text-blue-600">View Route</button>
+                )}
+              </div>
+            ) : (
+              <button className="membership-btn" onClick={()=>setIsAuthOpen(true)}>Membership</button>
+            )}
+            <button className="menu-icon" onClick={()=>setShowMobileMenu(p=>!p)} aria-label="Menu">≡</button>
+          </div>
+        </nav>
+
+        {showMobileMenu && (
+          <div className="mobile-menu">
+            {[["Routes","/explore"],["Destinations","/explore"],["Experiences","#experiences"],["About","/about"]].map(([label,href])=>(
+              <Link key={label} href={href} onClick={()=>setShowMobileMenu(false)}>{label}</Link>
+            ))}
+          </div>
+        )}
+
+        {/* ── HERO ────────────────────────────────────────────── */}
+        {/*                                                         */}
+        {/* Two image slots are stacked. The active slot has         */}
+        {/* opacity:1, the inactive has opacity:0. When we cycle,    */}
+        {/* we write the new src into the inactive slot THEN flip    */}
+        {/* activeSlot — the CSS transition does the smooth crossfade*/}
+        {/*                                                         */}
+        <section className="hero">
+          <div className="hero-bg">
+            {/* Slot 0 */}
+            <div className={`hero-slot ${activeSlot === 0 ? "active" : "inactive"}`}>
+              <img src={slotSrcs[0] || "/iceland.jpg"} alt=""
+                onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
+            </div>
+            {/* Slot 1 */}
+            <div className={`hero-slot ${activeSlot === 1 ? "active" : "inactive"}`}>
+              <img src={slotSrcs[1] || "/iceland.jpg"} alt=""
+                onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
+            </div>
+          </div>
+
+          <div className="hero-content">
+
+            {/* Left — headline + CTA */}
+            <div className={`hero-copy ${heroVisible ? "visible" : ""}`}>
+              <p className="hero-eyebrow">Curated cinematic road trips</p>
+              <h1 className="hero-h1">Roads worth<br/>disappearing into.</h1>
+              <p className="hero-sub">
+                Discover breathtaking drives, hidden viewpoints and unforgettable routes —
+                crafted for people who travel for the feeling.
+              </p>
+              <div className="hero-actions">
+                <Link href="/explore" className="btn-gold">Find Your Route →</Link>
+                <button className="watch-btn">
+                  <div className="watch-circle">▶</div>
+                  Watch Film
+                </button>
+              </div>
+              <div className="hero-stats">
+                <div><strong>150+</strong><span>Routes</span></div>
+                <div><strong>40+</strong><span>Countries</span></div>
+                <div><strong>100K+</strong><span>Travelers</span></div>
+              </div>
+            </div>
+
+            {/* Right — featured routes panel */}
+            <div className={`hero-route-panel ${heroVisible ? "visible" : ""}`}>
+              <p className="featured-label">Featured Routes</p>
+              <div className="featured-list">
+                {displayRoutes.slice(0,3).map((route,i)=>(
+                  <Link href={`/routedetail/${route.id}`} key={route.id}
+                    className={`featured-item ${activeIdx===i ? "active" : ""}`}
+                    onMouseEnter={()=>setActiveIdx(i)}>
+                    <span className="featured-num">0{i+1}</span>
+                    <div className="featured-thumb">
+                      <img src={route.image_url||"/iceland.jpg"} alt={route.title}
+                        onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
+                    </div>
+                    <div>
+                      <div className="featured-title">{route.title}</div>
+                      <div className="featured-country">{route.country}</div>
+                    </div>
+                    <span className="featured-arrow">→</span>
+                  </Link>
+                ))}
+              </div>
+              <Link href="/explore" className="view-all-link">Explore all routes →</Link>
+            </div>
+
+          </div>
+        </section>
+
+        {/* ── POPULAR CAROUSEL ────────────────────────────────── */}
+        <PopularCarousel routes={displayRoutes} />
+
+        {/* ── BUILDER ─────────────────────────────────────────── */}
+        <section className="section builder-section" id="experiences">
+          <div className="container">
+            <div className="builder-panel">
+
+              {/* Left — route image (changes with builder step) */}
+              <div className="builder-image">
+                <img
+                  src={displayRoutes[builderStep % displayRoutes.length]?.image_url || "/iceland.jpg"}
+                  alt="Route planning"
+                  onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}
+                />
+                <div className="builder-image-overlay"/>
+              </div>
+
+              {/* Right — 3-step timeline */}
+              <div className="builder-content">
+                <p className="section-eyebrow">Plan your escape</p>
+                <h2 className="section-h2">Build your route<br/>in 3 simple steps.</h2>
+                <p className="builder-intro">
+                  Craft a journey that fits your time, your interests, and the kind of adventure you're chasing.
+                </p>
+
+                <div className="builder-timeline">
+                  <div className="builder-timeline-item">
+                    <div className="builder-step-num">1</div>
+                    <div className="builder-step-icon" aria-hidden="true">
+                      <svg viewBox="0 0 48 48"><path d="M5 38L17 18L26 32L32 23L43 38H5Z"/></svg>
+                    </div>
+                    <div className="builder-step-copy">
+                      <h3>Choose your terrain</h3>
+                      <p>Pick the landscapes you love to explore.</p>
+                    </div>
+                  </div>
+
+                  <div className="builder-timeline-item">
+                    <div className="builder-step-num">2</div>
+                    <div className="builder-step-icon" aria-hidden="true">
+                      <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 13V25L32 30"/></svg>
+                    </div>
+                    <div className="builder-step-copy">
+                      <h3>Set your time</h3>
+                      <p>Tell us how long you have for your escape.</p>
+                    </div>
+                  </div>
+
+                  <div className="builder-timeline-item">
+                    <div className="builder-step-num">3</div>
+                    <div className="builder-step-icon" aria-hidden="true">
+                      <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M7 24H41"/><path d="M24 7C29 12 31 18 31 24C31 30 29 36 24 41"/><path d="M24 7C19 12 17 18 17 24C17 30 19 36 24 41"/></svg>
+                    </div>
+                    <div className="builder-step-copy">
+                      <h3>Pick your country</h3>
+                      <p>Choose where the journey begins.</p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
 
-          <div className="mt-10 flex justify-center items-center gap-2 text-emerald-600 text-sm font-medium">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Weather data updated • Conditions optimal for travel
+                <Link href={builderHref} className="btn-gold builder-cta">
+                  Build My Route →
+                </Link>
+              </div>
+
+            </div>
           </div>
         </section>
 
-        {/* FOOTER */}
-        <footer className="w-full bg-[#0a0f1a] text-gray-500 py-12 px-12 mt-20">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 pb-16 border-b border-white/5">
-            <div className="flex flex-col gap-2 flex-shrink-0 min-w-[180px]">
-              <div className="flex items-center gap-3">
-                <img src="/mountains.png" alt="Logo" className="w-13 h-13 object-contain invert opacity-70" />
-                <span className="text-lg font-black text-white tracking-tight whitespace-nowrap">Scenic Routes</span>
-              </div>
-              <p className="text-[13px] text-gray-600 leading-relaxed max-w-[220px]">
-                Curated routes for those who seek the road less travelled.
-              </p>
-            </div>
-            <div className="flex flex-col items-center gap-3 text-[13px]">
-              <div className="flex gap-8">
-                {['Explore Routes', 'Mountains', 'Coastal', 'Forest'].map(link => (
-                  <a key={link} href="#" className="hover:text-white transition-colors whitespace-nowrap">{link}</a>
+        {/* ── TESTIMONIAL ─────────────────────────────────────── */}
+        <section className="testimonial-section">
+          <div className="testimonial-inner">
+            <div className="quote-mark">"</div>
+
+            <div className="testimonial-body">
+              <p className="testimonial-text">{TESTIMONIALS[testimonialIdx].quote}</p>
+              <div className="testimonial-dots">
+                {TESTIMONIALS.map((_,i)=>(
+                  <button key={i}
+                    className={`testimonial-dot ${i===testimonialIdx ? "active" : ""}`}
+                    onClick={()=>setTestimonialIdx(i)}
+                    aria-label={`Testimonial ${i+1}`}
+                  />
                 ))}
               </div>
-              <div className="flex gap-8">
-                <Link href="/about" className="hover:text-white transition-colors whitespace-nowrap">About Us</Link>
-                <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Contact</a>
-                <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Privacy</a>
-                <a href="#" className="hover:text-white transition-colors whitespace-nowrap">Terms</a>
-              </div>
             </div>
-            <div className="flex flex-col gap-2 flex-shrink-0">
-              <p className="text-xs text-white font-semibold uppercase tracking-widest">Stay Inspired</p>
-              <div className="flex items-center gap-2">
-                <input type="email" placeholder="your@email.com" className="w-72 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 outline-none focus:border-emerald-500 transition-colors" />
-                <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">→</button>
-              </div>
+
+            <div className="testimonial-author">
+              <div className="author-avatar"><span>◎</span></div>
+              <div className="author-name"> {TESTIMONIALS[testimonialIdx].name}</div>
+              <div className="author-role"> {TESTIMONIALS[testimonialIdx].role}</div>
+              <div className="author-since">{TESTIMONIALS[testimonialIdx].since}</div>
             </div>
           </div>
-          <div className="max-w-7xl mx-auto flex items-center justify-between pt-5 text-xs text-gray-700">
-            <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
+        </section>
+
+        {/* ── FEATURES ────────────────────────────────────────── */}
+        <section className="section features-section">
+          <div className="container">
+            <p className="section-eyebrow">Beyond the drive</p>
+            <h2 className="section-h2">Why travel with<br/>Scenic Routes?</h2>
+            <div className="features-grid">
+              {FEATURES.map(({icon,title,text})=>(
+                <div className="feature-card" key={title}>
+                  <div className="feature-icon">{icon}</div>
+                  <div className="feature-title">{title}</div>
+                  <p className="feature-text">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FOOTER ──────────────────────────────────────────── */}
+        <footer className="footer">
+          <div className="footer-inner">
+            <div className="footer-top">
+              <div>
+                <div className="footer-brand">SCENIC<br/>ROUTES</div>
+                <p className="footer-tagline">Extraordinary roads.<br/>Timeless memories.</p>
+                <div className="footer-socials">
+                  {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
+                </div>
+              </div>
+
+              {Object.entries(FOOTER_COLS).map(([heading,links])=>(
+                <div className="footer-col" key={heading}>
+                  <p className="footer-col-title">{heading}</p>
+                  {links.map(l=><a href="#" key={l}>{l}</a>)}
+                </div>
+              ))}
+
+              <div>
+                <p className="footer-nl-title">Stay Inspired</p>
+                <p className="footer-nl-sub">Subscribe for exclusive routes, travel stories, and offers.</p>
+                <form className="footer-nl-form" onSubmit={handleNewsletter}>
+                  <input type="email" required className="footer-nl-input"
+                    value={email} onChange={e=>setEmail(e.target.value)}
+                    placeholder={emailSent ? "Subscribed!" : "Enter your email"}/>
+                  <button type="submit" className="footer-nl-btn">→</button>
+                </form>
+              </div>
+            </div>
+
+            <div className="footer-bottom">
+              <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
+              <div className="footer-legal">
+                <a href="#">Terms & Conditions</a>
+                <a href="#">Privacy</a>
+              </div>
+            </div>
           </div>
         </footer>
 
       </main>
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+
+      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
     </>
   );
 }
