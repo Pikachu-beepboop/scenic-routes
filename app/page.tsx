@@ -9,20 +9,20 @@ import AuthModal from "./AuthModal";
 const fmtKm = (km?: number) => km != null ? `${km.toLocaleString("en-US")} km` : "—";
 
 const FALLBACK_ROUTES = [
-  { id: "1", title: "Amalfi Coast Road",    country: "Italy",       distance_km: 50,   image_url: "/Amalfi coast road.jpg",      duration: "Half day (< 4h)",   type: "Coastal Highway", terrain: "Coastal",   description: "A ribbon of coastal beauty — cliffside villages, endless sea, and curves that stay with you." },
-  { id: "2", title: "Pacific Coast Highway", country: "USA",         distance_km: 650,  image_url: "/Pacific Route Highway.jpg",  duration: "Multi-day journey", type: "Coastal Highway", terrain: "Coastal",   description: "One of the world's great coastal drives, tracing the California shoreline." },
-  { id: "3", title: "Trollstigen",           country: "Norway",      distance_km: 27,   image_url: "/Trollstigen.jpg",            duration: "Half day (< 4h)",   type: "Scenic Pass",     terrain: "Mountains", description: "Norway's most dramatic mountain road with 11 legendary hairpin bends." },
-  { id: "4", title: "Stelvio Pass",          country: "Italy",       distance_km: 75,   image_url: "/Stellvio Pass.jpg",          duration: "Half day (< 4h)",   type: "Alpine Pass",     terrain: "Mountains", description: "The highest paved mountain pass in the Eastern Alps." },
-  { id: "5", title: "Garden Route",          country: "South Africa",distance_km: 300,  image_url: "/Garden Route.jpg",           duration: "Weekend trip",      type: "Scenic Route",    terrain: "Coastal",   description: "South Africa's lush coastal corridor of forests, lagoons and beaches." },
-  { id: "6", title: "North Coast 500",       country: "Scotland",    distance_km: 830,  image_url: "/North Coast 500.jpg",        duration: "Multi-day journey", type: "Circular Route",  terrain: "Mountains", description: "Scotland's iconic 830 km loop through remote Highlands and dramatic sea cliffs." },
+  { id: "1", title: "Amalfi Coast Road", country: "Italy", distance_km: 50, image_url: "/Amalfi coast road.jpg", duration: "Half day (< 4h)", type: "Coastal Highway", terrain: "Coastal", description: "A ribbon of coastal beauty — cliffside villages, endless sea, and curves that stay with you." },
+  { id: "2", title: "Pacific Coast Highway", country: "USA", distance_km: 650, image_url: "/Pacific Route Highway.jpg", duration: "Multi-day journey", type: "Coastal Highway", terrain: "Coastal", description: "One of the world's great coastal drives, tracing the California shoreline." },
+  { id: "3", title: "Trollstigen", country: "Norway", distance_km: 27, image_url: "/Trollstigen.jpg", duration: "Half day (< 4h)", type: "Scenic Pass", terrain: "Mountains", description: "Norway's most dramatic mountain road with 11 legendary hairpin bends." },
+  { id: "4", title: "Stelvio Pass", country: "Italy", distance_km: 75, image_url: "/Stellvio Pass.jpg", duration: "Half day (< 4h)", type: "Alpine Pass", terrain: "Mountains", description: "The highest paved mountain pass in the Eastern Alps." },
+  { id: "5", title: "Garden Route", country: "South Africa", distance_km: 300, image_url: "/Garden Route.jpg", duration: "Weekend trip", type: "Scenic Route", terrain: "Coastal", description: "South Africa's lush coastal corridor of forests, lagoons and beaches." },
+  { id: "6", title: "North Coast 500", country: "Scotland", distance_km: 830, image_url: "/North Coast 500.jpg", duration: "Multi-day journey", type: "Circular Route", terrain: "Mountains", description: "Scotland's iconic 830 km loop through remote Highlands and dramatic sea cliffs." },
 ];
 
 const DESTINATIONS = [
-  { name: "Pacific Coast",  place: "USA",          x: "14%",  y: "38%" },
-  { name: "The Andes",      place: "South America",x: "26%",  y: "62%" },
-  { name: "Tuscany",        place: "Italy",         x: "50%",  y: "34%" },
-  { name: "Garden Route",   place: "South Africa",  x: "52%",  y: "68%" },
-  { name: "Great Ocean Road",place: "Australia",    x: "82%",  y: "70%" },
+  { name: "Pacific Coast", place: "USA", x: "14%", y: "38%" },
+  { name: "The Andes", place: "South America", x: "26%", y: "62%" },
+  { name: "Tuscany", place: "Italy", x: "50%", y: "34%" },
+  { name: "Garden Route", place: "South Africa", x: "52%", y: "68%" },
+  { name: "Great Ocean Road", place: "Australia", x: "82%", y: "70%" },
 ];
 
 const TESTIMONIALS = [
@@ -32,10 +32,10 @@ const TESTIMONIALS = [
 ];
 
 const FEATURES = [
-  { icon: "◎", title: "Curated with care",   text: "Handpicked routes and places researched by real travelers." },
-  { icon: "△", title: "Driven by detail",    text: "Maps, tips, and insights that make every mile smoother." },
-  { icon: "⬡", title: "Built for freedom",   text: "Flexible plans that adapt to the way you travel." },
-  { icon: "◈", title: "Stories that inspire",text: "Journeys, guides, and journals to fuel your next adventure." },
+  { icon: "◎", title: "Curated with care", text: "Handpicked routes and places researched by real travelers." },
+  { icon: "△", title: "Driven by detail", text: "Maps, tips, and insights that make every mile smoother." },
+  { icon: "⬡", title: "Built for freedom", text: "Flexible plans that adapt to the way you travel." },
+  { icon: "◈", title: "Stories that inspire", text: "Journeys, guides, and journals to fuel your next adventure." },
 ];
 
 type Route = {
@@ -45,20 +45,20 @@ type Route = {
 };
 
 export default function HomePage() {
-  const [routes,         setRoutes]         = useState<Route[]>([]);
-  const [user,           setUser]           = useState<any>(null);
-  const [avatarUrl,      setAvatarUrl]      = useState("");
-  const [email,          setEmail]          = useState("");
-  const [emailSent,      setEmailSent]      = useState(false);
-  const [isAuthOpen,     setIsAuthOpen]     = useState(false);
-  const [showUserMenu,   setShowUserMenu]   = useState(false);
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [navScrolled,    setNavScrolled]    = useState(false);
-  const [heroVisible,    setHeroVisible]    = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(false);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
-  const [carouselIdx,    setCarouselIdx]    = useState(0);
-  const [activeSlot,     setActiveSlot]     = useState(0);
-  const [slotSrcs,       setSlotSrcs]       = useState(["", ""]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [slotSrcs, setSlotSrcs] = useState(["", ""]);
   const crossfadeInFlight = useRef(false);
 
   const displayRoutes = useMemo(() => (routes.length ? routes : FALLBACK_ROUTES), [routes]);
@@ -67,7 +67,7 @@ export default function HomePage() {
     if (crossfadeInFlight.current) return;
     crossfadeInFlight.current = true;
     const next = activeSlot === 0 ? 1 : 0;
-    setSlotSrcs(srcs => { const u = [...srcs] as [string,string]; u[next] = src; return u; });
+    setSlotSrcs(srcs => { const u = [...srcs] as [string, string]; u[next] = src; return u; });
     setTimeout(() => { setActiveSlot(next); crossfadeInFlight.current = false; }, 60);
   }, [activeSlot]);
 
@@ -304,21 +304,19 @@ export default function HomePage() {
 
         /* DESTINATIONS MAP */
         .dest-section {
-          padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px);
-          background:var(--bg);
-          border-top:1px solid var(--border);
-        }
-        .dest-header { max-width:1200px; margin:0 auto 48px; display:flex; justify-content:space-between; align-items:flex-end; }
-        .dest-h2 { font-family:var(--serif); font-size:clamp(34px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); }
-        .dest-right { text-align:right; }
-        .dest-sub { font-size:12px; color:var(--dim); line-height:1.6; margin-bottom:12px; max-width:200px; }
-        .view-all-link { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); display:inline-flex; align-items:center; gap:8px; transition:gap .2s; }
-        .view-all-link:hover { gap:14px; }
-        .dest-map {
-          max-width:1200px; margin:0 auto;
-          position:relative; aspect-ratio:16/7; border-radius:20px; overflow:hidden;
-          border:1px solid var(--border);
-        }
+          padding: clamp(70px,9vw,120px) clamp(24px,5vw,80px);
+          background: var(--bg);
+          border-top: 1px solid var(--border);
+         }
+        .dest-h2 {
+          font-family: var(--serif);
+           font-size: clamp(34px,4.5vw,58px);
+           font-weight: 300;
+           line-height: 0.95;
+           letter-spacing: -0.04em;
+           color: var(--cream);
+           margin-top: 12px;
+         }
         .dest-map img { width:100%; height:100%; object-fit:cover; }
         .dest-map::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, transparent 40%, rgba(12,11,9,0.6)); }
         .dest-pin {
@@ -412,29 +410,29 @@ export default function HomePage() {
 
         {/* NAV */}
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
-          <Link href="/" className="nav-logo">SCENIC<br/>ROUTES</Link>
+          <Link href="/" className="nav-logo">SCENIC<br />ROUTES</Link>
           <div className="nav-links">
-            {[["Routes","/explore"],["Destinations","/explore"],["Experiences","#experiences"],["Journal","#"],["About","#"]].map(([l,h])=>(
+            {[["Routes", "/explore"], ["Destinations", "/explore"], ["Experiences", "#experiences"], ["Journal", "#"], ["About", "#"]].map(([l, h]) => (
               <Link key={l} href={h} className="nav-link">{l}</Link>
             ))}
           </div>
           <div className="nav-right">
             {user ? (
-              <div style={{position:"relative"}}>
-                <button className="user-avatar-btn" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+              <div style={{ position: "relative" }}>
+                <button className="user-avatar-btn" onClick={() => setShowUserMenu(p => !p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
                   <div className="user-dd">
                     <div className="user-dd-email">{user.email}</div>
-                    <Link href="/profile"  onClick={()=>setShowUserMenu(false)}>Profile</Link>
-                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
-                    <button onClick={async()=>{ await supabase.auth.signOut(); setUser(null); setShowUserMenu(false); }}>Sign Out</button>
+                    <Link href="/profile" onClick={() => setShowUserMenu(false)}>Profile</Link>
+                    <Link href="/my-trips" onClick={() => setShowUserMenu(false)}>My Trips</Link>
+                    <button onClick={async () => { await supabase.auth.signOut(); setUser(null); setShowUserMenu(false); }}>Sign Out</button>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="#" onClick={e=>{ e.preventDefault(); setIsAuthOpen(true); }} className="nav-cta">
+              <Link href="#" onClick={e => { e.preventDefault(); setIsAuthOpen(true); }} className="nav-cta">
                 Plan your route →
               </Link>
             )}
@@ -444,11 +442,11 @@ export default function HomePage() {
         {/* HERO */}
         <section className="hero">
           <div className="hero-bg">
-  <img src="/hero.png" alt="Hero" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 40%",filter:"brightness(0.92) contrast(1.08) saturate(0.9)"}}/>
-</div>
+            <img src="/hero.png" alt="Hero" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 40%", filter: "brightness(0.92) contrast(1.08) saturate(0.9)" }} />
+          </div>
           <div className="hero-content">
-            <div className={`hero-copy ${heroVisible?"visible":""}`}>
-              <h1 className="hero-h1">The road<br/>reveals more.</h1>
+            <div className={`hero-copy ${heroVisible ? "visible" : ""}`}>
+              <h1 className="hero-h1">The road<br />reveals more.</h1>
               <p className="hero-sub">Scenic drives. Hidden places. Stories worth the journey.</p>
               <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
             </div>
@@ -457,7 +455,7 @@ export default function HomePage() {
 
         {/* STATS BAR */}
         <div className="stats-bar">
-          {[["150+","Curated Routes"],["40+","Countries"],["100K+","Travelers"],["10K+","Hidden Places"]].map(([n,l])=>(
+          {[["150+", "Curated Routes"], ["40+", "Countries"], ["100K+", "Travelers"], ["10K+", "Hidden Places"]].map(([n, l]) => (
             <div className="stat-item" key={l}>
               <div className="stat-num">{n}</div>
               <div className="stat-label">{l}</div>
@@ -477,16 +475,16 @@ export default function HomePage() {
                 View Route →
               </Link>
               <div className="featured-nav">
-                <button className="featured-arrow" onClick={()=>setCarouselIdx(p=>(p===0?displayRoutes.length-1:p-1))}>←</button>
-                <span className="featured-counter">{String(carouselIdx+1).padStart(2,"0")} / {String(Math.min(displayRoutes.length,6)).padStart(2,"0")}</span>
-                <button className="featured-arrow" onClick={()=>setCarouselIdx(p=>(p+1)%Math.min(displayRoutes.length,6))}>→</button>
+                <button className="featured-arrow" onClick={() => setCarouselIdx(p => (p === 0 ? displayRoutes.length - 1 : p - 1))}>←</button>
+                <span className="featured-counter">{String(carouselIdx + 1).padStart(2, "0")} / {String(Math.min(displayRoutes.length, 6)).padStart(2, "0")}</span>
+                <button className="featured-arrow" onClick={() => setCarouselIdx(p => (p + 1) % Math.min(displayRoutes.length, 6))}>→</button>
               </div>
             </div>
             <div className="featured-image">
               <img
-                src={featuredRoute?.image_url||"/Amalfi coast road.jpg"}
+                src={featuredRoute?.image_url || "/Amalfi coast road.jpg"}
                 alt={featuredRoute?.title}
-                onError={e=>{ e.currentTarget.src="/Amalfi coast road.jpg"; }}
+                onError={e => { e.currentTarget.src = "/Amalfi coast road.jpg"; }}
               />
             </div>
           </div>
@@ -496,11 +494,11 @@ export default function HomePage() {
         <section className="builder-section" id="experiences">
           <div className="builder-inner">
             <div className="builder-image">
-              <img src="/Toscana.jpg" alt="Tuscany road" onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
+              <img src="/Toscana.jpg" alt="Tuscany road" onError={e => { e.currentTarget.src = "/iceland.jpg"; }} />
             </div>
             <div className="builder-content">
               <p className="eyebrow">Build your route</p>
-              <h2 className="builder-h2">Your journey,<br/>your way.</h2>
+              <h2 className="builder-h2">Your journey,<br />your way.</h2>
               <p className="builder-sub">Choose your terrain, pace, and places. We'll craft a route that fits you.</p>
               <div className="builder-steps">
                 <div className="builder-step">
@@ -532,19 +530,21 @@ export default function HomePage() {
 
         {/* DESTINATIONS MAP */}
         <section className="dest-section">
-          <div className="dest-header">
-            <div>
-              <p className="eyebrow">Destinations</p>
-              <h2 className="dest-h2">Places that stay with you.</h2>
-            </div>
-            <div className="dest-right">
-              <p className="dest-sub">Explore handpicked regions around the world.</p>
-              <Link href="/explore" className="view-all-link">View all destinations →</Link>
-            </div>
+          <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center", marginBottom: "40px" }}>
+            <p className="eyebrow">Destinations</p>
+            <h2 className="dest-h2">Places that stay with you.</h2>
+            <p style={{ fontSize: "13px", color: "var(--dim)", marginTop: "14px", lineHeight: 1.6 }}>
+              Explore handpicked regions around the world.
+            </p>
           </div>
-          <div style={{maxWidth:"90%", margin:"0 auto"}}>
-  <WorldMap />
-</div>
+
+          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+            <WorldMap />
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: "32px" }}>
+            <Link href="/explore" className="view-all-link">View all destinations →</Link>
+          </div>
         </section>
 
         {/* TESTIMONIAL */}
@@ -553,8 +553,8 @@ export default function HomePage() {
           <p className="testimonial-text">{TESTIMONIALS[testimonialIdx].quote}</p>
           <p className="testimonial-name">— {TESTIMONIALS[testimonialIdx].name}</p>
           <div className="testimonial-dots">
-            {TESTIMONIALS.map((_,i)=>(
-              <button key={i} className={`t-dot ${i===testimonialIdx?"active":""}`} onClick={()=>setTestimonialIdx(i)} aria-label={`Testimonial ${i+1}`}/>
+            {TESTIMONIALS.map((_, i) => (
+              <button key={i} className={`t-dot ${i === testimonialIdx ? "active" : ""}`} onClick={() => setTestimonialIdx(i)} aria-label={`Testimonial ${i + 1}`} />
             ))}
           </div>
         </section>
@@ -563,9 +563,9 @@ export default function HomePage() {
         <section className="features-section">
           <div className="features-inner">
             <p className="eyebrow">Why travel with Scenic Routes</p>
-            <h2 className="features-h2">Designed for<br/>the road ahead.</h2>
+            <h2 className="features-h2">Designed for<br />the road ahead.</h2>
             <div className="features-grid">
-              {FEATURES.map(({icon,title,text})=>(
+              {FEATURES.map(({ icon, title, text }) => (
                 <div className="feature-card" key={title}>
                   <div className="feature-icon">{icon}</div>
                   <div className="feature-title">{title}</div>
@@ -581,20 +581,20 @@ export default function HomePage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">SCENIC<br/>ROUTES</div>
+                <div className="footer-brand">SCENIC<br />ROUTES</div>
                 <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey as much as the destination.</p>
                 <div className="footer-socials">
-                  {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
+                  {["IG", "FB", "YT"].map(s => <a key={s} href="#" className="footer-social">{s[0]}</a>)}
                 </div>
               </div>
               {[
-                ["Explore",["All Routes","Destinations","Experiences","Journal"]],
-                ["Company",["About Us","Membership","Gift Cards","Careers"]],
-                ["Support",["FAQ","Travel Policies","Contact Us","Privacy Policy"]],
-              ].map(([heading, links])=>(
+                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
+                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
+                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
+              ].map(([heading, links]) => (
                 <div className="footer-col" key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
-                  {(links as string[]).map(l=><a href="#" key={l}>{l}</a>)}
+                  {(links as string[]).map(l => <a href="#" key={l}>{l}</a>)}
                 </div>
               ))}
               <div>
@@ -602,8 +602,8 @@ export default function HomePage() {
                 <p className="footer-nl-sub">Subscribe for new routes, stories, and exclusive guides.</p>
                 <form className="footer-nl-form" onSubmit={handleNewsletter}>
                   <input type="email" required className="footer-nl-input"
-                    value={email} onChange={e=>setEmail(e.target.value)}
-                    placeholder={emailSent?"Subscribed!":"Enter your email"}/>
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder={emailSent ? "Subscribed!" : "Enter your email"} />
                   <button type="submit" className="footer-nl-btn">→</button>
                 </form>
               </div>
@@ -620,7 +620,7 @@ export default function HomePage() {
 
       </main>
 
-      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
 }
