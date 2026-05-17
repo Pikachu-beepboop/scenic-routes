@@ -542,13 +542,8 @@ export default function HomePage() {
               <Link href="/explore" className="view-all-link">View all destinations →</Link>
             </div>
           </div>
-<<<<<<< HEAD
-          <div style={{maxWidth:"100%", margin:"0 auto", padding:"0 clamp(24px,5vw,80px)"}}>
+          <div style={{maxWidth:"90%", margin:"0 auto"}}>
   <WorldMap />
-=======
-          <div className="dest-map">
-  <img src="/karte2.png" alt="World map" onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
->>>>>>> 9d2f502c1a31f8fbdb54a1cdbc11d74f67bcebb6
 </div>
         </section>
 
