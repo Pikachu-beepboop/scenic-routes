@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import WorldMap from "./components/WorldMap";
 import AuthModal from "./AuthModal";
 
 const fmtKm = (km?: number) => km != null ? `${km.toLocaleString("en-US")} km` : "—";
@@ -541,8 +542,8 @@ export default function HomePage() {
               <Link href="/explore" className="view-all-link">View all destinations →</Link>
             </div>
           </div>
-          <div className="dest-map">
-  <img src="/map.png" alt="World map" onError={e=>{ e.currentTarget.src="/iceland.jpg"; }}/>
+          <div style={{maxWidth:"100%", margin:"0 auto", padding:"0 clamp(24px,5vw,80px)"}}>
+  <WorldMap />
 </div>
         </section>
 
