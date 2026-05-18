@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
-import WorldMap from "./components/WorldMap";
+import dynamic from "next/dynamic";
+
 import AuthModal from "./AuthModal";
 
 const fmtKm = (km?: number) => km != null ? `${km.toLocaleString("en-US")} km` : "—";
+
+const WorldMap = dynamic(() => import("./components/WorldMap"), { ssr: false });
 
 const FALLBACK_ROUTES = [
   { id: "1", title: "Amalfi Coast Road", country: "Italy", distance_km: 50, image_url: "/Amalfi coast road.jpg", duration: "Half day (< 4h)", type: "Coastal Highway", terrain: "Coastal", description: "A ribbon of coastal beauty — cliffside villages, endless sea, and curves that stay with you." },
@@ -43,6 +46,109 @@ type Route = {
   distance_km?: number; image_url?: string; duration?: string;
   type?: string; terrain?: string; description?: string;
 };
+
+function PopularCarousel({ routes }: { routes: Route[] }) {
+  const [idx, setIdx] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+
+  const items = useMemo(() => routes.slice(0, 6), [routes]);
+  const route = items[idx] ?? items[0];
+
+  useEffect(() => {
+    items.forEach((route) => {
+      if (!route.image_url) return;
+
+      const img = new Image();
+      img.src = route.image_url;
+    });
+  }, [items]);
+
+  if (!route) return null;
+  
+  const prev = () => {
+    setSlideDirection("prev");
+    setIdx((i) => (i === 0 ? items.length - 1 : i - 1));
+  };
+
+  const next = () => {
+    setSlideDirection("next");
+    setIdx((i) => (i + 1) % items.length);
+  };
+
+  return (
+    <section className="popular-section">
+      <div className="popular-container">
+        <div className="popular-header">
+          <div>
+            <p className="popular-eyebrow">Popular Destinations</p>
+            <h2 className="popular-heading">
+              Roads made
+              <br />
+              for the journey.
+            </h2>
+          </div>
+
+          <Link href="/explore" className="popular-view-all">
+            View all destinations →
+          </Link>
+        </div>
+
+        <div className="popular-card-wrap">
+          <button
+            className="popular-arrow popular-left"
+            onClick={prev}
+            aria-label="Previous route"
+          >
+            ←
+          </button>
+
+          <button
+            className="popular-arrow popular-right"
+            onClick={next}
+            aria-label="Next route"
+          >
+            →
+          </button>
+
+          <Link
+            key={route.id}
+            href={`/routedetail/${route.id}`}
+            className={`popular-card slide-${slideDirection}`}
+          >
+            <img
+              src={route.image_url || "/Pacific Route Highway.jpg"}
+              alt={route.title}
+              onError={(e) => {
+                e.currentTarget.src = "/Pacific Route Highway.jpg";
+              }}
+            />
+
+            <div className="popular-card-overlay" />
+
+            <span className="popular-counter">
+              {String(idx + 1).padStart(2, "0")} /{" "}
+              {String(items.length).padStart(2, "0")}
+            </span>
+
+            <span className="popular-type">
+              {route.terrain || route.type || "Scenic Route"}
+            </span>
+
+            <div className="popular-content">
+              <p>{route.country}</p>
+              <h3>{route.title}</h3>
+              <span>
+                {route.description ||
+                  "One of the world's most scenic driving routes."}
+              </span>
+
+            </div>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function HomePage() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -109,7 +215,6 @@ export default function HomePage() {
     setEmailSent(true); setEmail("");
   };
 
-  const featuredRoute = displayRoutes[carouselIdx] ?? displayRoutes[0];
 
   return (
     <>
@@ -274,6 +379,370 @@ export default function HomePage() {
         .featured-image img { width:100%; height:100%; object-fit:cover; filter:brightness(0.9) contrast(1.05) saturate(0.95); transition:transform .8s ease; }
         .featured-image:hover img { transform:scale(1.03); }
 
+/* POPULAR DESTINATIONS */
+.popular-section {
+  padding: clamp(76px, 8vw, 116px) clamp(24px, 5vw, 80px);
+  background:
+    radial-gradient(circle at 72% 22%, rgba(201,168,106,0.13), transparent 28rem),
+    var(--bg);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.popular-container {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.popular-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.popular-eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 24px;
+}
+
+.popular-heading {
+  font-family: var(--serif);
+  font-size: clamp(42px, 5vw, 70px);
+  font-weight: 300;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--cream);
+}
+
+.popular-view-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.popular-view-all:hover {
+  color: var(--cream);
+}
+
+.popular-card-wrap {
+  position: relative;
+}
+
+/* MAIN CARD */
+.popular-card {
+  position: relative;
+  display: block;
+  height: clamp(520px, 58vw, 680px);
+  overflow: hidden;
+  border-radius: 34px;
+  border: 1px solid rgba(237,229,212,0.14);
+  background: var(--bg3);
+  box-shadow: 0 36px 110px rgba(0,0,0,0.52);
+  isolation: isolate;
+}
+
+/* FASTER + BRIGHTER SLIDE ANIMATION */
+.popular-card.slide-next {
+  animation: popularSlideNext 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.popular-card.slide-prev {
+  animation: popularSlidePrev 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes popularSlideNext {
+  0% {
+    opacity: 0.72;
+    transform: translateX(26px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes popularSlidePrev {
+  0% {
+    opacity: 0.72;
+    transform: translateX(-26px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* IMAGE */
+.popular-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.82) contrast(1.06) saturate(0.98);
+  transition:
+    transform 1s ease,
+    filter 1s ease;
+}
+
+/* ZOOM ON WHOLE CARD AREA */
+.popular-card-wrap:hover .popular-card img {
+  transform: scale(1.04);
+  filter: brightness(0.94) contrast(1.1) saturate(1.08);
+}
+
+/* IMPORTANT: your arrows are .popular-arrow, not .carousel-arrow */
+.popular-card-wrap:hover .popular-arrow {
+  border-color: rgba(201,168,106,0.45);
+}
+
+/* DARK OVERLAY */
+.popular-card-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      to top,
+      rgba(0,0,0,0.9),
+      rgba(0,0,0,0.28) 48%,
+      rgba(0,0,0,0.18)
+    ),
+    linear-gradient(
+      to right,
+      rgba(0,0,0,0.5),
+      transparent 58%
+    );
+}
+
+/* COUNTER */
+.popular-counter {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  z-index: 2;
+  font-family: var(--serif);
+  font-size: clamp(26px, 3vw, 42px);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: rgba(255,255,255,0.76);
+}
+
+/* TYPE LABEL */
+.popular-type {
+  position: absolute;
+  top: 34px;
+  right: 34px;
+  z-index: 2;
+  color: rgba(255,255,255,0.66);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+/* CONTENT */
+.popular-content {
+  position: absolute;
+  z-index: 2;
+  left: clamp(28px, 5vw, 90px);
+  right: clamp(28px, 5vw, 70px);
+  bottom: clamp(34px, 6vw, 74px);
+  max-width: min(1120px, calc(100% - 80px));
+}
+
+/* FASTER + BRIGHTER CONTENT REVEAL */
+.popular-card.slide-next .popular-content,
+.popular-card.slide-next .popular-counter,
+.popular-card.slide-next .popular-type,
+.popular-card.slide-prev .popular-content,
+.popular-card.slide-prev .popular-counter,
+.popular-card.slide-prev .popular-type {
+  animation: popularTextReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes popularTextReveal {
+  0% {
+    opacity: 0.78;
+    transform: translateY(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popular-content p {
+  margin-bottom: 12px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.popular-content h3 {
+  margin-bottom: 22px;
+  color: #fff;
+  font-family: var(--serif);
+  font-size: clamp(48px, 6.2vw, 92px);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: -0.055em;
+  text-shadow: 0 20px 60px rgba(0,0,0,0.65);
+}
+
+.popular-content span {
+  display: block;
+  max-width: 500px;
+  color: rgba(255,255,255,0.68);
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.8;
+}
+
+/* META PILLS */
+.popular-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.popular-meta small {
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  color: rgba(255,255,255,0.78);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/* ARROWS */
+.popular-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  transform: translateY(-50%);
+  width: 45px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  backdrop-filter: blur(14px);
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.popular-arrow:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--bg);
+}
+
+.popular-left {
+  left: 24px;
+}
+
+.popular-right {
+  right: 24px;
+}
+
+/* DOTS */
+.popular-dots {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.popular-dots button {
+  position: relative;
+  min-width: 42px;
+  height: 36px;
+  color: rgba(237,229,212,0.36);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  transition: color 0.2s;
+}
+
+.popular-dots button::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.popular-dots button.active {
+  color: var(--cream);
+}
+
+.popular-dots button.active::after {
+  background: var(--gold);
+}
+
+/* MOBILE */
+@media (max-width: 760px) {
+  .popular-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .popular-card {
+    height: 520px;
+    border-radius: 26px;
+  }
+
+  .popular-arrow {
+    display: none;
+  }
+
+  .popular-type {
+    display: none;
+  }
+
+  .popular-content {
+    left: 24px;
+    right: 24px;
+    bottom: 34px;
+  }
+
+  .popular-content h3 {
+    font-size: clamp(42px, 12vw, 66px);
+    line-height: 0.94;
+  }
+}
+
         /* BUILDER */
         .builder-section {
           background:var(--bg2);
@@ -398,6 +867,12 @@ export default function HomePage() {
           .dest-header    { flex-direction:column; align-items:flex-start; gap:16px; }
         }
         @media (max-width:680px) {
+          .popular-header { align-items:flex-start; flex-direction:column; }
+          .popular-card { height:520px; border-radius:26px; }
+          .popular-arrow { display:none; }
+          .popular-type { display:none; }
+          .popular-content h3 { font-size:clamp(42px,12vw,66px); line-height:0.94; }
+
           .nav-links      { display:none; }
           .stat-label     { display:none; }
           .features-grid  { grid-template-columns:1fr; }
@@ -463,32 +938,8 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* FEATURED ROUTE */}
-        <section className="featured-section">
-          <div className="featured-inner">
-            <div className="featured-left">
-              <p className="eyebrow">Featured Route</p>
-              <h2 className="featured-title">{featuredRoute?.title || "Amalfi Coast Road"}</h2>
-              <p className="featured-country">{featuredRoute?.country || "Italy"}</p>
-              <p className="featured-desc">{featuredRoute?.description || "A ribbon of coastal beauty — cliffside villages, endless sea, and curves that stay with you."}</p>
-              <Link href={`/routedetail/${featuredRoute?.id || "1"}`} className="featured-view">
-                View Route →
-              </Link>
-              <div className="featured-nav">
-                <button className="featured-arrow" onClick={() => setCarouselIdx(p => (p === 0 ? displayRoutes.length - 1 : p - 1))}>←</button>
-                <span className="featured-counter">{String(carouselIdx + 1).padStart(2, "0")} / {String(Math.min(displayRoutes.length, 6)).padStart(2, "0")}</span>
-                <button className="featured-arrow" onClick={() => setCarouselIdx(p => (p + 1) % Math.min(displayRoutes.length, 6))}>→</button>
-              </div>
-            </div>
-            <div className="featured-image">
-              <img
-                src={featuredRoute?.image_url || "/Amalfi coast road.jpg"}
-                alt={featuredRoute?.title}
-                onError={e => { e.currentTarget.src = "/Amalfi coast road.jpg"; }}
-              />
-            </div>
-          </div>
-        </section>
+        {/* POPULAR DESTINATIONS */}
+        <PopularCarousel routes={displayRoutes} />
 
         {/* BUILDER */}
         <section className="builder-section" id="experiences">
