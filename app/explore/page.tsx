@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import AuthModal from '../AuthModal';
@@ -22,7 +22,7 @@ type Route = {
 // locale-safe formatter — no hydration mismatch
 const fmtKm = (km?: number) => (km != null ? `${km.toLocaleString("en-US")} km` : "—");
 
-export default function ExplorePage() {
+function ExplorePageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -671,5 +671,14 @@ export default function ExplorePage() {
       </div>
       <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
     </>
+  );
+}
+
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={null}>
+      <ExplorePageInner />
+    </Suspense>
   );
 }
