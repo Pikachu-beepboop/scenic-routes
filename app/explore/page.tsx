@@ -378,7 +378,7 @@ export default function ExplorePage() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['Routes','/explore'],['Destinations','/explore'],['About','/about']].map(([l,h])=>(
+            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
               <Link key={l} href={h} className="nav-link">{l}</Link>
             ))}
             {user && <Link href="/my-trips" className="nav-link" style={{color:'var(--gold)'}}>My Trips</Link>}
@@ -393,7 +393,6 @@ export default function ExplorePage() {
                   <div className="user-dropdown">
                     <div className="user-dropdown-email">{user.email}</div>
                     <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
-                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
                     <button onClick={handleLogout}>Sign Out</button>
                   </div>
                 )}

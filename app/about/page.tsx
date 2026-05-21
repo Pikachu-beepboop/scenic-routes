@@ -5,327 +5,413 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import AuthModal from '../AuthModal';
-import { Navigation, MapPin, Mountain, Globe, Users, ArrowRight, Mail } from 'lucide-react';
 
-const team = [
-    {
-        initials: 'LV',
-        name: 'Lavr V.',
-        role: 'Co-Founder & Product',
-        bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered.",
-        color: 'from-emerald-700 to-teal-900',
-    },
-    {
-        initials: 'US',
-        name: 'Usman',
-        role: 'Co-Founder & Engineering',
-        bio: "The brain behind the tech. Builds every feature from the ground up and keeps everything running smoothly.",
-        color: 'from-indigo-700 to-violet-900',
-    },
-    {
-        initials: 'MD',
-        name: 'Madalina',
-        role: 'Design Manager',
-        bio: "Makes sure every pixel is in its right place. Turns complex ideas into clean, beautiful interfaces.",
-        color: 'from-amber-600 to-orange-800',
-    },
+const TEAM = [
+  { initials: "LV", name: "Lavr V.",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
+  { initials: "US", name: "Usman",    role: "Co-Founder & Engineering",  bio: "The brain behind the tech. Builds every feature from the ground up and keeps everything running smoothly." },
+  { initials: "MD", name: "Madalina", role: "Design Manager",            bio: "Makes sure every pixel is in its right place. Turns complex ideas into clean, beautiful interfaces." },
 ];
 
-const stats = [
-    { icon: Mountain, value: '120+', label: 'Curated Routes' },
-    { icon: Globe, value: '40', label: 'Countries' },
-    { icon: Users, value: '18k', label: 'Travellers' },
-    { icon: MapPin, value: '6', label: 'Continents' },
+const STATS = [
+  { value: "150+", label: "Curated Routes" },
+  { value: "40+",  label: "Countries" },
+  { value: "18K+", label: "Travellers" },
+  { value: "6",    label: "Continents" },
 ];
 
-const values = [
-    {
-        title: 'Slow Down',
-        text: 'The fastest route is rarely the best one. We celebrate roads that make you pull over, breathe deep, and stay a little longer.',
-    },
-    {
-        title: 'Go Off-Script',
-        text: "Every great road trip has an unplanned detour. We build tools that help you discover those moments — not avoid them.",
-    },
-    {
-        title: 'Leave It Better',
-        text: "We only feature routes where travellers are welcome and nature is respected. Beautiful roads deserve careful guests.",
-    },
+const VALUES = [
+  { num: "01", title: "Slow Down",      text: "The fastest route is rarely the best one. We celebrate roads that make you pull over, breathe deep, and stay a little longer." },
+  { num: "02", title: "Go Off-Script",  text: "Every great road trip has an unplanned detour. We build tools that help you discover those moments — not avoid them." },
+  { num: "03", title: "Leave It Better",text: "We only feature routes where travellers are welcome and nature is respected. Beautiful roads deserve careful guests." },
 ];
 
 export default function AboutPage() {
-    const [user, setUser] = useState<any>(null);
-    const [showUserMenu, setShowUserMenu] = useState(false);
-    const [avatarUrl, setAvatarUrl] = useState('');
-    const [isAuthOpen, setIsAuthOpen] = useState(false);
-    const router = useRouter();
+  const [user,         setUser]         = useState<any>(null);
+  const [avatarUrl,    setAvatarUrl]    = useState("");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isAuthOpen,   setIsAuthOpen]   = useState(false);
+  const [navScrolled,  setNavScrolled]  = useState(false);
+  const router = useRouter();
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => {
-            const u = data.session?.user ?? null;
-            setUser(u);
-            if (u) fetchProfile(u.id);
-        });
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-            const u = session?.user ?? null;
-            setUser(u);
-            if (u) fetchProfile(u.id);
-        });
-        return () => listener.subscription.unsubscribe();
-    }, []);
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-    useEffect(() => {
-        const handleClickOutside = (event: Event) => {
-            const target = event.target as Element;
-            if (!target.closest('.user-menu-wrapper')) {
-                setShowUserMenu(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
+      const u = s?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
-    async function fetchProfile(userId: string) {
-        const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
-        if (data) setAvatarUrl(data.avatar_url || '');
-    }
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase.from("profiles").select("avatar_url").eq("id", userId).single();
+    if (data) setAvatarUrl(data.avatar_url || "");
+  }
 
-    async function handleLogout() {
-        await supabase.auth.signOut();
-        setUser(null);
-        setShowUserMenu(false);
-        router.push('/');
-    }
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null); setShowUserMenu(false);
+    router.push("/");
+  }
 
-    return (
-        <div className="min-h-screen bg-[#f5f4f0] text-[#0a0a0a] font-sans">
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
+        :root {
+          --bg:    #0c0b09; --bg2: #111009; --bg3: #181510;
+          --gold:  #C9A86A; --cream: #EDE5D4;
+          --muted: rgba(237,229,212,0.56); --dim: rgba(237,229,212,0.32);
+          --border:rgba(237,229,212,0.10);
+          --serif: 'Cormorant Garamond', Georgia, serif;
+          --sans:  'Inter', system-ui, sans-serif;
+        }
+        .ab *, .ab *::before, .ab *::after { box-sizing:border-box; margin:0; padding:0; }
+        .ab a      { color:inherit; text-decoration:none; }
+        .ab button { border:none; font:inherit; cursor:pointer; background:none; }
+        .ab img    { display:block; }
+        .ab { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; }
 
-            <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+        /* NAV */
+        .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
+        .nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
+        .nav-logo { display:flex; flex-direction:column; line-height:1; }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-links { display:flex; gap:36px; }
+        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
+        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover::after { width:100%; }
+        .nav-right { display:flex; align-items:center; gap:12px; }
+        .nav-cta { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
+        .nav-cta:hover { background:var(--cream); color:var(--bg); }
+        .user-btn { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
+        .user-btn img { width:100%; height:100%; object-fit:cover; }
+        .user-dd { position:absolute; top:50px; right:0; width:210px; background:rgba(20,18,12,0.98); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52); }
+        .user-dd-email { padding:12px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .user-dd a, .user-dd button { display:block; width:100%; padding:12px 14px; font-size:13px; color:var(--cream); text-align:left; transition:background .15s; }
+        .user-dd a:hover, .user-dd button:hover { background:rgba(237,229,212,0.06); }
+        .user-dd button { color:#E08080; }
 
-            {/* ── Navbar ── */}
-            <nav
-                className="flex justify-between items-center px-10 py-4"
-                style={{ background: '#ffffff' }}
-            >
-                {/* Logo */}
-                <Link href="/" className="hover:opacity-80 transition-opacity">
-                    <div className="leading-none">
-                        <div className="text-2xl font-black leading-[0.8] tracking-tighter text-black">
-                            Scenic <br /> <span className="ml-4">Routes</span>
-                        </div>
-                    </div>
-                </Link>
+        /* HERO */
+        .about-hero { position:relative; min-height:100vh; display:flex; align-items:flex-end; overflow:hidden; }
+        .about-hero-bg { position:absolute; inset:0; }
+        .about-hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center 35%; filter:brightness(0.45) contrast(1.1) saturate(0.85); }
+        .about-hero-bg::after { content:""; position:absolute; inset:0; background: linear-gradient(to bottom, rgba(12,11,9,0.15) 0%, rgba(12,11,9,0.05) 35%, rgba(12,11,9,0.7) 70%, rgba(12,11,9,0.98) 100%), linear-gradient(to right, rgba(12,11,9,0.8) 0%, rgba(12,11,9,0.3) 50%, transparent 100%); }
+        .about-hero-content { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; padding:0 clamp(24px,5vw,80px) clamp(60px,8vh,100px); }
+        .about-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
+        .about-h1 { font-family:var(--serif); font-size:clamp(56px,8vw,110px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:32px; text-shadow:0 20px 60px rgba(0,0,0,0.6); max-width:900px; }
+        .about-h1 em { font-style:italic; color:rgba(237,229,212,0.4); }
+        .about-hero-sub { font-size:16px; font-weight:300; color:rgba(237,229,212,0.62); line-height:1.8; max-width:520px; border-left:2px solid var(--gold); padding-left:20px; margin-bottom:40px; }
+        .about-hero-actions { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+        .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
+        .btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
+        .btn-outline { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:transparent; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:9px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); transition:all .25s; }
+        .btn-outline:hover { border-color:var(--cream); color:var(--cream); }
 
-                {/* Nav Links */}
-                <div className="hidden md:flex items-center gap-10">
-                    <Link href="/explore" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
-                        Explore Routes
-                    </Link>
-                    <Link href="/about" className="text-black/60 hover:text-black transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
-                        About Us
-                    </Link>
-                    {user && (
-                        <Link href="/my-trips" className="text-emerald-600 hover:text-emerald-800 transition-colors duration-200 text-[11px] font-semibold uppercase tracking-[0.18em]">
-                            My Trips
-                        </Link>
-                    )}
-                </div>
+        /* STATS */
+        .stats-section { background:rgba(12,11,9,0.98); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .stats-inner { max-width:1380px; margin:0 auto; padding:0 clamp(24px,5vw,80px); display:grid; grid-template-columns:repeat(4,1fr); }
+        .stat-item { padding:36px clamp(16px,3vw,48px); border-right:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:8px; }
+        .stat-item:first-child { padding-left:0; align-items:flex-start; }
+        .stat-item:last-child  { border-right:none; }
+        .stat-num   { font-family:var(--serif); font-size:clamp(32px,3.5vw,48px); font-weight:300; color:var(--cream); line-height:1; }
+        .stat-label { font-size:9px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:rgba(237,229,212,0.35); }
 
-                {/* User / Login */}
-                {user ? (
-                    <div className="relative user-menu-wrapper">
-                        <button
-                            onClick={() => setShowUserMenu(!showUserMenu)}
-                            className="w-9 h-9 rounded-full border border-black/20 flex items-center justify-center hover:border-black/50 transition-all duration-200 overflow-hidden"
-                        >
-                            {avatarUrl ? (
-                                <img src={avatarUrl} className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-black font-bold text-sm uppercase">{user.email?.[0]}</span>
-                            )}
-                        </button>
-                        {showUserMenu && (
-                            <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
-                                <div className="px-4 py-3 border-b border-gray-100">
-                                    <p className="text-[10px] text-gray-400 truncate tracking-widest">{user.email}</p>
-                                </div>
-                                <Link href="/profile" onClick={() => setShowUserMenu(false)} className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                    Profile
-                                </Link>
-                                <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors">
-                                    Sign Out
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <button
-                        onClick={() => setIsAuthOpen(true)}
-                        className="text-[11px] uppercase tracking-[0.18em] font-semibold text-black/50 hover:text-black border border-black/20 hover:border-black/50 px-5 py-2 rounded-full transition-all duration-200"
-                    >
-                        Login
-                    </button>
+        /* SECTIONS */
+        .section { padding:clamp(80px,10vw,130px) clamp(24px,5vw,80px); }
+        .container { max-width:1380px; margin:0 auto; }
+        .section-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
+        .section-h2 { font-family:var(--serif); font-size:clamp(38px,5vw,68px); font-weight:300; line-height:0.92; letter-spacing:-0.04em; color:var(--cream); }
+
+        /* VALUES */
+        .values-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .values-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-top:56px; border-radius:24px; overflow:hidden; }
+        .value-card { background:var(--bg2); padding:44px 36px; transition:background .3s; }
+        .value-card:hover { background:var(--bg3); }
+        .value-num  { font-family:var(--serif); font-size:48px; font-weight:300; color:rgba(201,168,106,0.25); line-height:1; margin-bottom:24px; }
+        .value-title{ font-size:12px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--cream); margin-bottom:14px; }
+        .value-text { font-size:14px; color:var(--dim); line-height:1.8; font-weight:300; }
+
+        /* MISSION */
+        .mission-section { background:var(--bg); }
+        .mission-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(40px,6vw,100px); align-items:center; margin-top:60px; }
+        .mission-image { position:relative; border-radius:24px; overflow:hidden; aspect-ratio:4/3; border:1px solid var(--border); }
+        .mission-image img { width:100%; height:100%; object-fit:cover; filter:brightness(0.85) contrast(1.05) saturate(0.9); transition:transform .8s ease; }
+        .mission-image:hover img { transform:scale(1.03); }
+        .mission-text { font-size:16px; color:var(--dim); line-height:1.9; font-weight:300; }
+        .mission-text strong { color:var(--cream); font-weight:600; }
+
+        /* TEAM */
+        .team-section { background:var(--bg); border-top:1px solid var(--border); }
+        .team-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:52px; }
+        .team-sub { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; max-width:280px; text-align:right; }
+        .team-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        .team-card { background:var(--bg3); border:1px solid var(--border); border-radius:22px; padding:32px 28px; transition:border-color .3s,transform .3s,background .3s; }
+        .team-card:hover { border-color:rgba(201,168,106,0.28); transform:translateY(-4px); background:rgba(26,23,16,0.8); }
+        .team-avatar { width:52px; height:52px; border-radius:14px; background:linear-gradient(135deg,rgba(201,168,106,0.3),rgba(201,168,106,0.08)); border:1px solid rgba(201,168,106,0.3); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:var(--gold); letter-spacing:0.05em; margin-bottom:22px; }
+        .team-name { font-size:13px; font-weight:800; letter-spacing:0.1em; color:var(--cream); margin-bottom:4px; }
+        .team-role { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:14px; }
+        .team-bio  { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; }
+        .team-footer { margin-top:16px; background:var(--bg3); border:1px solid var(--border); border-radius:16px; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; }
+        .team-footer-dots { display:flex; gap:-4px; }
+        .team-footer-dot  { width:28px; height:28px; border-radius:50%; border:2px solid var(--bg3); margin-left:-6px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:var(--bg); }
+        .team-footer-text { font-size:12px; color:var(--dim); font-weight:300; }
+        .team-footer-link { font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); transition:color .2s; }
+        .team-footer-link:hover { color:var(--cream); }
+
+        /* CTA */
+        .cta-section { background:var(--bg2); border-top:1px solid var(--border); }
+        .cta-inner { background:linear-gradient(135deg,rgba(201,168,106,0.12),rgba(201,168,106,0.03)),var(--bg3); border:1px solid rgba(201,168,106,0.2); border-radius:30px; padding:clamp(48px,7vw,80px) clamp(32px,5vw,72px); display:flex; flex-direction:column; align-items:center; text-align:center; }
+        .cta-h2  { font-family:var(--serif); font-size:clamp(42px,5vw,72px); font-weight:300; line-height:0.92; letter-spacing:-0.04em; color:var(--cream); margin-bottom:16px; }
+        .cta-sub { font-size:15px; color:var(--dim); font-weight:300; margin-bottom:36px; }
+        .cta-actions { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+
+        /* FOOTER */
+        .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
+        .footer-inner  { max-width:1380px; margin:0 auto; }
+        .footer-top    { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1.5fr; gap:40px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-brand  { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.1; margin-bottom:12px; }
+        .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:20px; max-width:200px; }
+        .footer-socials{ display:flex; gap:8px; }
+        .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
+        .footer-social:hover { border-color:var(--gold); color:var(--gold); }
+        .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
+        .footer-col a  { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
+        .footer-col a:hover { color:var(--cream); }
+        .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+        .footer-copy   { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+        .footer-legal  { display:flex; gap:22px; }
+        .footer-legal a{ font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
+        .footer-legal a:hover { color:var(--cream); }
+
+        @media (max-width:1024px) {
+          .values-grid  { grid-template-columns:1fr; }
+          .mission-grid { grid-template-columns:1fr; }
+          .team-grid    { grid-template-columns:1fr 1fr; }
+          .stats-inner  { grid-template-columns:1fr 1fr; }
+          .footer-top   { grid-template-columns:1fr 1fr; }
+          .team-header  { flex-direction:column; align-items:flex-start; }
+          .team-sub     { text-align:left; }
+        }
+        @media (max-width:640px) {
+          .nav-links    { display:none; }
+          .team-grid    { grid-template-columns:1fr; }
+          .stats-inner  { grid-template-columns:1fr 1fr; }
+          .footer-top   { grid-template-columns:1fr; }
+          .footer-bottom{ flex-direction:column; align-items:flex-start; }
+          .cta-actions  { flex-direction:column; align-items:center; }
+        }
+      `}</style>
+
+      <div className="ab">
+
+        {/* NAV */}
+        <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
+          <Link href="/" className="nav-logo">
+            <span>SCENIC</span><span>ROUTES</span>
+          </Link>
+          <div className="nav-links">
+            <Link href="/explore"  className="nav-link">Explore Routes</Link>
+            <Link href="/about"    className="nav-link" style={{color:"var(--gold)"}}>About</Link>
+            {user && <Link href="/my-trips" className="nav-link" style={{color:"var(--gold)"}}>My Trips</Link>}
+          </div>
+          <div className="nav-right">
+            {user ? (
+              <div style={{position:"relative"}}>
+                <button className="user-btn" onClick={()=>setShowUserMenu(p=>!p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+                </button>
+                {showUserMenu && (
+                  <div className="user-dd">
+                    <div className="user-dd-email">{user.email}</div>
+                    <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
+                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
+                    <button onClick={handleLogout}>Sign Out</button>
+                  </div>
                 )}
-            </nav>
+              </div>
+            ) : (
+              <button className="nav-cta" onClick={()=>setIsAuthOpen(true)}>Login</button>
+            )}
+          </div>
+        </nav>
 
-            {/* ── Hero Section ── */}
-            <section className="pt-32 pb-20 px-6 max-w-6xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-600 mb-4">About Us</p>
-                        <h1 className="text-6xl lg:text-7xl font-black leading-[0.9] tracking-tight text-[#0a0a0a]">
-                            Built by<br />
-                            road lovers,<br />
-                            <span className="italic font-light text-black/30">for road lovers.</span>
-                        </h1>
-                    </div>
-                    <div className="lg:pb-2">
-                        <p className="text-base text-black/50 leading-relaxed border-l-2 border-emerald-500 pl-5">
-                            We started Scenic Routes because we were tired of GPS apps routing us through motorways.
-                            Every trip should feel like an adventure — we map the roads that make you pull over and stare.
-                        </p>
-                        <div className="mt-8 flex items-center gap-6">
-                            <Link
-                                href="/explore"
-                                className="flex items-center gap-2 bg-black text-white text-xs uppercase tracking-[0.15em] px-5 py-3 rounded-full hover:bg-black/80 transition-all duration-200 group"
-                            >
-                                Explore Routes
-                                <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-                            </Link>
-                            <a
-                                href="mailto:hello@scenicroutes.app"
-                                className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-black/40 hover:text-black transition-colors duration-200"
-                            >
-                                <Mail size={13} />
-                                Say Hello
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
+        {/* HERO */}
+        <section className="about-hero">
+          <div className="about-hero-bg">
+            <img src="/Toscana.jpg" alt="Scenic road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
+          </div>
+          <div className="about-hero-content">
+            <p className="about-eyebrow">About Us</p>
+            <h1 className="about-h1">
+              Built by road lovers,<br/>
+              <em>for road lovers.</em>
+            </h1>
+            <p className="about-hero-sub">
+              We started Scenic Routes because we were tired of GPS apps routing us through motorways.
+              Every trip should feel like an adventure — we map the roads that make you pull over and stare.
+            </p>
+            <div className="about-hero-actions">
+              <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
+              <a href="mailto:hello@scenicroutes.app" className="btn-outline">Say Hello →</a>
+            </div>
+          </div>
+        </section>
 
-            {/* ── Stats Bar ── */}
-            <section className="border-y border-black/5 bg-white">
-                <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-2 lg:grid-cols-4 divide-x divide-black/5">
-                    {stats.map(({ icon: Icon, value, label }) => (
-                        <div key={label} className="flex flex-col items-center gap-2 px-6 py-2">
-                            <Icon size={18} strokeWidth={1.5} className="text-emerald-600" />
-                            <span className="text-3xl font-black tracking-tight">{value}</span>
-                            <span className="text-[10px] uppercase tracking-[0.2em] text-black/30">{label}</span>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* ── Mission / Values ── */}
-            <section className="py-24 px-6 max-w-6xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-1">
-                    {values.map(({ title, text }, i) => (
-                        <div
-                            key={title}
-                            className="bg-white border border-black/5 rounded-2xl p-8 hover:shadow-[0_8px_40px_rgba(0,0,0,0.06)] transition-shadow duration-300"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mb-5">
-                                <span className="text-xs font-black text-emerald-600">0{i + 1}</span>
-                            </div>
-                            <h3 className="text-lg font-black tracking-tight mb-3">{title}</h3>
-                            <p className="text-sm text-black/45 leading-relaxed">{text}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* ── Team Section ── */}
-            <section className="pb-24 px-6 max-w-6xl mx-auto">
-                <div className="flex items-end justify-between mb-10">
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-600 mb-2">The Team</p>
-                        <h2 className="text-4xl font-black tracking-tight leading-none">The people behind<br />the roads.</h2>
-                    </div>
-                    <p className="hidden lg:block text-sm text-black/35 max-w-xs text-right leading-relaxed">
-                        A small crew of passionate drivers, designers and engineers building the tool we always wished existed.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {team.map(({ initials, name, role, bio, color }) => (
-                        <div
-                            key={name}
-                            className="group bg-white border border-black/5 rounded-2xl p-6 hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-0.5"
-                        >
-                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white font-black text-sm mb-5`}>
-                                {initials}
-                            </div>
-                            <p className="font-black text-sm tracking-tight">{name}</p>
-                            <p className="text-[10px] uppercase tracking-[0.15em] text-emerald-600 mt-0.5 mb-3">{role}</p>
-                            <p className="text-xs text-black/40 leading-relaxed">{bio}</p>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-4 bg-white border border-black/5 rounded-2xl px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex -space-x-2">
-                            {['bg-emerald-500', 'bg-indigo-500', 'bg-amber-500'].map((c, i) => (
-                                <div key={i} className={`w-7 h-7 rounded-full ${c} border-2 border-white`} />
-                            ))}
-                        </div>
-                        <p className="text-xs text-black/40">A small team, big passion for the road.</p>
-                    </div>
-                    <a
-                        href="mailto:jobs@scenicroutes.app"
-                        className="text-xs uppercase tracking-[0.15em] text-black/30 hover:text-black transition-colors duration-200 flex items-center gap-1.5"
-                    >
-                        Join the team <ArrowRight size={11} />
-                    </a>
-                </div>
-            </section>
-
-            {/* ── CTA Banner ── */}
-            <section className="px-6 pb-24 max-w-6xl mx-auto">
-                <div className="bg-black rounded-3xl px-10 py-14 flex flex-col lg:flex-row items-center justify-between gap-8">
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-400 mb-3">Ready to explore?</p>
-                        <h2 className="text-4xl font-black text-white tracking-tight leading-none">
-                            Your next great<br />road trip starts here.
-                        </h2>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
-                        <Link
-                            href="/explore"
-                            className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold uppercase tracking-[0.15em] px-6 py-3.5 rounded-full transition-all duration-200 group"
-                        >
-                            Browse Routes
-                            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-                        </Link>
-                        {!user && (
-                            <button
-                                onClick={() => setIsAuthOpen(true)}
-                                className="flex items-center justify-center gap-2 border border-white/15 text-white text-xs uppercase tracking-[0.15em] px-6 py-3.5 rounded-full hover:bg-white/5 transition-all duration-200"
-                            >
-                                Create Account
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Footer ── */}
-            <footer className="border-t border-black/5 bg-white px-6 py-8">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <div className="flex flex-col leading-none">
-                        <span className="text-sm font-black uppercase tracking-tight italic">Scenic</span>
-                        <span className="text-[9px] font-light uppercase tracking-[0.2em] text-black/30 mt-0.5">Routes</span>
-                    </div>
-                    <p className="text-xs text-black/25">© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
-                    <div className="flex items-center gap-6">
-                        <Link href="/explore" className="text-xs text-black/30 hover:text-black transition-colors duration-200">Explore</Link>
-                        <Link href="/about" className="text-xs text-black/30 hover:text-black transition-colors duration-200">About</Link>
-                        <a href="mailto:hello@scenicroutes.app" className="text-xs text-black/30 hover:text-black transition-colors duration-200">Contact</a>
-                    </div>
-                </div>
-            </footer>
-
+        {/* STATS */}
+        <div className="stats-section">
+          <div className="stats-inner">
+            {STATS.map(({value,label})=>(
+              <div className="stat-item" key={label}>
+                <div className="stat-num">{value}</div>
+                <div className="stat-label">{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
-    );
+
+        {/* VALUES */}
+        <section className="section values-section">
+          <div className="container">
+            <p className="section-eyebrow">What we believe</p>
+            <h2 className="section-h2">Three principles<br/>that guide us.</h2>
+            <div className="values-grid">
+              {VALUES.map(({num,title,text})=>(
+                <div className="value-card" key={title}>
+                  <div className="value-num">{num}</div>
+                  <div className="value-title">{title}</div>
+                  <p className="value-text">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* MISSION */}
+        <section className="section mission-section">
+          <div className="container">
+            <p className="section-eyebrow">Our Mission</p>
+            <h2 className="section-h2">Every road tells<br/>a story.</h2>
+            <div className="mission-grid">
+              <div className="mission-image">
+                <img src="/Garden Route.jpg" alt="Road" onError={e=>{e.currentTarget.src="/Trollstigen.jpg";}}/>
+              </div>
+              <div>
+                <p className="mission-text">
+                  We believe the best journeys happen on roads that haven't been optimised for speed.
+                  <br/><br/>
+                  <strong>Scenic Routes</strong> is a curated collection of the world's most breathtaking drives — each one handpicked by people who understand that the journey is the destination.
+                  <br/><br/>
+                  From alpine passes to coastal curves, we map the roads that reward the curious traveller with moments that GPS will never understand.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* TEAM */}
+        <section className="section team-section">
+          <div className="container">
+            <div className="team-header">
+              <div>
+                <p className="section-eyebrow">The Team</p>
+                <h2 className="section-h2">The people behind<br/>the roads.</h2>
+              </div>
+              <p className="team-sub">
+                A small crew of passionate drivers, designers and engineers building the tool we always wished existed.
+              </p>
+            </div>
+
+            <div className="team-grid">
+              {TEAM.map(({initials,name,role,bio})=>(
+                <div className="team-card" key={name}>
+                  <div className="team-avatar">{initials}</div>
+                  <div className="team-name">{name}</div>
+                  <div className="team-role">{role}</div>
+                  <p className="team-bio">{bio}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="team-footer" style={{marginTop:"16px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+                <div style={{display:"flex"}}>
+                  {[["#C9A86A","LV"],["#6A8EC9","US"],["#C9956A","MD"]].map(([bg,i])=>(
+                    <div key={i} style={{width:"28px",height:"28px",borderRadius:"50%",background:bg,border:"2px solid var(--bg3)",marginLeft:i==="LV"?"0":"-6px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px",fontWeight:800,color:"var(--bg)"}}>
+                      {i}
+                    </div>
+                  ))}
+                </div>
+                <span style={{fontSize:"12px",color:"var(--dim)",fontWeight:300}}>A small team, big passion for the road.</span>
+              </div>
+              <a href="mailto:jobs@scenicroutes.app" className="team-footer-link">Join the team →</a>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="section cta-section">
+          <div className="container">
+            <div className="cta-inner">
+              <p className="section-eyebrow">Ready to explore?</p>
+              <h2 className="cta-h2">Your next great<br/>road trip starts here.</h2>
+              <p className="cta-sub">Hundreds of handpicked routes. Endless open road.</p>
+              <div className="cta-actions">
+                <Link href="/explore" className="btn-gold-filled">Browse Routes →</Link>
+                {!user && (
+                  <button className="btn-outline" onClick={()=>setIsAuthOpen(true)}>Create Account →</button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div className="footer-inner">
+            <div className="footer-top">
+              <div>
+                <div className="footer-brand">SCENIC<br/>ROUTES</div>
+                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey.</p>
+                <div className="footer-socials">
+                  {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
+                </div>
+              </div>
+              {[["Explore",["All Routes","Destinations","Experiences","Journal"]],["Company",["About Us","Careers","Gift Cards","Membership"]],["Support",["FAQ","Contact Us","Privacy Policy","Terms"]]].map(([heading,links])=>(
+                <div key={heading as string}>
+                  <p className="footer-col-title">{heading as string}</p>
+                  {(links as string[]).map(l=><a href="#" key={l} className="footer-col" style={{display:"block",fontSize:"12px",color:"rgba(237,229,212,0.38)",marginBottom:"10px",fontWeight:300,transition:"color .2s"}}>{l}</a>)}
+                </div>
+              ))}
+              <div>
+                <p className="footer-col-title">Get in touch</p>
+                <a href="mailto:hello@scenicroutes.app" style={{display:"block",fontSize:"13px",color:"var(--gold)",marginBottom:"8px",fontWeight:300}}>hello@scenicroutes.app</a>
+                <a href="mailto:jobs@scenicroutes.app"  style={{display:"block",fontSize:"13px",color:"rgba(237,229,212,0.38)",fontWeight:300}}>jobs@scenicroutes.app</a>
+              </div>
+            </div>
+            <div className="footer-bottom">
+              <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
+              <div className="footer-legal">
+                <a href="#">Terms & Conditions</a>
+                <a href="#">Privacy</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+
+      </div>
+      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
+    </>
+  );
 }

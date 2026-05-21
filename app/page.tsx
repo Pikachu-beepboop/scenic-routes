@@ -20,14 +20,6 @@ const FALLBACK_ROUTES = [
   { id: "6", title: "North Coast 500", country: "Scotland", distance_km: 830, image_url: "/North Coast 500.jpg", duration: "Multi-day journey", type: "Circular Route", terrain: "Mountains", description: "Scotland's iconic 830 km loop through remote Highlands and dramatic sea cliffs." },
 ];
 
-const DESTINATIONS = [
-  { name: "Pacific Coast", place: "USA", x: "14%", y: "38%" },
-  { name: "The Andes", place: "South America", x: "26%", y: "62%" },
-  { name: "Tuscany", place: "Italy", x: "50%", y: "34%" },
-  { name: "Garden Route", place: "South Africa", x: "52%", y: "68%" },
-  { name: "Great Ocean Road", place: "Australia", x: "82%", y: "70%" },
-];
-
 const TESTIMONIALS = [
   { quote: "Every curve led to something unforgettable. Scenic Routes turned a trip into a story.", name: "Sarah G.", role: "Traveler" },
   { quote: "I've driven roads all over the world. Scenic Routes showed me places I never would have found alone.", name: "Marcus K.", role: "Automotive Journalist" },
@@ -57,14 +49,13 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
   useEffect(() => {
     items.forEach((route) => {
       if (!route.image_url) return;
-
       const img = new Image();
       img.src = route.image_url;
     });
   }, [items]);
 
   if (!route) return null;
-  
+
   const prev = () => {
     setSlideDirection("prev");
     setIdx((i) => (i === 0 ? items.length - 1 : i - 1));
@@ -81,67 +72,24 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
         <div className="popular-header">
           <div>
             <p className="popular-eyebrow">Popular Destinations</p>
-            <h2 className="popular-heading">
-              Roads made
-              <br />
-              for the journey.
-            </h2>
+            <h2 className="popular-heading">Roads made<br/>for the journey.</h2>
           </div>
-
-          <Link href="/explore" className="popular-view-all">
-            View all destinations →
-          </Link>
+          <Link href="/explore" className="popular-view-all">View all destinations →</Link>
         </div>
 
         <div className="popular-card-wrap">
-          <button
-            className="popular-arrow popular-left"
-            onClick={prev}
-            aria-label="Previous route"
-          >
-            ←
-          </button>
+          <button className="popular-arrow popular-left" onClick={prev} aria-label="Previous route">←</button>
+          <button className="popular-arrow popular-right" onClick={next} aria-label="Next route">→</button>
 
-          <button
-            className="popular-arrow popular-right"
-            onClick={next}
-            aria-label="Next route"
-          >
-            →
-          </button>
-
-          <Link
-            key={route.id}
-            href={`/routedetail/${route.id}`}
-            className={`popular-card slide-${slideDirection}`}
-          >
-            <img
-              src={route.image_url || "/Pacific Route Highway.jpg"}
-              alt={route.title}
-              onError={(e) => {
-                e.currentTarget.src = "/Pacific Route Highway.jpg";
-              }}
-            />
-
+          <Link key={route.id} href={`/routedetail/${route.id}`} className={`popular-card slide-${slideDirection}`}>
+            <img src={route.image_url || "/Pacific Route Highway.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Pacific Route Highway.jpg"; }}/>
             <div className="popular-card-overlay" />
-
-            <span className="popular-counter">
-              {String(idx + 1).padStart(2, "0")} /{" "}
-              {String(items.length).padStart(2, "0")}
-            </span>
-
-            <span className="popular-type">
-              {route.terrain || route.type || "Scenic Route"}
-            </span>
-
+            <span className="popular-counter">{String(idx + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
+            <span className="popular-type">{route.terrain || route.type || "Scenic Route"}</span>
             <div className="popular-content">
               <p>{route.country}</p>
               <h3>{route.title}</h3>
-              <span>
-                {route.description ||
-                  "One of the world's most scenic driving routes."}
-              </span>
-
+              <span>{route.description || "One of the world's most scenic driving routes."}</span>
             </div>
           </Link>
         </div>
@@ -166,6 +114,7 @@ export default function HomePage() {
   const [activeSlot, setActiveSlot] = useState(0);
   const [slotSrcs, setSlotSrcs] = useState(["", ""]);
   const crossfadeInFlight = useRef(false);
+  const [savedRoutes, setSavedRoutes] = useState<string[]>([]); 
 
   const displayRoutes = useMemo(() => (routes.length ? routes : FALLBACK_ROUTES), [routes]);
 
@@ -195,7 +144,13 @@ export default function HomePage() {
     });
     requestAnimationFrame(() => requestAnimationFrame(() => setHeroVisible(true)));
     const tT = setInterval(() => setTestimonialIdx(p => (p + 1) % TESTIMONIALS.length), 6000);
+    return () => { mounted = false; listener.subscription.unsubscribe(); clearInterval(tT); };
   }, []);
+
+  async function handleLogout() {
+      await supabase.auth.signOut();
+      setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+    } 
 
   useEffect(() => {
     const src = displayRoutes[carouselIdx]?.image_url || "/Pacific Route Highway.jpg";
@@ -214,7 +169,6 @@ export default function HomePage() {
     await supabase.from("newsletter_subscribers").insert({ email: cleanEmail, created_at: new Date().toISOString() });
     setEmailSent(true); setEmail("");
   };
-
 
   return (
     <>
@@ -237,576 +191,126 @@ export default function HomePage() {
         .pg button { border:none; font:inherit; cursor:pointer; background:none; }
         .pg input { font:inherit; }
         .pg img { display:block; }
-        .pg {
-          min-height:100vh;
-          background:var(--bg);
-          color:var(--cream);
-          font-family:var(--sans);
-          overflow-x:hidden;
-        }
+        .pg { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; }
 
         /* NAV */
-        .nav {
-          position:fixed; inset:0 0 auto; z-index:200;
-          height:64px; padding:0 clamp(20px,4vw,56px);
-          display:flex; align-items:center; justify-content:space-between;
-          transition:background .3s, border-color .3s;
-          border-bottom:1px solid transparent;
-        }
-        .nav.scrolled { background:rgba(12,11,9,0.94); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
-        .nav-logo { font-size:11px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; line-height:1.2; color:var(--cream); }
-        .nav-links { display:flex; gap:32px; }
-        .nav-link { font-size:10px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
+        .nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
+        .nav-logo { display:flex; flex-direction:column; line-height:1; }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-links { display:flex; gap:36px; }
+        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
+        .nav-link:hover::after { width:100%; }
         .nav-right { display:flex; align-items:center; gap:12px; }
-        .nav-cta {
-          padding:10px 22px; border:1px solid var(--gold); border-radius:999px;
-          font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase;
-          color:var(--gold); transition:all .25s; display:flex; align-items:center; gap:8px;
-        }
-        .nav-cta:hover { background:var(--gold); color:var(--bg); }
-        .user-avatar-btn {
-          width:36px; height:36px; border-radius:50%;
-          border:1px solid var(--border); background:rgba(237,229,212,0.06);
-          overflow:hidden; display:flex; align-items:center; justify-content:center;
-          font-size:12px; font-weight:700; color:var(--cream);
-        }
-        .user-avatar-btn img { width:100%; height:100%; object-fit:cover; }
-        .user-dd {
-          position:absolute; top:46px; right:0; width:200px;
-          background:rgba(18,16,10,0.98); border:1px solid var(--border);
-          border-radius:14px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5);
-        }
-        .user-dd-email { padding:11px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .user-dd a, .user-dd button { display:block; width:100%; padding:11px 14px; font-size:12px; color:var(--cream); text-align:left; transition:background .15s; }
-        .user-dd a:hover, .user-dd button:hover { background:rgba(237,229,212,0.06); }
-        .user-dd button { color:#E08080; }
+        .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
+        .login-btn:hover { background:var(--cream); color:var(--bg); }
+        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
+        .user-avatar img { width:100%; height:100%; object-fit:cover; }
+        .user-dropdown { position:absolute; top:50px; right:0; width:210px; background:rgba(20,18,12,0.98); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52); }
+        .user-dropdown-email { padding:12px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .user-dropdown a, .user-dropdown button { display:block; width:100%; padding:12px 14px; font-size:13px; color:var(--cream); text-align:left; background:none; transition:background .15s; }
+        .user-dropdown a:hover, .user-dropdown button:hover { background:rgba(237,229,212,0.06); }
+        .user-dropdown button { color:#E08080; }
 
         /* HERO */
-        .hero {
-          position:relative; height:100vh; min-height:680px;
-          display:flex; flex-direction:column; justify-content:flex-end;
-          overflow:hidden;
-        }
+        .hero { position:relative; height:100vh; min-height:680px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
         .hero-bg { position:absolute; inset:0; }
         .hero-slot { position:absolute; inset:0; transition:opacity 1.4s ease; }
         .hero-slot img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.52) contrast(1.08) saturate(0.9); }
         .hero-slot.active  { opacity:1; z-index:2; }
         .hero-slot.inactive{ opacity:0; z-index:1; }
-        .hero-bg::after {
-          content:""; position:absolute; inset:0; z-index:3;
-          background:
-            linear-gradient(to bottom, rgba(12,11,9,0.1) 0%, rgba(12,11,9,0.05) 30%, rgba(12,11,9,0.65) 70%, rgba(12,11,9,0.95) 100%),
-            linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%);
-        }
-        .hero-content {
-          position:relative; z-index:10;
-          padding:0 clamp(24px,5vw,80px) clamp(50px,7vh,90px);
-          max-width:1280px;
-        }
+        .hero-bg::after { content:""; position:absolute; inset:0; z-index:3; background: linear-gradient(to bottom, rgba(12,11,9,0.1) 0%, rgba(12,11,9,0.05) 30%, rgba(12,11,9,0.65) 70%, rgba(12,11,9,0.95) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%); }
+        .hero-content { position:relative; z-index:10; padding:0 clamp(24px,5vw,80px) clamp(50px,7vh,90px); max-width:1280px; }
         .hero-copy { opacity:0; transform:translateY(22px); transition:opacity .9s, transform .9s; }
         .hero-copy.visible { opacity:1; transform:translateY(0); }
-        .hero-h1 {
-          font-family:var(--serif); font-size:clamp(56px,8.5vw,122px);
-          font-weight:300; line-height:0.88; letter-spacing:-0.045em;
-          color:var(--cream); margin-bottom:20px;
-          text-shadow:0 20px 60px rgba(0,0,0,0.6);
-        }
+        .hero-h1 { font-family:var(--serif); font-size:clamp(56px,8.5vw,122px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:20px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
         .hero-sub { font-size:14px; font-weight:300; color:rgba(237,229,212,0.65); margin-bottom:32px; max-width:420px; line-height:1.7; }
-        .btn-gold {
-          display:inline-flex; align-items:center; gap:10px;
-          padding:14px 28px; background:transparent; border:1px solid var(--gold);
-          border-radius:999px; font-size:9px; font-weight:800;
-          letter-spacing:0.22em; text-transform:uppercase; color:var(--gold);
-          transition:all .25s;
-        }
+        .btn-gold { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:transparent; border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); transition:all .25s; }
         .btn-gold:hover { background:var(--gold); color:var(--bg); }
-        .btn-gold-filled {
-          display:inline-flex; align-items:center; gap:10px;
-          padding:14px 28px; background:var(--gold); border:1px solid var(--gold);
-          border-radius:999px; font-size:9px; font-weight:800;
-          letter-spacing:0.22em; text-transform:uppercase; color:var(--bg);
-          transition:all .25s;
-        }
+        .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
         .btn-gold-filled:hover { background:#d8b978; border-color:#d8b978; transform:translateY(-1px); }
 
         /* STATS BAR */
-        .stats-bar {
-          position:relative; z-index:10;
-          background:rgba(12,11,9,0.96); border-top:1px solid var(--border);
-          padding:28px clamp(24px,5vw,80px);
-          display:flex; gap:0; align-items:center;
-        }
+        .stats-bar { position:relative; z-index:10; background:rgba(12,11,9,0.96); border-top:1px solid var(--border); padding:28px clamp(24px,5vw,80px); display:flex; gap:0; align-items:center; }
         .stat-item { flex:1; padding:0 clamp(16px,3vw,40px); border-right:1px solid var(--border); }
         .stat-item:first-child { padding-left:0; }
         .stat-item:last-child  { border-right:none; }
-        .stat-num  { font-family:var(--serif); font-size:clamp(28px,3vw,40px); font-weight:300; color:var(--cream); line-height:1; margin-bottom:6px; }
-        .stat-label{ font-size:9px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:rgba(237,229,212,0.35); }
+        .stat-num   { font-family:var(--serif); font-size:clamp(28px,3vw,40px); font-weight:300; color:var(--cream); line-height:1; margin-bottom:6px; }
+        .stat-label { font-size:9px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:rgba(237,229,212,0.35); }
 
         /* FEATURED ROUTE */
-        .featured-section {
-          padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px);
-          background:var(--bg);
-        }
-        .featured-inner {
-          max-width:1200px; margin:0 auto;
-          display:grid; grid-template-columns:1fr 1.4fr; gap:clamp(40px,6vw,90px); align-items:center;
-        }
+        .featured-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); }
+        .featured-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1.4fr; gap:clamp(40px,6vw,90px); align-items:center; }
         .featured-left {}
         .eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
-        .featured-title { font-family:var(--serif); font-size:clamp(38px,5vw,68px); font-weight:300; line-height:0.92; letter-spacing:-0.04em; color:var(--cream); margin-bottom:8px; }
+        .featured-title   { font-family:var(--serif); font-size:clamp(38px,5vw,68px); font-weight:300; line-height:0.92; letter-spacing:-0.04em; color:var(--cream); margin-bottom:8px; }
         .featured-country { font-size:12px; color:var(--gold); font-weight:500; letter-spacing:0.1em; margin-bottom:20px; }
-        .featured-desc { font-size:14px; color:var(--dim); line-height:1.8; font-weight:300; margin-bottom:32px; max-width:340px; }
-        .featured-view {
-          display:inline-flex; align-items:center; gap:10px;
-          padding:12px 22px; border:1px solid rgba(237,229,212,0.22); border-radius:999px;
-          font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase;
-          color:var(--muted); transition:all .25s;
-        }
+        .featured-desc    { font-size:14px; color:var(--dim); line-height:1.8; font-weight:300; margin-bottom:32px; max-width:340px; }
+        .featured-view    { display:inline-flex; align-items:center; gap:10px; padding:12px 22px; border:1px solid rgba(237,229,212,0.22); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); transition:all .25s; }
         .featured-view:hover { border-color:var(--gold); color:var(--gold); }
-        .featured-nav { display:flex; align-items:center; gap:20px; margin-top:32px; }
-        .featured-arrow {
-          width:40px; height:40px; border-radius:50%;
-          border:1px solid rgba(237,229,212,0.2); display:grid; place-items:center;
-          font-size:14px; color:var(--muted); transition:all .2s;
-        }
+        .featured-nav     { display:flex; align-items:center; gap:20px; margin-top:32px; }
+        .featured-arrow   { width:40px; height:40px; border-radius:50%; border:1px solid rgba(237,229,212,0.2); display:grid; place-items:center; font-size:14px; color:var(--muted); transition:all .2s; }
         .featured-arrow:hover { border-color:var(--gold); color:var(--gold); }
         .featured-counter { font-family:var(--serif); font-size:15px; color:var(--dim); }
-        .featured-image {
-          position:relative; border-radius:20px; overflow:hidden;
-          aspect-ratio:4/3; border:1px solid var(--border);
-        }
+        .featured-image   { position:relative; border-radius:20px; overflow:hidden; aspect-ratio:4/3; border:1px solid var(--border); }
         .featured-image img { width:100%; height:100%; object-fit:cover; filter:brightness(0.9) contrast(1.05) saturate(0.95); transition:transform .8s ease; }
         .featured-image:hover img { transform:scale(1.03); }
 
-/* POPULAR DESTINATIONS */
-.popular-section {
-  padding: clamp(76px, 8vw, 116px) clamp(24px, 5vw, 80px);
-  background:
-    radial-gradient(circle at 72% 22%, rgba(201,168,106,0.13), transparent 28rem),
-    var(--bg);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.popular-container {
-  max-width: 1500px;
-  margin: 0 auto;
-}
-
-.popular-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 40px;
-}
-
-.popular-eyebrow {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.38em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 24px;
-}
-
-.popular-heading {
-  font-family: var(--serif);
-  font-size: clamp(42px, 5vw, 70px);
-  font-weight: 300;
-  line-height: 0.92;
-  letter-spacing: -0.045em;
-  color: var(--cream);
-}
-
-.popular-view-all {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  white-space: nowrap;
-  transition: color 0.2s;
-}
-
-.popular-view-all:hover {
-  color: var(--cream);
-}
-
-.popular-card-wrap {
-  position: relative;
-}
-
-/* MAIN CARD */
-.popular-card {
-  position: relative;
-  display: block;
-  height: clamp(520px, 58vw, 680px);
-  overflow: hidden;
-  border-radius: 34px;
-  border: 1px solid rgba(237,229,212,0.14);
-  background: var(--bg3);
-  box-shadow: 0 36px 110px rgba(0,0,0,0.52);
-  isolation: isolate;
-}
-
-/* FASTER + BRIGHTER SLIDE ANIMATION */
-.popular-card.slide-next {
-  animation: popularSlideNext 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.popular-card.slide-prev {
-  animation: popularSlidePrev 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes popularSlideNext {
-  0% {
-    opacity: 0.72;
-    transform: translateX(26px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes popularSlidePrev {
-  0% {
-    opacity: 0.72;
-    transform: translateX(-26px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* IMAGE */
-.popular-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: brightness(0.82) contrast(1.06) saturate(0.98);
-  transition:
-    transform 1s ease,
-    filter 1s ease;
-}
-
-/* ZOOM ON WHOLE CARD AREA */
-.popular-card-wrap:hover .popular-card img {
-  transform: scale(1.04);
-  filter: brightness(0.94) contrast(1.1) saturate(1.08);
-}
-
-/* IMPORTANT: your arrows are .popular-arrow, not .carousel-arrow */
-.popular-card-wrap:hover .popular-arrow {
-  border-color: rgba(201,168,106,0.45);
-}
-
-/* DARK OVERLAY */
-.popular-card-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background:
-    linear-gradient(
-      to top,
-      rgba(0,0,0,0.9),
-      rgba(0,0,0,0.28) 48%,
-      rgba(0,0,0,0.18)
-    ),
-    linear-gradient(
-      to right,
-      rgba(0,0,0,0.5),
-      transparent 58%
-    );
-}
-
-/* COUNTER */
-.popular-counter {
-  position: absolute;
-  top: 28px;
-  left: 32px;
-  z-index: 2;
-  font-family: var(--serif);
-  font-size: clamp(26px, 3vw, 42px);
-  font-weight: 300;
-  letter-spacing: -0.03em;
-  color: rgba(255,255,255,0.76);
-}
-
-/* TYPE LABEL */
-.popular-type {
-  position: absolute;
-  top: 34px;
-  right: 34px;
-  z-index: 2;
-  color: rgba(255,255,255,0.66);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
-
-/* CONTENT */
-.popular-content {
-  position: absolute;
-  z-index: 2;
-  left: clamp(28px, 5vw, 90px);
-  right: clamp(28px, 5vw, 70px);
-  bottom: clamp(34px, 6vw, 74px);
-  max-width: min(1120px, calc(100% - 80px));
-}
-
-/* FASTER + BRIGHTER CONTENT REVEAL */
-.popular-card.slide-next .popular-content,
-.popular-card.slide-next .popular-counter,
-.popular-card.slide-next .popular-type,
-.popular-card.slide-prev .popular-content,
-.popular-card.slide-prev .popular-counter,
-.popular-card.slide-prev .popular-type {
-  animation: popularTextReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes popularTextReveal {
-  0% {
-    opacity: 0.78;
-    transform: translateY(8px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.popular-content p {
-  margin-bottom: 12px;
-  color: var(--gold);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
-
-.popular-content h3 {
-  margin-bottom: 22px;
-  color: #fff;
-  font-family: var(--serif);
-  font-size: clamp(48px, 6.2vw, 92px);
-  font-weight: 300;
-  line-height: 0.9;
-  letter-spacing: -0.055em;
-  text-shadow: 0 20px 60px rgba(0,0,0,0.65);
-}
-
-.popular-content span {
-  display: block;
-  max-width: 500px;
-  color: rgba(255,255,255,0.68);
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1.8;
-}
-
-/* META PILLS */
-.popular-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 26px;
-}
-
-.popular-meta small {
-  padding: 9px 13px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(12px);
-  color: rgba(255,255,255,0.78);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
-/* ARROWS */
-.popular-arrow {
-  position: absolute;
-  top: 50%;
-  z-index: 20;
-  transform: translateY(-50%);
-  width: 45px;
-  height: 45px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(255,255,255,0.22);
-  border-radius: 999px;
-  background: rgba(0,0,0,0.35);
-  color: #fff;
-  backdrop-filter: blur(14px);
-  transition:
-    background 0.2s,
-    border-color 0.2s,
-    color 0.2s;
-}
-
-.popular-arrow:hover {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--bg);
-}
-
-.popular-left {
-  left: 24px;
-}
-
-.popular-right {
-  right: 24px;
-}
-
-/* DOTS */
-.popular-dots {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 28px;
-}
-
-.popular-dots button {
-  position: relative;
-  min-width: 42px;
-  height: 36px;
-  color: rgba(237,229,212,0.36);
-  background: transparent;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  transition: color 0.2s;
-}
-
-.popular-dots button::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 4px;
-  height: 2px;
-  border-radius: 999px;
-  background: transparent;
-  transition: background 0.2s;
-}
-
-.popular-dots button.active {
-  color: var(--cream);
-}
-
-.popular-dots button.active::after {
-  background: var(--gold);
-}
-
-/* MOBILE */
-@media (max-width: 760px) {
-  .popular-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .popular-card {
-    height: 520px;
-    border-radius: 26px;
-  }
-
-  .popular-arrow {
-    display: none;
-  }
-
-  .popular-type {
-    display: none;
-  }
-
-  .popular-content {
-    left: 24px;
-    right: 24px;
-    bottom: 34px;
-  }
-
-  .popular-content h3 {
-    font-size: clamp(42px, 12vw, 66px);
-    line-height: 0.94;
-  }
-}
+        /* POPULAR DESTINATIONS */
+        .popular-section { padding:clamp(76px,8vw,116px) clamp(24px,5vw,80px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .popular-container { max-width:1500px; margin:0 auto; }
+        .popular-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:40px; }
+        .popular-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
+        .popular-heading { font-family:var(--serif); font-size:clamp(42px,5vw,70px); font-weight:300; line-height:0.92; letter-spacing:-0.045em; color:var(--cream); }
+        .popular-view-all { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:color .2s; }
+        .popular-view-all:hover { color:var(--cream); }
+        .popular-card-wrap { position:relative; }
+        .popular-card { position:relative; display:block; height:clamp(520px,58vw,680px); overflow:hidden; border-radius:34px; border:1px solid rgba(237,229,212,0.14); background:var(--bg3); box-shadow:0 36px 110px rgba(0,0,0,0.52); isolation:isolate; }
+        .popular-card.slide-next { animation:popularSlideNext 0.46s cubic-bezier(0.22,1,0.36,1) both; }
+        .popular-card.slide-prev { animation:popularSlidePrev 0.46s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes popularSlideNext { 0%{opacity:0.72;transform:translateX(26px)} 100%{opacity:1;transform:translateX(0)} }
+        @keyframes popularSlidePrev { 0%{opacity:0.72;transform:translateX(-26px)} 100%{opacity:1;transform:translateX(0)} }
+        .popular-card img { width:100%; height:100%; object-fit:cover; filter:brightness(0.82) contrast(1.06) saturate(0.98); transition:transform 1s ease,filter 1s ease; }
+        .popular-card-wrap:hover .popular-card img { transform:scale(1.04); filter:brightness(0.94) contrast(1.1) saturate(1.08); }
+        .popular-card-wrap:hover .popular-arrow { border-color:rgba(201,168,106,0.45); }
+        .popular-card-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(to top,rgba(0,0,0,0.9),rgba(0,0,0,0.28) 48%,rgba(0,0,0,0.18)),linear-gradient(to right,rgba(0,0,0,0.5),transparent 58%); }
+        .popular-counter { position:absolute; top:28px; left:32px; z-index:2; font-family:var(--serif); font-size:clamp(26px,3vw,42px); font-weight:300; letter-spacing:-0.03em; color:rgba(255,255,255,0.76); }
+        .popular-type { position:absolute; top:34px; right:34px; z-index:2; color:rgba(255,255,255,0.66); font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
+        .popular-content { position:absolute; z-index:2; left:clamp(28px,5vw,90px); right:clamp(28px,5vw,70px); bottom:clamp(34px,6vw,74px); max-width:min(1120px,calc(100% - 80px)); }
+        .popular-card.slide-next .popular-content, .popular-card.slide-next .popular-counter, .popular-card.slide-next .popular-type, .popular-card.slide-prev .popular-content, .popular-card.slide-prev .popular-counter, .popular-card.slide-prev .popular-type { animation:popularTextReveal 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes popularTextReveal { 0%{opacity:0.78;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+        .popular-content p { margin-bottom:12px; color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
+        .popular-content h3 { margin-bottom:22px; color:#fff; font-family:var(--serif); font-size:clamp(48px,6.2vw,92px); font-weight:300; line-height:0.9; letter-spacing:-0.055em; text-shadow:0 20px 60px rgba(0,0,0,0.65); }
+        .popular-content span { display:block; max-width:500px; color:rgba(255,255,255,0.68); font-size:14px; font-weight:300; line-height:1.8; }
+        .popular-arrow { position:absolute; top:50%; z-index:20; transform:translateY(-50%); width:45px; height:45px; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:rgba(0,0,0,0.35); color:#fff; backdrop-filter:blur(14px); transition:background .2s,border-color .2s,color .2s; }
+        .popular-arrow:hover { background:var(--gold); border-color:var(--gold); color:var(--bg); }
+        .popular-left  { left:24px; }
+        .popular-right { right:24px; }
 
         /* BUILDER */
-        .builder-section {
-          background:var(--bg2);
-          border-top:1px solid var(--border); border-bottom:1px solid var(--border);
-        }
-        .builder-inner {
-          max-width:1200px; margin:0 auto;
-          display:grid; grid-template-columns:1fr 1fr; align-items:center;
-        }
-        .builder-image { position:relative; aspect-ratio:4/5; overflow:hidden; }
+        .builder-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .builder-inner   { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; align-items:center; }
+        .builder-image   { position:relative; aspect-ratio:4/5; overflow:hidden; }
         .builder-image img { width:100%; height:100%; object-fit:cover; filter:brightness(0.75) contrast(1.05) saturate(0.88); }
-        .builder-image::after {
-          content:""; position:absolute; inset:0;
-          background:linear-gradient(to right, transparent 60%, var(--bg2));
-        }
+        .builder-image::after { content:""; position:absolute; inset:0; background:linear-gradient(to right,transparent 60%,var(--bg2)); }
         .builder-content { padding:clamp(50px,7vw,90px) clamp(30px,5vw,70px); }
-        .builder-h2 { font-family:var(--serif); font-size:clamp(36px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:12px; }
+        .builder-h2  { font-family:var(--serif); font-size:clamp(36px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:12px; }
         .builder-sub { font-size:14px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:40px; max-width:340px; }
         .builder-steps { display:flex; flex-direction:column; gap:28px; margin-bottom:40px; }
-        .builder-step { display:flex; align-items:flex-start; gap:20px; }
-        .step-icon {
-          width:40px; height:40px; border-radius:50%; border:1px solid rgba(201,168,106,0.4);
-          display:grid; place-items:center; flex-shrink:0;
-          color:var(--gold); font-size:14px;
-        }
-        .step-text h4 { font-size:13px; font-weight:700; color:var(--cream); margin-bottom:4px; letter-spacing:0.05em; }
-        .step-text p  { font-size:12px; color:var(--dim); line-height:1.6; }
+        .builder-step  { display:flex; align-items:flex-start; gap:20px; }
+        .step-icon     { width:40px; height:40px; border-radius:50%; border:1px solid rgba(201,168,106,0.4); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:14px; }
+        .step-text h4  { font-size:13px; font-weight:700; color:var(--cream); margin-bottom:4px; letter-spacing:0.05em; }
+        .step-text p   { font-size:12px; color:var(--dim); line-height:1.6; }
 
         /* DESTINATIONS MAP */
-        .dest-section {
-          padding: clamp(70px,9vw,120px) clamp(24px,5vw,80px);
-          background: var(--bg);
-          border-top: 1px solid var(--border);
-         }
-        .dest-h2 {
-          font-family: var(--serif);
-           font-size: clamp(34px,4.5vw,58px);
-           font-weight: 300;
-           line-height: 0.95;
-           letter-spacing: -0.04em;
-           color: var(--cream);
-           margin-top: 12px;
-         }
-        .dest-map img { width:100%; height:100%; object-fit:cover; }
-        .dest-map::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, transparent 40%, rgba(12,11,9,0.6)); }
-        .dest-pin {
-          position:absolute; z-index:10; transform:translate(-50%,-50%);
-          display:flex; flex-direction:column; align-items:center; gap:4px;
-        }
-        .dest-pin-dot {
-          width:8px; height:8px; border-radius:50%; background:var(--gold);
-          box-shadow:0 0 0 4px rgba(201,168,106,0.22), 0 0 16px rgba(201,168,106,0.4);
-        }
-        .dest-pin-label { white-space:nowrap; text-align:center; }
-        .dest-pin-name  { font-size:9px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--cream); }
-        .dest-pin-place { font-size:8px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(237,229,212,0.45); }
+        .dest-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
+        .dest-h2 { font-family:var(--serif); font-size:clamp(34px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-top:12px; }
 
         /* TESTIMONIAL */
-        .testimonial-section {
-          padding:clamp(70px,9vw,110px) clamp(24px,5vw,80px);
-          background:var(--bg2); border-top:1px solid var(--border);
-          text-align:center;
-        }
-        .testimonial-qq { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; }
+        .testimonial-section { padding:clamp(70px,9vw,110px) clamp(24px,5vw,80px); background:var(--bg2); border-top:1px solid var(--border); text-align:center; }
+        .testimonial-qq   { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; }
         .testimonial-text { font-family:var(--serif); font-size:clamp(22px,3vw,38px); font-weight:300; font-style:italic; color:var(--cream); line-height:1.4; max-width:820px; margin:0 auto 28px; }
         .testimonial-name { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
         .testimonial-dots { display:flex; justify-content:center; gap:8px; margin-top:24px; }
@@ -815,19 +319,11 @@ export default function HomePage() {
         .t-dot.active::after { width:22px; background:var(--gold); border-color:var(--gold); border-radius:999px; }
 
         /* FEATURES */
-        .features-section {
-          padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px);
-          background:var(--bg); border-top:1px solid var(--border);
-        }
-        .features-inner { max-width:1200px; margin:0 auto; }
-        .features-h2 { font-family:var(--serif); font-size:clamp(34px,4.5vw,56px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:48px; }
-        .features-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-        .feature-card {
-          padding:28px 22px 32px;
-          border:1px solid var(--border); border-radius:18px;
-          background:rgba(237,229,212,0.025);
-          transition:border-color .3s, transform .3s, background .3s;
-        }
+        .features-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
+        .features-inner   { max-width:1200px; margin:0 auto; }
+        .features-h2      { font-family:var(--serif); font-size:clamp(34px,4.5vw,56px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:48px; }
+        .features-grid    { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+        .feature-card     { padding:28px 22px 32px; border:1px solid var(--border); border-radius:18px; background:rgba(237,229,212,0.025); transition:border-color .3s,transform .3s,background .3s; }
         .feature-card:hover { border-color:rgba(201,168,106,0.28); transform:translateY(-3px); background:rgba(237,229,212,0.045); }
         .feature-icon  { font-size:22px; color:var(--gold); margin-bottom:18px; }
         .feature-title { font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--cream); margin-bottom:10px; }
@@ -835,26 +331,26 @@ export default function HomePage() {
 
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
-        .footer-inner { max-width:1200px; margin:0 auto; }
-        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
-        .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
-        .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
-        .footer-socials { display:flex; gap:8px; }
+        .footer-inner  { max-width:1200px; margin:0 auto; }
+        .footer-top    { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-brand  { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
+        .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
+        .footer-socials{ display:flex; gap:8px; }
         .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
         .footer-social:hover { border-color:var(--gold); color:var(--gold); }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
-        .footer-col a { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
+        .footer-col a  { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
         .footer-col a:hover { color:var(--cream); }
         .footer-nl-sub { font-size:12px; color:var(--dim); line-height:1.6; margin-bottom:14px; font-weight:300; }
-        .footer-nl-form { display:flex; }
+        .footer-nl-form{ display:flex; }
         .footer-nl-input { flex:1; padding:11px 14px; border:1px solid var(--border); border-right:none; border-radius:999px 0 0 999px; background:rgba(237,229,212,0.04); color:var(--cream); font-size:12px; outline:none; }
         .footer-nl-input::placeholder { color:var(--dim); }
         .footer-nl-btn { width:44px; background:var(--gold); border:1px solid var(--gold); border-radius:0 999px 999px 0; color:var(--bg); font-size:15px; font-weight:800; transition:background .2s; }
         .footer-nl-btn:hover { background:#d8b978; }
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
-        .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
-        .footer-legal { display:flex; gap:22px; }
-        .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
+        .footer-copy   { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+        .footer-legal  { display:flex; gap:22px; }
+        .footer-legal a{ font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
         .footer-legal a:hover { color:var(--cream); }
 
         @media (max-width:1024px) {
@@ -866,13 +362,14 @@ export default function HomePage() {
           .footer-top     { grid-template-columns:1fr 1fr; }
           .dest-header    { flex-direction:column; align-items:flex-start; gap:16px; }
         }
-        @media (max-width:680px) {
+        @media (max-width:760px) {
           .popular-header { align-items:flex-start; flex-direction:column; }
-          .popular-card { height:520px; border-radius:26px; }
-          .popular-arrow { display:none; }
-          .popular-type { display:none; }
+          .popular-card   { height:520px; border-radius:26px; }
+          .popular-arrow  { display:none; }
+          .popular-type   { display:none; }
           .popular-content h3 { font-size:clamp(42px,12vw,66px); line-height:0.94; }
-
+        }
+        @media (max-width:680px) {
           .nav-links      { display:none; }
           .stat-label     { display:none; }
           .features-grid  { grid-template-columns:1fr; }
@@ -884,32 +381,31 @@ export default function HomePage() {
       <main className="pg">
 
         {/* NAV */}
-        <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
-          <Link href="/" className="nav-logo">SCENIC<br />ROUTES</Link>
+        <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
+          <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[["Routes", "/explore"], ["Destinations", "/explore"], ["Experiences", "#experiences"], ["Journal", "#"], ["About", "#"]].map(([l, h]) => (
+            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
               <Link key={l} href={h} className="nav-link">{l}</Link>
             ))}
+            {user && <Link href="/my-trips" className="nav-link" style={{color:'var(--gold)'}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (
-              <div style={{ position: "relative" }}>
-                <button className="user-avatar-btn" onClick={() => setShowUserMenu(p => !p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : user.email?.[0]?.toUpperCase()}
+              <div style={{position:'relative'}}>
+                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
-                  <div className="user-dd">
-                    <div className="user-dd-email">{user.email}</div>
-                    <Link href="/profile" onClick={() => setShowUserMenu(false)}>Profile</Link>
-                    <Link href="/my-trips" onClick={() => setShowUserMenu(false)}>My Trips</Link>
-                    <button onClick={async () => { await supabase.auth.signOut(); setUser(null); setShowUserMenu(false); }}>Sign Out</button>
+                  <div className="user-dropdown">
+                    <div className="user-dropdown-email">{user.email}</div>
+                    <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
+                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
+                    <button onClick={handleLogout}>Sign Out</button>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="#" onClick={e => { e.preventDefault(); setIsAuthOpen(true); }} className="nav-cta">
-                Plan your route →
-              </Link>
+              <button className="login-btn" onClick={()=>setIsAuthOpen(true)}>Login</button>
             )}
           </div>
         </nav>
@@ -917,11 +413,11 @@ export default function HomePage() {
         {/* HERO */}
         <section className="hero">
           <div className="hero-bg">
-            <img src="/hero.png" alt="Hero" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 40%", filter: "brightness(0.92) contrast(1.08) saturate(0.9)" }} />
+            <img src="/hero.png" alt="Hero" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 40%",filter:"brightness(0.92) contrast(1.08) saturate(0.9)"}}/>
           </div>
           <div className="hero-content">
-            <div className={`hero-copy ${heroVisible ? "visible" : ""}`}>
-              <h1 className="hero-h1">The road<br />reveals more.</h1>
+            <div className={`hero-copy ${heroVisible?"visible":""}`}>
+              <h1 className="hero-h1">The road<br/>reveals more.</h1>
               <p className="hero-sub">Scenic drives. Hidden places. Stories worth the journey.</p>
               <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
             </div>
@@ -930,7 +426,7 @@ export default function HomePage() {
 
         {/* STATS BAR */}
         <div className="stats-bar">
-          {[["150+", "Curated Routes"], ["40+", "Countries"], ["100K+", "Travelers"], ["10K+", "Hidden Places"]].map(([n, l]) => (
+          {[["150+","Curated Routes"],["40+","Countries"],["100K+","Travelers"],["10K+","Hidden Places"]].map(([n,l])=>(
             <div className="stat-item" key={l}>
               <div className="stat-num">{n}</div>
               <div className="stat-label">{l}</div>
@@ -945,33 +441,24 @@ export default function HomePage() {
         <section className="builder-section" id="experiences">
           <div className="builder-inner">
             <div className="builder-image">
-              <img src="/Toscana.jpg" alt="Tuscany road" onError={e => { e.currentTarget.src = "/iceland.jpg"; }} />
+              <img src="/Toscana.jpg" alt="Tuscany road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
             </div>
             <div className="builder-content">
               <p className="eyebrow">Build your route</p>
-              <h2 className="builder-h2">Your journey,<br />your way.</h2>
+              <h2 className="builder-h2">Your journey,<br/>your way.</h2>
               <p className="builder-sub">Choose your terrain, pace, and places. We'll craft a route that fits you.</p>
               <div className="builder-steps">
                 <div className="builder-step">
                   <div className="step-icon">△</div>
-                  <div className="step-text">
-                    <h4>Choose your terrain</h4>
-                    <p>Mountains, coastlines, deserts, or forests.</p>
-                  </div>
+                  <div className="step-text"><h4>Choose your terrain</h4><p>Mountains, coastlines, deserts, or forests.</p></div>
                 </div>
                 <div className="builder-step">
                   <div className="step-icon">◎</div>
-                  <div className="step-text">
-                    <h4>Set your time</h4>
-                    <p>A weekend escape or the long way around.</p>
-                  </div>
+                  <div className="step-text"><h4>Set your time</h4><p>A weekend escape or the long way around.</p></div>
                 </div>
                 <div className="builder-step">
                   <div className="step-icon">⬡</div>
-                  <div className="step-text">
-                    <h4>Pick your style</h4>
-                    <p>Relaxed, adventurous, cultural, or off-grid.</p>
-                  </div>
+                  <div className="step-text"><h4>Pick your style</h4><p>Relaxed, adventurous, cultural, or off-grid.</p></div>
                 </div>
               </div>
               <Link href="/explore" className="btn-gold-filled">Start Building →</Link>
@@ -981,20 +468,20 @@ export default function HomePage() {
 
         {/* DESTINATIONS MAP */}
         <section className="dest-section">
-          <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center", marginBottom: "40px" }}>
+          <div style={{maxWidth:"700px",margin:"0 auto",textAlign:"center",marginBottom:"40px"}}>
             <p className="eyebrow">Destinations</p>
             <h2 className="dest-h2">Places that stay with you.</h2>
-            <p style={{ fontSize: "13px", color: "var(--dim)", marginTop: "14px", lineHeight: 1.6 }}>
+            <p style={{fontSize:"13px",color:"var(--dim)",marginTop:"14px",lineHeight:1.6}}>
               Explore handpicked regions around the world.
             </p>
           </div>
-
-          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div style={{maxWidth:"900px",margin:"0 auto"}}>
             <WorldMap />
           </div>
-
-          <div style={{ textAlign: "center", marginTop: "32px" }}>
-            <Link href="/explore" className="view-all-link">View all destinations →</Link>
+          <div style={{textAlign:"center",marginTop:"32px"}}>
+            <Link href="/explore" style={{fontSize:"9px",fontWeight:800,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--gold)",display:"inline-flex",alignItems:"center",gap:"8px"}}>
+              View all destinations →
+            </Link>
           </div>
         </section>
 
@@ -1004,8 +491,8 @@ export default function HomePage() {
           <p className="testimonial-text">{TESTIMONIALS[testimonialIdx].quote}</p>
           <p className="testimonial-name">— {TESTIMONIALS[testimonialIdx].name}</p>
           <div className="testimonial-dots">
-            {TESTIMONIALS.map((_, i) => (
-              <button key={i} className={`t-dot ${i === testimonialIdx ? "active" : ""}`} onClick={() => setTestimonialIdx(i)} aria-label={`Testimonial ${i + 1}`} />
+            {TESTIMONIALS.map((_,i)=>(
+              <button key={i} className={`t-dot ${i===testimonialIdx?"active":""}`} onClick={()=>setTestimonialIdx(i)} aria-label={`Testimonial ${i+1}`}/>
             ))}
           </div>
         </section>
@@ -1014,9 +501,9 @@ export default function HomePage() {
         <section className="features-section">
           <div className="features-inner">
             <p className="eyebrow">Why travel with Scenic Routes</p>
-            <h2 className="features-h2">Designed for<br />the road ahead.</h2>
+            <h2 className="features-h2">Designed for<br/>the road ahead.</h2>
             <div className="features-grid">
-              {FEATURES.map(({ icon, title, text }) => (
+              {FEATURES.map(({icon,title,text})=>(
                 <div className="feature-card" key={title}>
                   <div className="feature-icon">{icon}</div>
                   <div className="feature-title">{title}</div>
@@ -1032,46 +519,36 @@ export default function HomePage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">SCENIC<br />ROUTES</div>
+                <div className="footer-brand">SCENIC<br/>ROUTES</div>
                 <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey as much as the destination.</p>
                 <div className="footer-socials">
-                  {["IG", "FB", "YT"].map(s => <a key={s} href="#" className="footer-social">{s[0]}</a>)}
+                  {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
                 </div>
               </div>
-              {[
-                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
-                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
-                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
-              ].map(([heading, links]) => (
+              {[["Explore",["All Routes","Destinations","Experiences","Journal"]],["Company",["About Us","Membership","Gift Cards","Careers"]],["Support",["FAQ","Travel Policies","Contact Us","Privacy Policy"]]].map(([heading,links])=>(
                 <div className="footer-col" key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
-                  {(links as string[]).map(l => <a href="#" key={l}>{l}</a>)}
+                  {(links as string[]).map(l=><a href="#" key={l}>{l}</a>)}
                 </div>
               ))}
               <div>
                 <p className="footer-col-title">Stay Inspired</p>
                 <p className="footer-nl-sub">Subscribe for new routes, stories, and exclusive guides.</p>
                 <form className="footer-nl-form" onSubmit={handleNewsletter}>
-                  <input type="email" required className="footer-nl-input"
-                    value={email} onChange={e => setEmail(e.target.value)}
-                    placeholder={emailSent ? "Subscribed!" : "Enter your email"} />
+                  <input type="email" required className="footer-nl-input" value={email} onChange={e=>setEmail(e.target.value)} placeholder={emailSent?"Subscribed!":"Enter your email"}/>
                   <button type="submit" className="footer-nl-btn">→</button>
                 </form>
               </div>
             </div>
             <div className="footer-bottom">
               <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
-              <div className="footer-legal">
-                <a href="#">Terms & Conditions</a>
-                <a href="#">Privacy</a>
-              </div>
+              <div className="footer-legal"><a href="#">Terms & Conditions</a><a href="#">Privacy</a></div>
             </div>
           </div>
         </footer>
 
       </main>
-
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
     </>
   );
 }
