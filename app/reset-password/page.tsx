@@ -1,195 +1,256 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabase';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
+import Link from "next/link";
 
 export default function ResetPasswordPage() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const checks = {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
+    length:  password.length >= 8,
+    upper:   /[A-Z]/.test(password),
+    number:  /[0-9]/.test(password),
     special: /[^A-Za-z0-9]/.test(password),
   };
 
   async function handleReset() {
-    if (!password || !confirmPassword) { setError('Please fill in all fields.'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+    if (!password || !confirmPassword) { setError("Please fill in all fields."); return; }
+    if (password !== confirmPassword)  { setError("Passwords do not match."); return; }
     if (!checks.length || !checks.upper || !checks.number || !checks.special) {
-      setError('Password does not meet requirements.'); return;
+      setError("Password does not meet requirements."); return;
     }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError("");
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) { setError(error.message); }
-    else { setSuccess('Password updated! Redirecting...'); setTimeout(() => router.push('/'), 2000); }
+    if (error) setError(error.message);
+    else { setSuccess("Password updated! Redirecting..."); setTimeout(() => router.push("/"), 2000); }
     setLoading(false);
   }
 
+  const EyeIcon = ({ open }: { open: boolean }) => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      {open
+        ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
+        : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
+      }
+    </svg>
+  );
+
   return (
-    <div className="min-h-screen relative flex flex-col">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
+        :root {
+          --bg:    #0c0b09;
+          --gold:  #C9A86A;
+          --cream: #EDE5D4;
+          --muted: rgba(237,229,212,0.56);
+          --dim:   rgba(237,229,212,0.32);
+          --border:rgba(237,229,212,0.10);
+          --serif: 'Cormorant Garamond', Georgia, serif;
+          --sans:  'Inter', system-ui, sans-serif;
+        }
+        .rp *, .rp *::before, .rp *::after { box-sizing:border-box; margin:0; padding:0; }
+        .rp a { color:inherit; text-decoration:none; }
+        .rp button { border:none; font:inherit; cursor:pointer; background:none; }
+        .rp input  { font:inherit; }
+        .rp { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); }
 
-      {/* BACKGROUND */}
-      <div className="absolute inset-0 z-0">
-        <img src="/reset-password.png" alt="Road" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black/55" />
-      </div>
+        /* BG */
+        .rp-bg { position:fixed; inset:0; z-index:0; }
+        .rp-bg img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.34) contrast(1.1) saturate(0.75); }
+        .rp-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(135deg, rgba(12,11,9,0.82) 0%, rgba(12,11,9,0.55) 50%, rgba(12,11,9,0.78) 100%); }
 
-      {/* NAV */}
-<nav className="relative z-10 flex justify-between items-center px-12 py-5 border-b border-white/10">
-  <Link href="/">
-    <div className="text-2xl font-black leading-[0.8] tracking-tighter text-white">
-      Scenic <br /> <span className="ml-4">Routes</span>
-    </div>
-  </Link>
-  <div className="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest text-white/60">
-    <Link href="/explore" className="hover:text-white transition">Explore Routes</Link>
-    <a href="#" className="hover:text-white transition">About us</a>
-  </div>
-  <Link href="/" className="px-6 py-2 border border-white/30 hover:bg-white hover:text-black text-white rounded-[24px] font-bold uppercase text-sm tracking-tighter transition-all active:scale-95 duration-300">
-    Home
-  </Link>
-</nav>
+        /* NAV */
+        .rp-nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; }
+        .rp-nav-logo { display:flex; flex-direction:column; line-height:1; }
+        .rp-nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .rp-nav-links { display:flex; gap:36px; }
+        .rp-nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .rp-nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
+        .rp-nav-link:hover { color:var(--cream); }
+        .rp-nav-link:hover::after { width:100%; }
+        .rp-nav-right { width:107px; display:flex; justify-content:flex-end; }
+        @media (max-width:680px) { .rp-nav-links { display:none; } .rp-nav-right { display:none; } }
 
-      {/* CONTENT */}
-      <div className="relative z-10 flex-1 flex items-center px-12 py-10">
-        <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-16">
+        /* MAIN */
+        .rp-main { position:relative; z-index:10; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:100px clamp(20px,5vw,60px) 60px; gap:clamp(40px,6vw,100px); }
 
-          {/* LEFT */}
-          <div className="flex-1">
-            <h1 className="text-[72px] md:text-[88px] font-black uppercase italic leading-[0.9] text-white drop-shadow-2xl mb-6">
-              RESET<br/>PASSWORD
-            </h1>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="h-[1px] w-16 bg-white/40"></div>
-              <img src="/mountains.png" alt="mountains" className="w-10 h-10 object-contain invert opacity-70" />
-              <div className="h-[1px] w-16 bg-white/40"></div>
-            </div>
-            <p className="text-white/80 text-lg font-light leading-relaxed max-w-sm">
-              No worries! Enter your new password<br/>and get back to exploring.
-            </p>
+        /* LEFT */
+        .rp-copy { flex:1; max-width:480px; }
+        .rp-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
+        .rp-h1 { font-family:var(--serif); font-size:clamp(48px,6vw,82px); font-weight:300; line-height:0.9; letter-spacing:-0.04em; color:var(--cream); margin-bottom:20px; }
+        .rp-sub { font-size:14px; font-weight:300; color:var(--muted); line-height:1.8; max-width:360px; margin-bottom:40px; }
+        .rp-feats { display:flex; flex-direction:column; gap:20px; }
+        .rp-feat { display:flex; align-items:flex-start; gap:16px; }
+        .rp-feat-icon { width:36px; height:36px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:14px; }
+        .rp-feat-text h4 { font-size:12px; font-weight:700; letter-spacing:0.08em; color:var(--cream); margin-bottom:3px; text-transform:uppercase; }
+        .rp-feat-text p  { font-size:12px; color:var(--dim); line-height:1.6; font-weight:300; }
 
-            <div className="flex items-center gap-3 mt-12">
-              <div className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
+        /* CARD */
+        .rp-card { flex-shrink:0; width:100%; max-width:440px; }
+        .rp-card-inner { background:rgba(14,12,10,0.85); backdrop-filter:blur(28px); border:1px solid rgba(237,229,212,0.10); border-radius:24px; padding:clamp(32px,5vw,48px); box-shadow:0 40px 100px rgba(0,0,0,0.55); }
+
+        .rp-form-title { font-family:var(--serif); font-size:clamp(26px,3vw,34px); font-weight:300; letter-spacing:-0.03em; color:var(--cream); margin-bottom:6px; }
+        .rp-form-sub   { font-size:12px; color:var(--dim); font-weight:300; margin-bottom:24px; }
+
+        /* INPUT */
+        .rp-input-wrap { position:relative; margin-bottom:12px; }
+        .rp-input { width:100%; padding:14px 44px 14px 16px; background:rgba(237,229,212,0.04); border:1px solid rgba(237,229,212,0.12); border-radius:12px; color:var(--cream); font-size:13px; outline:none; transition:all .25s; }
+        .rp-input::placeholder { color:rgba(237,229,212,0.28); }
+        .rp-input:focus { border-color:rgba(201,168,106,0.5); background:rgba(237,229,212,0.07); box-shadow:0 0 0 3px rgba(201,168,106,0.1); }
+        .rp-eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dim); transition:color .2s; display:flex; }
+        .rp-eye:hover { color:var(--muted); }
+
+        /* REQUIREMENTS */
+        .rp-reqs { margin-bottom:20px; }
+        .rp-reqs-title { font-size:10px; color:var(--dim); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:10px; }
+        .rp-req { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+        .rp-req-dot { width:16px; height:16px; border-radius:50%; border:1px solid rgba(237,229,212,0.2); display:grid; place-items:center; flex-shrink:0; transition:all .25s; font-size:9px; font-weight:800; color:transparent; }
+        .rp-req-dot.ok { border-color:var(--gold); background:rgba(201,168,106,0.15); color:var(--gold); }
+        .rp-req span { font-size:12px; color:var(--dim); transition:color .25s; font-weight:300; }
+        .rp-req.ok span { color:var(--muted); }
+
+        /* MSG */
+        .rp-error   { font-size:12px; color:#e08080; margin-bottom:12px; line-height:1.5; }
+        .rp-success { font-size:12px; color:#86c9a0; margin-bottom:12px; line-height:1.5; }
+
+        /* SUBMIT */
+        .rp-submit { width:100%; padding:15px 24px; background:transparent; border:1px solid var(--gold); border-radius:999px; color:var(--gold); font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; cursor:pointer; transition:all .25s; margin-bottom:16px; }
+        .rp-submit:hover:not(:disabled) { background:var(--gold); color:var(--bg); }
+        .rp-submit:disabled { opacity:0.5; cursor:not-allowed; }
+
+        .rp-back { display:block; text-align:center; font-size:11px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; transition:color .2s; }
+        .rp-back:hover { color:var(--gold); }
+
+        @media (max-width:860px) {
+          .rp-main { flex-direction:column; align-items:center; padding-top:100px; }
+          .rp-copy { max-width:440px; text-align:center; }
+          .rp-feats { display:none; }
+          .rp-sub { max-width:none; }
+        }
+      `}</style>
+
+      <div className="rp">
+        {/* BG */}
+        <div className="rp-bg">
+          <img
+            src="/reset-password.png"
+            alt="Scenic road"
+            onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }}
+          />
+        </div>
+
+        {/* NAV */}
+        <nav className="rp-nav">
+          <Link href="/" className="rp-nav-logo">
+            <span>SCENIC</span><span>ROUTES</span>
+          </Link>
+          <div className="rp-nav-links">
+            <Link href="/explore" className="rp-nav-link">Explore Routes</Link>
+            <Link href="/about"   className="rp-nav-link">About</Link>
+          </div>
+          <div className="rp-nav-right" />
+        </nav>
+
+        {/* MAIN */}
+        <main className="rp-main">
+
+          {/* LEFT COPY */}
+          <div className="rp-copy">
+            <p className="rp-eyebrow">Account Security</p>
+            <h1 className="rp-h1">New<br/>password</h1>
+            <p className="rp-sub">Choose a strong password to keep your account and saved routes secure</p>
+            <div className="rp-feats">
+              <div className="rp-feat">
+                <div className="rp-feat-icon">◎</div>
+                <div className="rp-feat-text"><h4>Secure & private</h4><p>Your data is always protected with us</p></div>
               </div>
-              <p className="text-white/50 text-sm">Your security is our priority.<br/>Choose a strong password.</p>
+              <div className="rp-feat">
+                <div className="rp-feat-icon">△</div>
+                <div className="rp-feat-text"><h4>Back to exploring</h4><p>Once reset, continue discovering routes</p></div>
+              </div>
+              <div className="rp-feat">
+                <div className="rp-feat-icon">⬡</div>
+                <div className="rp-feat-text"><h4>One-time link</h4><p>This link expires after use for your safety</p></div>
+              </div>
             </div>
           </div>
 
-          {/* RIGHT — FORM */}
-          <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-white text-xl font-semibold mb-1">Create a new password</h2>
-            <p className="text-white/50 text-sm mb-6">Enter your new password below.</p>
+          {/* CARD */}
+          <div className="rp-card">
+            <div className="rp-card-inner">
+              <p className="rp-form-title">Create password</p>
+              <p className="rp-form-sub">Enter and confirm your new password below</p>
 
-            {/* Password input */}
-            <div className="relative mb-3">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="New password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-white/40 text-sm outline-none focus:border-white/40 transition pr-12"
-              />
-              <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-white/40 hover:text-white/70 transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  {showPassword
-                    ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                    : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                  }
-                </svg>
+              {/* NEW PASSWORD */}
+              <div className="rp-input-wrap">
+                <input
+                  className="rp-input"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="New password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button className="rp-eye" type="button" onClick={() => setShowPassword(p => !p)}>
+                  <EyeIcon open={showPassword} />
+                </button>
+              </div>
+
+              {/* CONFIRM */}
+              <div className="rp-input-wrap" style={{ marginBottom: "20px" }}>
+                <input
+                  className="rp-input"
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
+                <button className="rp-eye" type="button" onClick={() => setShowConfirm(p => !p)}>
+                  <EyeIcon open={showConfirm} />
+                </button>
+              </div>
+
+              {/* REQUIREMENTS */}
+              <div className="rp-reqs">
+                <p className="rp-reqs-title">Password must include</p>
+                {[
+                  { key: "length",  label: "At least 8 characters" },
+                  { key: "upper",   label: "One uppercase letter" },
+                  { key: "number",  label: "One number" },
+                  { key: "special", label: "One special character" },
+                ].map(({ key, label }) => {
+                  const ok = checks[key as keyof typeof checks];
+                  return (
+                    <div key={key} className={`rp-req ${ok ? "ok" : ""}`}>
+                      <div className={`rp-req-dot ${ok ? "ok" : ""}`}>{ok ? "✓" : ""}</div>
+                      <span>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {error   && <p className="rp-error">{error}</p>}
+              {success && <p className="rp-success">{success}</p>}
+
+              <button className="rp-submit" type="button" disabled={loading} onClick={handleReset}>
+                {loading ? "Updating..." : "Update Password"}
               </button>
+
+              <Link href="/" className="rp-back">← Back to home</Link>
             </div>
-
-            {/* Confirm input */}
-            <div className="relative mb-5">
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-white/40 text-sm outline-none focus:border-white/40 transition pr-12"
-              />
-              <button onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-3 text-white/40 hover:text-white/70 transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  {showConfirm
-                    ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                    : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                  }
-                </svg>
-              </button>
-            </div>
-
-            {/* Password requirements */}
-            <div className="mb-5 space-y-1.5">
-              <p className="text-white/40 text-xs mb-2">Your password must include:</p>
-              {[
-                { key: 'length', label: 'At least 8 characters' },
-                { key: 'upper', label: 'One uppercase letter' },
-                { key: 'number', label: 'One number' },
-                { key: 'special', label: 'One special character' },
-              ].map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-2">
-                  <svg className={`w-3.5 h-3.5 transition-colors ${checks[key as keyof typeof checks] ? 'text-emerald-400' : 'text-white/25'}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  <span className={`text-xs transition-colors ${checks[key as keyof typeof checks] ? 'text-white/70' : 'text-white/30'}`}>{label}</span>
-                </div>
-              ))}
-            </div>
-
-            {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
-            {success && <p className="text-emerald-400 text-xs mb-3">{success}</p>}
-
-            <button
-              onClick={handleReset}
-              disabled={loading}
-              className="w-full bg-[#003e4d] hover:bg-[#004e61] text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 mb-4"
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
-
-            <Link href="/" className="block text-center text-white/40 hover:text-white/70 text-sm transition">
-              Back to home
-            </Link>
           </div>
-        </div>
-      </div>
 
-      {/* BOTTOM BAR */}
-      <div className="relative z-10 border-t border-white/10 px-12 py-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-3 gap-8">
-          {[
-            { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', title: 'Secure & Private', desc: 'Your data is always protected.' },
-            { icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7', title: 'Explore More', desc: 'Discover breathtaking routes.' },
-            { icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', title: 'Join the Community', desc: 'Share and connect with others.' },
-          ].map(({ icon, title, desc }) => (
-            <div key={title} className="flex items-center gap-4">
-              <div className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d={icon}/>
-                </svg>
-              </div>
-              <div>
-                <p className="text-white text-sm font-semibold">{title}</p>
-                <p className="text-white/40 text-xs">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        </main>
       </div>
-    </div>
+    </>
   );
 }
