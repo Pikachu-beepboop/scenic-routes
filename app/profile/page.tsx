@@ -232,7 +232,7 @@ export default function ProfilePage() {
           <div className="pp-nav-links">
             <Link href="/explore"  className="pp-nav-link">Explore Routes</Link>
             <Link href="/about"    className="pp-nav-link">About</Link>
-            <Link href="/my-trips" className="pp-nav-link" style={{ color: "var(--gold)" }}>My Trips</Link>
+            <Link href="/my-trips" className="pp-nav-link" style={{ color: "#EDE5D4" }}>My Trips</Link>
           </div>
           <div className="pp-nav-right" />
         </nav>
