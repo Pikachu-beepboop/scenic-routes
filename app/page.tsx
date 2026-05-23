@@ -77,7 +77,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             <div className="popular-content">
               <p>{route.country}</p>
               <h3>{route.title}</h3>
-              <span>{route.description || "One of the world's most scenic driving routes."}</span>
+              <span>{route.description || "One of the world's most scenic driving routes"}</span>
             </div>
           </Link>
         </div>
@@ -453,7 +453,7 @@ export default function HomePage() {
           </div>
           <div className="hero-content">
             <div className={`hero-copy ${heroVisible?"visible":""}`}>
-              <h1 className="hero-h1">The road<br/>reveals more.</h1>
+              <h1 className="hero-h1">Start<br/>your journey</h1>
               <p className="hero-sub">Scenic drives. Hidden places. Stories worth the journey.</p>
               <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
             </div>
@@ -481,20 +481,20 @@ export default function HomePage() {
             </div>
             <div className="builder-content">
               <p className="eyebrow">Build your route</p>
-              <h2 className="builder-h2">Your journey,<br/>your way.</h2>
-              <p className="builder-sub">Choose your terrain, pace, and places. We'll craft a route that fits you.</p>
+              <h2 className="builder-h2">Your journey,<br/>your way</h2>
+              <p className="builder-sub">Choose your terrain, pace, and places. We'll craft a route that fits you</p>
               <div className="builder-steps">
                 <div className="builder-step">
                   <div className="step-icon">△</div>
-                  <div className="step-text"><h4>Choose your terrain</h4><p>Mountains, coastlines, deserts, or forests.</p></div>
+                  <div className="step-text"><h4>Choose your terrain</h4><p>Mountains, coastlines, deserts, or forests</p></div>
                 </div>
                 <div className="builder-step">
                   <div className="step-icon">◎</div>
-                  <div className="step-text"><h4>Set your time</h4><p>A weekend escape or the long way around.</p></div>
+                  <div className="step-text"><h4>Set your time</h4><p>A weekend escape or the long way around</p></div>
                 </div>
                 <div className="builder-step">
                   <div className="step-icon">⬡</div>
-                  <div className="step-text"><h4>Pick your style</h4><p>Relaxed, adventurous, cultural, or off-grid.</p></div>
+                  <div className="step-text"><h4>Pick your style</h4><p>Relaxed, adventurous, cultural, or off-grid</p></div>
                 </div>
               </div>
               <Link href="/explore" className="btn-gold-filled">Start Building →</Link>
@@ -506,9 +506,9 @@ export default function HomePage() {
         <section className="dest-section">
           <div style={{maxWidth:"700px",margin:"0 auto",textAlign:"center",marginBottom:"40px"}}>
             <p className="eyebrow">Destinations</p>
-            <h2 className="dest-h2">Places that stay with you.</h2>
+            <h2 className="dest-h2">Places that stay with you</h2>
             <p style={{fontSize:"13px",color:"var(--dim)",marginTop:"14px",lineHeight:1.6}}>
-              Explore handpicked regions around the world.
+              Explore handpicked regions around the world
             </p>
           </div>
           <div style={{maxWidth:"900px",margin:"0 auto"}}>
@@ -537,7 +537,7 @@ export default function HomePage() {
         <section className="features-section">
           <div className="features-inner">
             <p className="eyebrow">Why travel with Scenic Routes</p>
-            <h2 className="features-h2">Designed for<br/>the road ahead.</h2>
+            <h2 className="features-h2">Designed for<br/>the road ahead</h2>
             <div className="features-grid">
               {FEATURES.map(({icon,title,text})=>(
                 <div className="feature-card" key={title}>
@@ -556,7 +556,7 @@ export default function HomePage() {
             <div className="footer-top">
               <div>
                 <div className="footer-brand">SCENIC<br/>ROUTES</div>
-                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey as much as the destination.</p>
+                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey as much as the destination</p>
                 <div className="footer-socials">
                   {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
                 </div>
@@ -569,7 +569,7 @@ export default function HomePage() {
               ))}
               <div>
                 <p className="footer-col-title">Stay Inspired</p>
-                <p className="footer-nl-sub">Subscribe for new routes, stories, and exclusive guides.</p>
+                <p className="footer-nl-sub">Subscribe for new routes, stories, and exclusive guides</p>
                 <form className="footer-nl-form" onSubmit={handleNewsletter}>
                   <input type="email" required className="footer-nl-input" value={email} onChange={e=>setEmail(e.target.value)} placeholder={emailSent?"Subscribed!":"Enter your email"}/>
                   <button type="submit" className="footer-nl-btn">→</button>
