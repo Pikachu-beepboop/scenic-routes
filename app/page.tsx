@@ -62,7 +62,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
         <div className="popular-header">
           <div>
             <p className="popular-eyebrow">Popular Destinations</p>
-            <h2 className="popular-heading">Roads made<br/>for the journey.</h2>
+            <h2 className="popular-heading">Roads made<br/>for the journey</h2>
           </div>
           <Link href="/explore" className="popular-view-all">View all destinations →</Link>
         </div>
