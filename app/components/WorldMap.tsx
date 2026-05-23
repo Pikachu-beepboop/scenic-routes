@@ -25,6 +25,8 @@ const FALLBACK_MARKERS = [
   { id: "6", title: "Grossglockner", country: "Austria", latitude: 47.1, longitude: 12.8 },
   { id: "7", title: "Ring Road", country: "Iceland", latitude: 64.9, longitude: -18.5 },
   { id: "8", title: "Transfagarasan", country: "Romania", latitude: 45.6, longitude: 24.6 },
+  { id: "9", title: "Col de la Bonette", country: "France", latitude: 44.3, longitude: 6.8 },
+  { id: "10", title: "Milford Road", country: "New Zealand", latitude: -44.7, longitude: 168.0 },
 ];
 
 export default function WorldMap() {
@@ -57,7 +59,7 @@ export default function WorldMap() {
     }}>
       <ComposableMap
         projection="geoMercator"
-        projectionConfig={{ scale: 170, center: [10, 30] }}
+        projectionConfig={{ scale: 170, center: [13, 30] }}
         viewBox="10 0 720 600"
         style={{ width: "100%", height: "580px", display: "block", marginTop: "-4%" }}
       >
@@ -106,7 +108,7 @@ export default function WorldMap() {
       {tooltip && (
         <div style={{
           position: "absolute",
-          left: tooltip.x + 12,
+          left: tooltip.x > 600 ? tooltip.x - 160 : tooltip.x + 12,
           top: tooltip.y - 40,
           background: "rgba(18,16,10,0.96)",
           border: "1px solid rgba(201,168,106,0.3)",
