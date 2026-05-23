@@ -4,11 +4,9 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import dynamic from "next/dynamic";
-
 import AuthModal from "./AuthModal";
 
 const fmtKm = (km?: number) => km != null ? `${km.toLocaleString("en-US")} km` : "—";
-
 const WorldMap = dynamic(() => import("./components/WorldMap"), { ssr: false });
 
 const FALLBACK_ROUTES = [
@@ -42,7 +40,6 @@ type Route = {
 function PopularCarousel({ routes }: { routes: Route[] }) {
   const [idx, setIdx] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
-
   const items = useMemo(() => routes.slice(0, 6), [routes]);
   const route = items[idx] ?? items[0];
 
@@ -56,15 +53,8 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
 
   if (!route) return null;
 
-  const prev = () => {
-    setSlideDirection("prev");
-    setIdx((i) => (i === 0 ? items.length - 1 : i - 1));
-  };
-
-  const next = () => {
-    setSlideDirection("next");
-    setIdx((i) => (i + 1) % items.length);
-  };
+  const prev = () => { setSlideDirection("prev"); setIdx((i) => (i === 0 ? items.length - 1 : i - 1)); };
+  const next = () => { setSlideDirection("next"); setIdx((i) => (i + 1) % items.length); };
 
   return (
     <section className="popular-section">
@@ -76,11 +66,9 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           </div>
           <Link href="/explore" className="popular-view-all">View all destinations →</Link>
         </div>
-
         <div className="popular-card-wrap">
           <button className="popular-arrow popular-left" onClick={prev} aria-label="Previous route">←</button>
           <button className="popular-arrow popular-right" onClick={next} aria-label="Next route">→</button>
-
           <Link key={route.id} href={`/routedetail/${route.id}`} className={`popular-card slide-${slideDirection}`}>
             <img src={route.image_url || "/Pacific Route Highway.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Pacific Route Highway.jpg"; }}/>
             <div className="popular-card-overlay" />
@@ -102,11 +90,11 @@ export default function HomePage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [user, setUser] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
   const [heroVisible, setHeroVisible] = useState(false);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
@@ -114,7 +102,7 @@ export default function HomePage() {
   const [activeSlot, setActiveSlot] = useState(0);
   const [slotSrcs, setSlotSrcs] = useState(["", ""]);
   const crossfadeInFlight = useRef(false);
-  const [savedRoutes, setSavedRoutes] = useState<string[]>([]); 
+  const [savedRoutes, setSavedRoutes] = useState<string[]>([]);
 
   const displayRoutes = useMemo(() => (routes.length ? routes : FALLBACK_ROUTES), [routes]);
 
@@ -147,20 +135,34 @@ export default function HomePage() {
     return () => { mounted = false; listener.subscription.unsubscribe(); clearInterval(tT); };
   }, []);
 
-  async function handleLogout() {
-      await supabase.auth.signOut();
-      setUser(null); setSavedRoutes([]); setShowUserMenu(false);
-    } 
-
   useEffect(() => {
     const src = displayRoutes[carouselIdx]?.image_url || "/Pacific Route Highway.jpg";
     crossfadeTo(src);
   }, [carouselIdx, displayRoutes]);
 
   useEffect(() => {
-    if (!user) { setAvatarUrl(""); return; }
-    supabase.from("profiles").select("avatar_url").eq("id", user.id).single().then(({ data }) => setAvatarUrl(data?.avatar_url || ""));
+    if (!user) { setAvatarUrl(""); setUsername(""); return; }
+    supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single().then(({ data }) => {
+      setAvatarUrl(data?.avatar_url || "");
+      setUsername(data?.username || "");
+    });
   }, [user]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".user-menu-wrap")) setShowUserMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUserMenu]);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+  }
 
   const handleNewsletter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,6 +171,8 @@ export default function HomePage() {
     await supabase.from("newsletter_subscribers").insert({ email: cleanEmail, created_at: new Date().toISOString() });
     setEmailSent(true); setEmail("");
   };
+
+  const displayName = username || user?.email?.split("@")[0] || "";
 
   return (
     <>
@@ -197,22 +201,41 @@ export default function HomePage() {
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
-        .nav-logo span { font-size:19px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:17px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
         .nav-right { display:flex; align-items:center; gap:12px; }
         .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
-        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
+        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
+        .user-avatar:hover { border-color:var(--gold); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
-        .user-dropdown { position:absolute; top:50px; right:0; width:210px; background:rgba(20,18,12,0.98); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52); }
-        .user-dropdown-email { padding:12px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .user-dropdown a, .user-dropdown button { display:block; width:100%; padding:12px 14px; font-size:13px; color:var(--cream); text-align:left; background:none; transition:background .15s; }
-        .user-dropdown a:hover, .user-dropdown button:hover { background:rgba(237,229,212,0.06); }
-        .user-dropdown button { color:#E08080; }
+
+        /* USER DROPDOWN */
+        .user-menu-wrap { position:relative; }
+        .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
+        @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+        .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
+        .ud-avatar img { width:100%; height:100%; object-fit:cover; }
+        .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
+        .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
+        .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+        .ud-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--border); }
+        .ud-stat { padding:13px 8px; text-align:center; border-right:1px solid var(--border); }
+        .ud-stat:last-child { border-right:none; }
+        .ud-stat-num { font-family:var(--serif); font-size:22px; font-weight:300; color:var(--cream); line-height:1; }
+        .ud-stat-label { font-size:7px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-top:3px; }
+        .ud-links { padding:8px; }
+        .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
+        .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
+        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
+        .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
+        .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
         /* HERO */
         .hero { position:relative; height:100vh; min-height:680px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
@@ -239,24 +262,6 @@ export default function HomePage() {
         .stat-item:last-child  { border-right:none; }
         .stat-num   { font-family:var(--serif); font-size:clamp(28px,3vw,40px); font-weight:300; color:var(--cream); line-height:1; margin-bottom:6px; }
         .stat-label { font-size:9px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:rgba(237,229,212,0.35); }
-
-        /* FEATURED ROUTE */
-        .featured-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); }
-        .featured-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1.4fr; gap:clamp(40px,6vw,90px); align-items:center; }
-        .featured-left {}
-        .eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
-        .featured-title   { font-family:var(--serif); font-size:clamp(38px,5vw,68px); font-weight:300; line-height:0.92; letter-spacing:-0.04em; color:var(--cream); margin-bottom:8px; }
-        .featured-country { font-size:12px; color:var(--gold); font-weight:500; letter-spacing:0.1em; margin-bottom:20px; }
-        .featured-desc    { font-size:14px; color:var(--dim); line-height:1.8; font-weight:300; margin-bottom:32px; max-width:340px; }
-        .featured-view    { display:inline-flex; align-items:center; gap:10px; padding:12px 22px; border:1px solid rgba(237,229,212,0.22); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); transition:all .25s; }
-        .featured-view:hover { border-color:var(--gold); color:var(--gold); }
-        .featured-nav     { display:flex; align-items:center; gap:20px; margin-top:32px; }
-        .featured-arrow   { width:40px; height:40px; border-radius:50%; border:1px solid rgba(237,229,212,0.2); display:grid; place-items:center; font-size:14px; color:var(--muted); transition:all .2s; }
-        .featured-arrow:hover { border-color:var(--gold); color:var(--gold); }
-        .featured-counter { font-family:var(--serif); font-size:15px; color:var(--dim); }
-        .featured-image   { position:relative; border-radius:20px; overflow:hidden; aspect-ratio:4/3; border:1px solid var(--border); }
-        .featured-image img { width:100%; height:100%; object-fit:cover; filter:brightness(0.9) contrast(1.05) saturate(0.95); transition:transform .8s ease; }
-        .featured-image:hover img { transform:scale(1.03); }
 
         /* POPULAR DESTINATIONS */
         .popular-section { padding:clamp(76px,8vw,116px) clamp(24px,5vw,80px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
@@ -303,6 +308,7 @@ export default function HomePage() {
         .step-icon     { width:40px; height:40px; border-radius:50%; border:1px solid rgba(201,168,106,0.4); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:14px; }
         .step-text h4  { font-size:13px; font-weight:700; color:var(--cream); margin-bottom:4px; letter-spacing:0.05em; }
         .step-text p   { font-size:12px; color:var(--dim); line-height:1.6; }
+        .eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
 
         /* DESTINATIONS MAP */
         .dest-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
@@ -354,13 +360,11 @@ export default function HomePage() {
         .footer-legal a:hover { color:var(--cream); }
 
         @media (max-width:1024px) {
-          .featured-inner { grid-template-columns:1fr; }
           .builder-inner  { grid-template-columns:1fr; }
           .builder-image  { display:none; }
           .builder-content{ padding:60px 30px; }
           .features-grid  { grid-template-columns:repeat(2,1fr); }
           .footer-top     { grid-template-columns:1fr 1fr; }
-          .dest-header    { flex-direction:column; align-items:flex-start; gap:16px; }
         }
         @media (max-width:760px) {
           .popular-header { align-items:flex-start; flex-direction:column; }
@@ -387,20 +391,52 @@ export default function HomePage() {
             {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
               <Link key={l} href={h} className="nav-link">{l}</Link>
             ))}
-            {user && <Link href="/my-trips" className="nav-link" style={{color:'var(--gold)'}}>My Trips</Link>}
+            {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (
-              <div style={{position:'relative'}}>
+              <div className="user-menu-wrap">
                 <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
                   <div className="user-dropdown">
-                    <div className="user-dropdown-email">{user.email}</div>
-                    <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
-                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
-                    <button onClick={handleLogout}>Sign Out</button>
+                    {/* HEADER */}
+                    <div className="ud-header">
+                      <div className="ud-avatar">
+                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{minWidth:0}}>
+                        <p className="ud-name">{displayName}</p>
+                        <p className="ud-email">{user.email}</p>
+                        <p className="ud-role">Scenic Route Explorer</p>
+                      </div>
+                    </div>
+                    {/* STATS */}
+                    <div className="ud-stats">
+                      {[["12","Trips"],["5","Routes"],["8","Saved"]].map(([n,l])=>(
+                        <div className="ud-stat" key={l}>
+                          <div className="ud-stat-num">{n}</div>
+                          <div className="ud-stat-label">{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* LINKS */}
+                    <div className="ud-links">
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">◎</span> Profile
+                      </Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">△</span> My Trips
+                      </Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">⬡</span> Explore Routes
+                      </Link>
+                      <div className="ud-divider"/>
+                      <button className="ud-logout" onClick={handleLogout}>
+                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
