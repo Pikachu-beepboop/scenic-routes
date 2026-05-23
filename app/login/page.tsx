@@ -265,7 +265,7 @@ export default function LoginPage() {
                   {/* FORM HEADING */}
                   {mode === "login" ? (
                     <>
-                      <p className="lp-form-title">Welcome back.</p>
+                      <p className="lp-form-title">Welcome back</p>
                       <p className="lp-form-sub">Sign in to continue your journey</p>
                     </>
                   ) : (
