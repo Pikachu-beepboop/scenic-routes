@@ -212,20 +212,20 @@ export default function LoginPage() {
           <div className={`lp-copy ${visible ? "visible" : ""}`}>
             <Link href="/" className="lp-back">← Back to home</Link>
             <p className="lp-eyebrow">Member Access</p>
-            <h1 className="lp-h1">Roads worth<br/>remembering.</h1>
-            <p className="lp-sub">Sign in to save your favourite routes, build custom journeys, and unlock hidden destinations around the world.</p>
+            <h1 className="lp-h1">Roads worth<br/>remembering</h1>
+            <p className="lp-sub">Sign in to save your favourite routes, build custom journeys, and unlock hidden destinations around the world</p>
             <div className="lp-features">
               <div className="lp-feat">
                 <div className="lp-feat-icon">◎</div>
-                <div className="lp-feat-text"><h4>Save your routes</h4><p>Bookmark any route and access it anytime, anywhere.</p></div>
+                <div className="lp-feat-text"><h4>Save your routes</h4><p>Bookmark any route and access it anytime, anywhere</p></div>
               </div>
               <div className="lp-feat">
                 <div className="lp-feat-icon">△</div>
-                <div className="lp-feat-text"><h4>Build custom trips</h4><p>Plan and personalise multi-day road trips with ease.</p></div>
+                <div className="lp-feat-text"><h4>Build custom trips</h4><p>Plan and personalise multi-day road trips with ease</p></div>
               </div>
               <div className="lp-feat">
                 <div className="lp-feat-icon">⬡</div>
-                <div className="lp-feat-text"><h4>Discover hidden gems</h4><p>Exclusive spots and insider tips for members only.</p></div>
+                <div className="lp-feat-text"><h4>Discover hidden gems</h4><p>Exclusive spots and insider tips for members only</p></div>
               </div>
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function LoginPage() {
               {mode === "reset" && (
                 <>
                   <p className="lp-form-title">Reset password.</p>
-                  <p className="lp-form-sub">Enter your email and we'll send you a reset link.</p>
+                  <p className="lp-form-sub">Enter your email and we'll send you a reset link</p>
                   <input className="lp-input" type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
                   {error   && <p className="lp-error">{error}</p>}
                   {success && <p className="lp-success">{success}</p>}
@@ -266,12 +266,12 @@ export default function LoginPage() {
                   {mode === "login" ? (
                     <>
                       <p className="lp-form-title">Welcome back.</p>
-                      <p className="lp-form-sub">Sign in to continue your journey.</p>
+                      <p className="lp-form-sub">Sign in to continue your journey</p>
                     </>
                   ) : (
                     <>
-                      <p className="lp-form-title">Join the road.</p>
-                      <p className="lp-form-sub">Create your free account today.</p>
+                      <p className="lp-form-title">Join the road</p>
+                      <p className="lp-form-sub">Create your free account today</p>
                     </>
                   )}
 

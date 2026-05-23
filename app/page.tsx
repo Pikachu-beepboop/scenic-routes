@@ -462,7 +462,7 @@ export default function HomePage() {
 
         {/* STATS BAR */}
         <div className="stats-bar">
-          {[["150+","Curated Routes"],["40+","Countries"],["100K+","Travelers"],["10K+","Hidden Places"]].map(([n,l])=>(
+          {[["50+","Curated Routes"],["10+","Countries"],["2","Travelers"],["100+","Hidden Places"]].map(([n,l])=>(
             <div className="stat-item" key={l}>
               <div className="stat-num">{n}</div>
               <div className="stat-label">{l}</div>
