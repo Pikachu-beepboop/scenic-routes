@@ -507,14 +507,7 @@ export default function ProfilePage() {
                       <p className="pp-user-role">Scenic Route Explorer</p>
                     </div>
                   </div>
-                  <div className="pp-stats">
-                    {[["12","Trips"],["5","Routes"],[String(stamps.length),"Stamps"]].map(([n,l]) => (
-                      <div className="pp-stat" key={l}>
-                        <div className="pp-stat-num">{n}</div>
-                        <div className="pp-stat-label">{l}</div>
-                      </div>
-                    ))}
-                  </div>
+                  
                   <div className="pp-form">
                     <p className="pp-section-label">Profile Settings</p>
                     <div className="pp-field">

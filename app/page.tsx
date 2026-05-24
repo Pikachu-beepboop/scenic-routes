@@ -412,15 +412,7 @@ export default function HomePage() {
                         <p className="ud-role">Scenic Route Explorer</p>
                       </div>
                     </div>
-                    {/* STATS */}
-                    <div className="ud-stats">
-                      {[["12","Trips"],["5","Routes"],["8","Saved"]].map(([n,l])=>(
-                        <div className="ud-stat" key={l}>
-                          <div className="ud-stat-num">{n}</div>
-                          <div className="ud-stat-label">{l}</div>
-                        </div>
-                      ))}
-                    </div>
+                    
                     {/* LINKS */}
                     <div className="ud-links">
                       <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>

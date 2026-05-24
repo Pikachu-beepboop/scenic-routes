@@ -158,6 +158,15 @@ function ExplorePageInner() {
       .then(({ data }) => setAvatarUrl(data?.avatar_url || ''));
   }, [user]);
 
+  useEffect(() => {
+  if (!showUserMenu) return;
+  const handler = (e: MouseEvent) => {
+    if (!(e.target as HTMLElement).closest(".user-menu-wrap")) setShowUserMenu(false);
+  };
+  document.addEventListener("mousedown", handler);
+  return () => document.removeEventListener("mousedown", handler);
+}, [showUserMenu]);
+
   return (
     <>
       <style>{`
@@ -186,7 +195,7 @@ function ExplorePageInner() {
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:1px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
@@ -195,11 +204,27 @@ function ExplorePageInner() {
         .login-btn:hover { background:var(--cream); color:var(--bg); }
         .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
-        .user-dropdown { position:absolute; top:50px; right:0; width:210px; background:rgba(20,18,12,0.98); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52); }
-        .user-dropdown-email { padding:12px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .user-dropdown a, .user-dropdown button { display:block; width:100%; padding:12px 14px; font-size:13px; color:var(--cream); text-align:left; background:none; transition:background .15s; }
-        .user-dropdown a:hover, .user-dropdown button:hover { background:rgba(237,229,212,0.06); }
-        .user-dropdown button { color:#E08080; }
+        .user-menu-wrap { position:relative; }
+.user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
+@keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+.ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
+.ud-avatar img { width:100%; height:100%; object-fit:cover; }
+.ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
+.ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
+.ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+.ud-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--border); }
+.ud-stat { padding:13px 8px; text-align:center; border-right:1px solid var(--border); }
+.ud-stat:last-child { border-right:none; }
+.ud-stat-num { font-family:var(--serif); font-size:22px; font-weight:300; color:var(--cream); line-height:1; }
+.ud-stat-label { font-size:7px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-top:3px; }
+.ud-links { padding:8px; }
+.ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
+.ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
+.ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+.ud-divider { height:1px; background:var(--border); margin:4px 8px; }
+.ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
+.ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
         /* HERO */
         .hero { position:relative; height:100vh; min-height:640px; display:flex; align-items:center; overflow:hidden; }
@@ -384,22 +409,46 @@ function ExplorePageInner() {
           </div>
           <div className="nav-right">
             {user ? (
-              <div style={{position:'relative'}}>
-                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
-                </button>
-                {showUserMenu && (
-                  <div className="user-dropdown">
-                    <div className="user-dropdown-email">{user.email}</div>
-                    <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
-                    <button onClick={handleLogout}>Sign Out</button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button className="login-btn" onClick={()=>setIsAuthOpen(true)}>Login</button>
-            )}
+  <div className="user-menu-wrap">
+    <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
+      {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+    </button>
+    {showUserMenu && (
+      <div className="user-dropdown">
+        <div className="ud-header">
+          <div className="ud-avatar">
+            {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
           </div>
+          <div style={{minWidth:0}}>
+            <p className="ud-name">{user.email?.split("@")[0]}</p>
+            <p className="ud-email">{user.email}</p>
+            <p className="ud-role">Scenic Route Explorer</p>
+          </div>
+        </div>
+        
+        <div className="ud-links">
+          <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+            <span className="ud-link-icon">◎</span> Profile
+          </Link>
+          <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+            <span className="ud-link-icon">△</span> My Trips
+          </Link>
+          <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+            <span className="ud-link-icon">⬡</span> Explore Routes
+          </Link>
+          <div className="ud-divider"/>
+          <button className="ud-logout" onClick={handleLogout}>
+            <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+) : (
+  <button className="login-btn" onClick={()=>setIsAuthOpen(true)}>Login</button>
+)}
+
+          </div>  
         </nav>
 
         {/* HERO */}
