@@ -224,7 +224,7 @@ export default function AboutPage() {
           <div className="nav-links">
             <Link href="/explore"  className="nav-link">Explore Routes</Link>
             <Link href="/about"    className="nav-link" style={{color:"var(--gold)"}}>About</Link>
-            {user && <Link href="/my-trips" className="nav-link" style={{color:"var(--gold)"}}>My Trips</Link>}
+            {user && <Link href="/my-trips" className="nav-link" style={{color:"#EDE5D4"}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (

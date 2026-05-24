@@ -184,9 +184,9 @@ function ExplorePageInner() {
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
-        .nav-logo span { font-size:19px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:17px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
@@ -378,10 +378,9 @@ function ExplorePageInner() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
-              <Link key={l} href={h} className="nav-link">{l}</Link>
-            ))}
-            {user && <Link href="/my-trips" className="nav-link" style={{color:'var(--gold)'}}>My Trips</Link>}
+            <Link href="/explore"  className="nav-link" style={{color:"var(--gold)"}}>Explore Routes</Link>
+            <Link href="/about"    className="nav-link" style={{color:"#EDE5D4"}}>About</Link>
+            {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (
