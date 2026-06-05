@@ -19,7 +19,6 @@ type Route = {
   rating?: number;
 };
 
-// locale-safe formatter — no hydration mismatch
 const fmtKm = (km?: number) => (km != null ? `${km.toLocaleString("en-US")} km` : "—");
 
 function ExplorePageInner() {
@@ -27,7 +26,7 @@ function ExplorePageInner() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [selected, setSelected]       = useState(searchParams.get('destination') || '');
+  const [selected, setSelected]         = useState(searchParams.get('destination') || '');
   const [selectedDate, setSelectedDate] = useState(searchParams.get('duration') || '');
   const [filters, setFilters] = useState<{
     difficulty: string[];
@@ -56,19 +55,21 @@ function ExplorePageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, selectedDate, filters]);
 
-  const [isOpen, setIsOpen]           = useState(false);
-  const [isOpenDate, setIsOpenDate]   = useState(false);
-  const [isAuthOpen, setIsAuthOpen]   = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [routes, setRoutes]           = useState<Route[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [countries, setCountries]     = useState<string[]>([]);
-  const [durations, setDurations]     = useState<string[]>([]);
-  const [user, setUser]               = useState<any>(null);
-  const [savedRoutes, setSavedRoutes] = useState<string[]>([]);
+  const [isOpen, setIsOpen]             = useState(false);
+  const [isOpenDate, setIsOpenDate]     = useState(false);
+  const [isAuthOpen, setIsAuthOpen]     = useState(false);
+  const [showFilters, setShowFilters]   = useState(false);
+  const [routes, setRoutes]             = useState<Route[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [countries, setCountries]       = useState<string[]>([]);
+  const [durations, setDurations]       = useState<string[]>([]);
+  const [user, setUser]                 = useState<any>(null);
+  const [savedRoutes, setSavedRoutes]   = useState<string[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [avatarUrl, setAvatarUrl]     = useState('');
-  const [navScrolled, setNavScrolled] = useState(false);
+  const [avatarUrl, setAvatarUrl]       = useState('');
+  const [navScrolled, setNavScrolled]   = useState(false);
+  const [username, setUsername]         = useState("");
+  const displayName = username || user?.email?.split("@")[0] || "";
 
   const toggleFilter = (key: 'difficulty' | 'countries', value: string) => {
     setFilters(prev => ({
@@ -159,13 +160,13 @@ function ExplorePageInner() {
   }, [user]);
 
   useEffect(() => {
-  if (!showUserMenu) return;
-  const handler = (e: MouseEvent) => {
-    if (!(e.target as HTMLElement).closest(".user-menu-wrap")) setShowUserMenu(false);
-  };
-  document.addEventListener("mousedown", handler);
-  return () => document.removeEventListener("mousedown", handler);
-}, [showUserMenu]);
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".user-menu-wrap")) setShowUserMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUserMenu]);
 
   return (
     <>
@@ -195,71 +196,78 @@ function ExplorePageInner() {
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:1px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
         .nav-right { display:flex; align-items:center; gap:12px; }
         .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
-        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
+        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
+        .user-avatar:hover { border-color:var(--gold); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
+
+        /* USER DROPDOWN */
         .user-menu-wrap { position:relative; }
-.user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
-@keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-.ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
-.ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
-.ud-avatar img { width:100%; height:100%; object-fit:cover; }
-.ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
-.ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
-.ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
-.ud-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--border); }
-.ud-stat { padding:13px 8px; text-align:center; border-right:1px solid var(--border); }
-.ud-stat:last-child { border-right:none; }
-.ud-stat-num { font-family:var(--serif); font-size:22px; font-weight:300; color:var(--cream); line-height:1; }
-.ud-stat-label { font-size:7px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-top:3px; }
-.ud-links { padding:8px; }
-.ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
-.ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
-.ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
-.ud-divider { height:1px; background:var(--border); margin:4px 8px; }
-.ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
-.ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
+        .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
+        @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+        .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
+        .ud-avatar img { width:100%; height:100%; object-fit:cover; }
+        .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
+        .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
+        .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+        .ud-links { padding:8px; }
+        .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
+        .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
+        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
+        .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
+        .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
         /* HERO */
         .hero { position:relative; height:100vh; min-height:640px; display:flex; align-items:center; overflow:hidden; }
         .hero-bg { position:absolute; inset:0; }
-        .hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.52) saturate(0.9); }
-        .hero-bg::after { content:""; position:absolute; inset:0; background: linear-gradient(to right,rgba(12,11,9,0.92) 0%,rgba(12,11,9,0.6) 40%,rgba(12,11,9,0.15) 100%), linear-gradient(to bottom,rgba(12,11,9,0.1) 0%,transparent 40%,rgba(12,11,9,0.95) 100%); }
-        .hero-inner { position:relative; z-index:10; width:100%; max-width:1440px; margin:0 auto; padding:80px clamp(20px,4vw,60px) 0; display:grid; grid-template-columns:1fr auto; gap:clamp(32px,5vw,80px); align-items:center; }
-        .hero-left { max-width:560px; }
-        .hero-right { display:flex; flex-direction:column; align-items:flex-end; position:relative; }
-        .hero-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:18px; }
-        .hero-h1 { font-family:var(--serif); font-size:clamp(48px,7vw,96px); font-weight:300; font-style:italic; line-height:0.88; letter-spacing:-0.04em; color:var(--cream); margin-bottom:18px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
-        .hero-sub { font-size:14px; font-weight:300; color:rgba(237,229,212,0.6); max-width:460px; line-height:1.75; margin-bottom:0; margin-top:16px; }
+        .hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.48) saturate(0.85); }
+        .hero-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(to right,rgba(12,11,9,0.95) 0%,rgba(12,11,9,0.75) 45%,rgba(12,11,9,0.1) 100%),linear-gradient(to bottom,rgba(12,11,9,0.1) 0%,transparent 35%,rgba(12,11,9,0.9) 100%); }
+
+        /* HERO LAYOUT — single column, left-anchored */
+        .hero-inner { position:relative; z-index:10; width:100%; max-width:1440px; margin:0 auto; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; }
+        .hero-content { max-width:980px; }
+        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:var(--gold); margin-bottom:22px; }
+        .hero-h1 { font-family:var(--serif); font-size:clamp(132px,7vw,104px); font-weight:300; font-style:italic; line-height:0.87; letter-spacing:-0.04em; color:var(--cream); text-shadow:0 20px 60px rgba(0,0,0,0.5); }
+        .hero-sub { font-size:20px; font-weight:300; color:rgba(237,229,212,0.58); max-width:780px; line-height:1.8; margin-top:22px; }
 
         /* SEARCH BAR */
-        .search-bar { display:inline-flex; align-items:center; gap:0; background:rgba(237,229,212,0.07); backdrop-filter:blur(24px); border:1px solid rgba(237,229,212,0.18); border-radius:16px; overflow:visible; min-width:480px; }
-        .search-field { position:relative; padding:16px 24px; min-width:220px; flex:1; cursor:pointer; transition:background .2s; border-radius:14px; }
-        .search-field:hover { background:rgba(237,229,212,0.06); }
-        .search-field.open { background:rgba(237,229,212,0.1); }
-        .search-field-label { font-size:9px; font-weight:800; letter-spacing:0.3em; text-transform:uppercase; color:var(--gold); margin-bottom:4px; }
-        .search-field-value { font-size:13px; font-weight:500; color:var(--cream); display:flex; align-items:center; gap:8px; justify-content:space-between; }
-        .search-field-value span { color:var(--muted); font-size:9px; transition:transform .2s; }
-        .search-field-value span.flipped { transform:rotate(180deg); }
-        .search-divider { width:1px; height:32px; background:rgba(237,229,212,0.12); flex-shrink:0; }
-        .search-btn { margin:6px; padding:14px 26px; background:var(--gold); color:var(--bg); border-radius:12px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.25); }
+        .search-bar { display:inline-flex; align-items:stretch; background:rgba(237,229,212,0.06); backdrop-filter:blur(24px); border:1px solid rgba(237,229,212,0.15); border-radius:20px; overflow:visible; width:100%; max-width:520px; margin-top:36px; }
+        .search-field { position:relative; padding:18px 24px; flex:1; cursor:pointer; transition:background .2s; border-radius:18px; min-width:0; }
+        .search-field:hover { background:rgba(237,229,212,0.05); }
+        .search-field.open { background:rgba(237,229,212,0.08); }
+        .search-field-label { font-size:8px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; opacity:0.85; }
+        .search-field-value { font-size:16px; font-weight:300; font-family:var(--serif); letter-spacing:0.01em; color:var(--cream); display:flex; align-items:center; gap:8px; justify-content:space-between; }
+        .search-field-value .placeholder { color:var(--muted); font-style:italic; }
+        .search-field-value .arrow { font-size:7px; font-family:var(--sans); font-style:normal; color:rgba(201,168,106,0.55); transition:transform .25s cubic-bezier(.25,.46,.45,.94),color .2s; flex-shrink:0; }
+        .search-field.open .arrow { transform:rotate(180deg); color:var(--gold); }
+        .search-divider { width:1px; background:rgba(237,229,212,0.1); margin:14px 0; flex-shrink:0; }
+        .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
 
-        /* DROPDOWN */
-        .search-dropdown { position:absolute; top:calc(100% + 8px); left:0; right:0; min-width:220px; z-index:9999; background:rgba(14,13,10,0.99); border:1px solid rgba(237,229,212,0.2); border-radius:14px; overflow:hidden; box-shadow:0 28px 70px rgba(0,0,0,0.75); }
-        .search-dropdown-item { padding:12px 20px; font-size:13px; color:var(--muted); cursor:pointer; transition:background .15s,color .15s; border-bottom:1px solid rgba(237,229,212,0.06); }
-        .search-dropdown-item:last-child { border-bottom:none; }
-        .search-dropdown-item:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
-        .search-dropdown-scroll { max-height:220px; overflow-y:auto; }
-        .search-dropdown-scroll::-webkit-scrollbar { width:4px; }
+        /* ELEGANT DROPDOWN */
+        @keyframes ddOpen { from{opacity:0;transform:translateY(-6px) scale(0.99)} to{opacity:1;transform:translateY(0) scale(1)} }
+        .search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; min-width:520px; z-index:9999; background:rgba(16,14,11,0.98); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 2px 0 rgba(201,168,106,0.08) inset,0 32px 80px rgba(0,0,0,0.8),0 8px 24px rgba(0,0,0,0.5); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
+        .search-dropdown-header { padding:12px 18px 8px; border-bottom:1px solid rgba(237,229,212,0.07); }
+        .search-dropdown-header-label { font-size:8px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:rgba(201,168,106,0.5); }
+        .search-dropdown-scroll { max-height:220px; overflow-y:auto; padding:6px; }
+        .search-dropdown-scroll::-webkit-scrollbar { width:3px; }
         .search-dropdown-scroll::-webkit-scrollbar-track { background:transparent; }
-        .search-dropdown-scroll::-webkit-scrollbar-thumb { background:rgba(237,229,212,0.15); border-radius:2px; }
+        .search-dropdown-scroll::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.2); border-radius:2px; }
+        .search-dropdown-item { display:flex; align-items:center; gap:10px; padding:9px 12px; font-size:13px; font-weight:400; color:rgba(237,229,212,0.6); cursor:pointer; border-radius:10px; transition:background .15s,color .15s; letter-spacing:0.01em; }
+        .search-dropdown-item:hover { background:rgba(201,168,106,0.1); color:var(--cream); }
+        .search-dropdown-item.all-item { color:rgba(201,168,106,0.7); font-size:11px; font-weight:600; letter-spacing:0.06em; }
+        .search-dropdown-item.all-item:hover { color:var(--gold); background:rgba(201,168,106,0.08); }
+        .search-dropdown-item .item-dot { width:4px; height:4px; border-radius:50%; background:rgba(201,168,106,0.3); flex-shrink:0; transition:background .15s; }
+        .search-dropdown-item:hover .item-dot { background:var(--gold); }
+        .search-dropdown-footer { padding:8px 18px 12px; border-top:1px solid rgba(237,229,212,0.07); font-size:10px; color:var(--dim); text-align:center; letter-spacing:0.06em; }
 
         /* CONTENT */
         .content { padding:0 clamp(20px,4vw,60px) clamp(60px,8vw,100px); max-width:1440px; margin:0 auto; }
@@ -380,13 +388,11 @@ function ExplorePageInner() {
         }
         @media (max-width:760px) {
           .nav-links { display:none; }
-          .hero-h1 { font-size:clamp(38px,12vw,60px); }
-          .hero-inner { grid-template-columns:1fr; gap:32px; padding-top:100px; }
-          .hero-right { align-items:flex-start; width:100%; }
-          .search-bar { min-width:0; width:100%; }
-          .search-bar { flex-direction:column; border-radius:16px; }
-          .search-divider { width:100%; height:1px; }
+          .hero-h1 { font-size:clamp(40px,12vw,64px); }
+          .search-bar { flex-direction:column; border-radius:16px; max-width:100%; }
+          .search-divider { width:100%; height:1px; margin:0; }
           .search-field { width:100%; }
+          .search-btn { margin:8px; padding:16px; }
           .route-grid, .loading-grid { grid-template-columns:1fr 1fr; }
           .toolbar { flex-direction:column; align-items:flex-start; gap:12px; }
           .footer-top { grid-template-columns:1fr; }
@@ -403,52 +409,51 @@ function ExplorePageInner() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            <Link href="/explore"  className="nav-link" style={{color:"var(--gold)"}}>Explore Routes</Link>
-            <Link href="/about"    className="nav-link" style={{color:"#EDE5D4"}}>About</Link>
+            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
+              <Link key={l} href={h} className="nav-link">{l}</Link>
+            ))}
             {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (
-  <div className="user-menu-wrap">
-    <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
-      {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
-    </button>
-    {showUserMenu && (
-      <div className="user-dropdown">
-        <div className="ud-header">
-          <div className="ud-avatar">
-            {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+              <div className="user-menu-wrap">
+                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                </button>
+                {showUserMenu && (
+                  <div className="user-dropdown">
+                    <div className="ud-header">
+                      <div className="ud-avatar">
+                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{minWidth:0}}>
+                        <p className="ud-name">{displayName}</p>
+                        <p className="ud-email">{user.email}</p>
+                        <p className="ud-role">Scenic Route Explorer</p>
+                      </div>
+                    </div>
+                    <div className="ud-links">
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">◎</span> Profile
+                      </Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">△</span> My Trips
+                      </Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">⬡</span> Explore Routes
+                      </Link>
+                      <div className="ud-divider"/>
+                      <button className="ud-logout" onClick={handleLogout}>
+                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/login" className="login-btn">Login</Link>
+            )}
           </div>
-          <div style={{minWidth:0}}>
-            <p className="ud-name">{user.email?.split("@")[0]}</p>
-            <p className="ud-email">{user.email}</p>
-            <p className="ud-role">Scenic Route Explorer</p>
-          </div>
-        </div>
-        
-        <div className="ud-links">
-          <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-            <span className="ud-link-icon">◎</span> Profile
-          </Link>
-          <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-            <span className="ud-link-icon">△</span> My Trips
-          </Link>
-          <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-            <span className="ud-link-icon">⬡</span> Explore Routes
-          </Link>
-          <div className="ud-divider"/>
-          <button className="ud-logout" onClick={handleLogout}>
-            <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-) : (
-  <button className="login-btn" onClick={()=>setIsAuthOpen(true)}>Login</button>
-)}
-
-          </div>  
         </nav>
 
         {/* HERO */}
@@ -457,57 +462,106 @@ function ExplorePageInner() {
             <img src="/iceland.jpg" alt="Scenic roads" onError={e=>{e.currentTarget.src='/iceland.jpg';}}/>
           </div>
           <div className="hero-inner">
-            <div className="hero-left">
+            <div className="hero-content">
               <p className="hero-eyebrow">Discover · Explore · Drive</p>
               <h1 className="hero-h1">Find your<br/>perfect route.</h1>
               <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration, terrain and mood.</p>
-            </div>
 
-            {/* SEARCH BAR */}
-            <div className="hero-right">
-            <div className="search-bar">
-              {/* Country */}
-              <div className="search-field" style={{position:'relative'}} onClick={()=>{setIsOpen(p=>!p); setIsOpenDate(false);}}>
-                <div className="search-field-label">Country</div>
-                <div className="search-field-value">
-                  <span style={{color: selected ? 'var(--cream)' : 'var(--muted)'}}>{selected || 'Choose destination'}</span>
-                  <span className={isOpen ? 'flipped' : ''}>▼</span>
-                </div>
-                {isOpen && (
-                  <div className="search-dropdown">
-                    <div className="search-dropdown-scroll">
-                      <div className="search-dropdown-item" onClick={e=>{e.stopPropagation();setSelected('');setIsOpen(false);}}>All countries</div>
-                      {countries.map(c=>(
-                        <div key={c} className="search-dropdown-item" onClick={e=>{e.stopPropagation();setSelected(c);setIsOpen(false);}}>{c}</div>
-                      ))}
-                    </div>
+              {/* SEARCH BAR — direkt unter dem Text */}
+              <div className="search-bar">
+
+                {/* Country */}
+                <div
+                  className={`search-field ${isOpen ? 'open' : ''}`}
+                  style={{position:'relative'}}
+                  onClick={()=>{ setIsOpen(p=>!p); setIsOpenDate(false); }}
+                >
+                  <div className="search-field-label">Country</div>
+                  <div className="search-field-value">
+                    {selected
+                      ? <span>{selected}</span>
+                      : <span className="placeholder">Choose destination</span>
+                    }
+                    <span className="arrow">▼</span>
                   </div>
-                )}
-              </div>
-
-              <div className="search-divider"/>
-
-              {/* Duration */}
-              <div className="search-field" style={{position:'relative'}} onClick={()=>{setIsOpenDate(p=>!p); setIsOpen(false);}}>
-                <div className="search-field-label">Duration</div>
-                <div className="search-field-value">
-                  <span style={{color: selectedDate ? 'var(--cream)' : 'var(--muted)'}}>{selectedDate || 'Choose duration'}</span>
-                  <span className={isOpenDate ? 'flipped' : ''}>▼</span>
-                </div>
-                {isOpenDate && (
-                  <div className="search-dropdown">
-                    <div className="search-dropdown-scroll">
-                      <div className="search-dropdown-item" onClick={e=>{e.stopPropagation();setSelectedDate('');setIsOpenDate(false);}}>Any duration</div>
-                      {durations.map(d=>(
-                        <div key={d} className="search-dropdown-item" onClick={e=>{e.stopPropagation();setSelectedDate(d);setIsOpenDate(false);}}>{d}</div>
-                      ))}
+                  {isOpen && (
+                    <div className="search-dropdown">
+                      <div className="search-dropdown-header">
+                        <span className="search-dropdown-header-label">Destination</span>
+                      </div>
+                      <div className="search-dropdown-scroll">
+                        <div
+                          className="search-dropdown-item all-item"
+                          onClick={e=>{ e.stopPropagation(); setSelected(''); setIsOpen(false); }}
+                        >
+                          ↳ All countries
+                        </div>
+                        {countries.map(c=>(
+                          <div
+                            key={c}
+                            className="search-dropdown-item"
+                            onClick={e=>{ e.stopPropagation(); setSelected(c); setIsOpen(false); }}
+                          >
+                            <span className="item-dot"/>
+                            {c}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="search-dropdown-footer">
+                        {countries.length} destinations available
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <button className="search-btn" onClick={fetchRoutes}>Find Route →</button>
-            </div>
+                <div className="search-divider"/>
+
+                {/* Duration */}
+                <div
+                  className={`search-field ${isOpenDate ? 'open' : ''}`}
+                  style={{position:'relative'}}
+                  onClick={()=>{ setIsOpenDate(p=>!p); setIsOpen(false); }}
+                >
+                  <div className="search-field-label">Duration</div>
+                  <div className="search-field-value">
+                    {selectedDate
+                      ? <span>{selectedDate}</span>
+                      : <span className="placeholder">Choose duration</span>
+                    }
+                    <span className="arrow">▼</span>
+                  </div>
+                  {isOpenDate && (
+                    <div className="search-dropdown">
+                      <div className="search-dropdown-header">
+                        <span className="search-dropdown-header-label">Duration</span>
+                      </div>
+                      <div className="search-dropdown-scroll">
+                        <div
+                          className="search-dropdown-item all-item"
+                          onClick={e=>{ e.stopPropagation(); setSelectedDate(''); setIsOpenDate(false); }}
+                        >
+                          ↳ Any duration
+                        </div>
+                        {durations.map(d=>(
+                          <div
+                            key={d}
+                            className="search-dropdown-item"
+                            onClick={e=>{ e.stopPropagation(); setSelectedDate(d); setIsOpenDate(false); }}
+                          >
+                            <span className="item-dot"/>
+                            {d}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="search-dropdown-footer">
+                        {durations.length} durations available
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button className="search-btn" onClick={fetchRoutes}>Find Route →</button>
+              </div>
             </div>
           </div>
         </section>
@@ -537,7 +591,6 @@ function ExplorePageInner() {
                       <span className="filter-panel-title">Filters</span>
                       <button className="filter-reset" onClick={()=>setFilters({difficulty:[],duration:'any',minRating:0,countries:[]})}>Reset all</button>
                     </div>
-
                     <div className="filter-section">
                       <p className="filter-section-title">Terrain</p>
                       <div className="filter-chips">
@@ -546,7 +599,6 @@ function ExplorePageInner() {
                         ))}
                       </div>
                     </div>
-
                     <div className="filter-section">
                       <p className="filter-section-title">Duration</p>
                       <div className="filter-radio">
@@ -558,7 +610,6 @@ function ExplorePageInner() {
                         ))}
                       </div>
                     </div>
-
                     <div className="filter-section">
                       <p className="filter-section-title">Minimum Rating</p>
                       <div className="filter-stars">
@@ -567,7 +618,6 @@ function ExplorePageInner() {
                         ))}
                       </div>
                     </div>
-
                     <div className="filter-section">
                       <p className="filter-section-title">Country</p>
                       <div className="filter-country-list">
@@ -579,7 +629,6 @@ function ExplorePageInner() {
                         ))}
                       </div>
                     </div>
-
                     <button className="filter-apply-btn" onClick={()=>setShowFilters(false)}>Apply Filters</button>
                   </div>
                 </>
@@ -632,7 +681,7 @@ function ExplorePageInner() {
                     </Link>
                     <button className="save-btn" onClick={e=>{e.preventDefault();toggleSave(route.id);}}>
                       <svg viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-                        style={{fill: savedRoutes.includes(route.id)?'#ef4444':'transparent', stroke: savedRoutes.includes(route.id)?'#ef4444':'rgba(237,229,212,0.8)'}}>
+                        style={{fill:savedRoutes.includes(route.id)?'#ef4444':'transparent',stroke:savedRoutes.includes(route.id)?'#ef4444':'rgba(237,229,212,0.8)'}}>
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                       </svg>
                     </button>
@@ -640,7 +689,6 @@ function ExplorePageInner() {
                       <div className="route-card-type">{route.terrain || route.type}</div>
                     )}
                   </div>
-
                   <div className="route-card-body">
                     <div className="route-card-country">{route.country}</div>
                     <Link href={`/routedetail/${route.id}`}>
@@ -649,7 +697,6 @@ function ExplorePageInner() {
                     {route.description && (
                       <p className="route-card-desc">{route.description}</p>
                     )}
-
                     <div className="route-card-meta">
                       {route.duration && (
                         <div className="route-card-meta-item">
@@ -664,14 +711,9 @@ function ExplorePageInner() {
                         </div>
                       )}
                     </div>
-
                     <div className="route-card-footer">
-                      <div className="route-card-rating">
-                        ★ {route.rating ? route.rating.toFixed(1) : '—'}
-                      </div>
-                      <Link href={`/routedetail/${route.id}`} className="view-route-btn">
-                        View Route →
-                      </Link>
+                      <div className="route-card-rating">★ {route.rating ? route.rating.toFixed(1) : '—'}</div>
+                      <Link href={`/routedetail/${route.id}`} className="view-route-btn">View Route →</Link>
                     </div>
                   </div>
                 </div>
@@ -721,7 +763,6 @@ function ExplorePageInner() {
     </>
   );
 }
-
 
 export default function ExplorePage() {
   return (

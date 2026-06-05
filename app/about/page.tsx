@@ -32,6 +32,8 @@ export default function AboutPage() {
   const [isAuthOpen,   setIsAuthOpen]   = useState(false);
   const [navScrolled,  setNavScrolled]  = useState(false);
   const router = useRouter();
+  const [username, setUsername] = useState("");
+  const displayName = username || user?.email?.split("@")[0] || "";
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
@@ -64,6 +66,7 @@ export default function AboutPage() {
     router.push("/");
   }
 
+
   return (
     <>
       <style>{`
@@ -88,20 +91,39 @@ export default function AboutPage() {
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
         .nav-right { display:flex; align-items:center; gap:12px; }
-        .nav-cta { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
-        .nav-cta:hover { background:var(--cream); color:var(--bg); }
-        .user-btn { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
-        .user-btn img { width:100%; height:100%; object-fit:cover; }
-        .user-dd { position:absolute; top:50px; right:0; width:210px; background:rgba(20,18,12,0.98); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52); }
-        .user-dd-email { padding:12px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .user-dd a, .user-dd button { display:block; width:100%; padding:12px 14px; font-size:13px; color:var(--cream); text-align:left; transition:background .15s; }
-        .user-dd a:hover, .user-dd button:hover { background:rgba(237,229,212,0.06); }
-        .user-dd button { color:#E08080; }
+        .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
+        .login-btn:hover { background:var(--cream); color:var(--bg); }
+        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
+        .user-avatar:hover { border-color:var(--gold); }
+        .user-avatar img { width:100%; height:100%; object-fit:cover; }
+
+        /* USER DROPDOWN */
+        .user-menu-wrap { position:relative; }
+        .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
+        @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+        .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
+        .ud-avatar img { width:100%; height:100%; object-fit:cover; }
+        .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
+        .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
+        .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+        .ud-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--border); }
+        .ud-stat { padding:13px 8px; text-align:center; border-right:1px solid var(--border); }
+        .ud-stat:last-child { border-right:none; }
+        .ud-stat-num { font-family:var(--serif); font-size:22px; font-weight:300; color:var(--cream); line-height:1; }
+        .ud-stat-label { font-size:7px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-top:3px; }
+        .ud-links { padding:8px; }
+        .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
+        .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
+        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
+        .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
+        .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
         /* HERO */
         .about-hero { position:relative; min-height:100vh; display:flex; align-items:flex-end; overflow:hidden; }
@@ -217,32 +239,55 @@ export default function AboutPage() {
       <div className="ab">
 
         {/* NAV */}
-        <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
-          <Link href="/" className="nav-logo">
-            <span>SCENIC</span><span>ROUTES</span>
-          </Link>
+        <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
+          <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            <Link href="/explore"  className="nav-link">Explore Routes</Link>
-            <Link href="/about"    className="nav-link" style={{color:"var(--gold)"}}>About</Link>
-            {user && <Link href="/my-trips" className="nav-link" style={{color:"#EDE5D4"}}>My Trips</Link>}
+            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
+              <Link key={l} href={h} className="nav-link">{l}</Link>
+            ))}
+            {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (
-              <div style={{position:"relative"}}>
-                <button className="user-btn" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+              <div className="user-menu-wrap">
+                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
-                  <div className="user-dd">
-                    <div className="user-dd-email">{user.email}</div>
-                    <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
-                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
-                    <button onClick={handleLogout}>Sign Out</button>
+                  <div className="user-dropdown">
+                    {/* HEADER */}
+                    <div className="ud-header">
+                      <div className="ud-avatar">
+                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{minWidth:0}}>
+                        <p className="ud-name">{displayName}</p>
+                        <p className="ud-email">{user.email}</p>
+                        <p className="ud-role">Scenic Route Explorer</p>
+                      </div>
+                    </div>
+                    
+                    {/* LINKS */}
+                    <div className="ud-links">
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">◎</span> Profile
+                      </Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">△</span> My Trips
+                      </Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">⬡</span> Explore Routes
+                      </Link>
+                      <div className="ud-divider"/>
+                      <button className="ud-logout" onClick={handleLogout}>
+                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
-              <button className="nav-cta" onClick={()=>setIsAuthOpen(true)}>Login</button>
+              <Link href="/login" className="login-btn">Login</Link>
             )}
           </div>
         </nav>
