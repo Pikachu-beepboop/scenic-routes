@@ -32,9 +32,15 @@ const FEATURES = [
 ];
 
 type Route = {
-  id: string; title: string; country: string;
-  distance_km?: number; image_url?: string; duration?: string;
-  type?: string; terrain?: string; description?: string;
+  id: string;
+  title: string;
+  country: string;
+  distance_km?: number;
+  image_url?: string;
+  duration?: string;
+  type?: string;
+  terrain?: string;
+  description?: string;
 };
 
 function PopularCarousel({ routes }: { routes: Route[] }) {
@@ -53,8 +59,15 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
 
   if (!route) return null;
 
-  const prev = () => { setSlideDirection("prev"); setIdx((i) => (i === 0 ? items.length - 1 : i - 1)); };
-  const next = () => { setSlideDirection("next"); setIdx((i) => (i + 1) % items.length); };
+  const prev = () => {
+    setSlideDirection("prev");
+    setIdx((i) => (i === 0 ? items.length - 1 : i - 1));
+  };
+
+  const next = () => {
+    setSlideDirection("next");
+    setIdx((i) => (i + 1) % items.length);
+  };
 
   return (
     <section className="popular-section">
@@ -62,18 +75,44 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
         <div className="popular-header">
           <div>
             <p className="popular-eyebrow">Popular Destinations</p>
-            <h2 className="popular-heading">Roads made<br/>for the journey</h2>
+            <h2 className="popular-heading">
+              Roads made
+              <br />
+              for the journey
+            </h2>
           </div>
-          <Link href="/explore" className="popular-view-all">View all destinations →</Link>
+
+          <Link href="/explore" className="popular-view-all">
+            View all destinations →
+          </Link>
         </div>
+
         <div className="popular-card-wrap">
-          <button className="popular-arrow popular-left" onClick={prev} aria-label="Previous route">←</button>
-          <button className="popular-arrow popular-right" onClick={next} aria-label="Next route">→</button>
+          <button className="popular-arrow popular-left" onClick={prev} aria-label="Previous route">
+            ←
+          </button>
+
+          <button className="popular-arrow popular-right" onClick={next} aria-label="Next route">
+            →
+          </button>
+
           <Link key={route.id} href={`/routedetail/${route.id}`} className={`popular-card slide-${slideDirection}`}>
-            <img src={route.image_url || "/Pacific Route Highway.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Pacific Route Highway.jpg"; }}/>
+            <img
+              src={route.image_url || "/Pacific Route Highway.jpg"}
+              alt={route.title}
+              onError={(e) => {
+                e.currentTarget.src = "/Pacific Route Highway.jpg";
+              }}
+            />
+
             <div className="popular-card-overlay" />
-            <span className="popular-counter">{String(idx + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}</span>
+
+            <span className="popular-counter">
+              {String(idx + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
+            </span>
+
             <span className="popular-type">{route.terrain || route.type || "Scenic Route"}</span>
+
             <div className="popular-content">
               <p>{route.country}</p>
               <h3>{route.title}</h3>
@@ -106,70 +145,137 @@ export default function HomePage() {
 
   const displayRoutes = useMemo(() => (routes.length ? routes : FALLBACK_ROUTES), [routes]);
 
-  const crossfadeTo = useCallback((src: string) => {
-    if (crossfadeInFlight.current) return;
-    crossfadeInFlight.current = true;
-    const next = activeSlot === 0 ? 1 : 0;
-    setSlotSrcs(srcs => { const u = [...srcs] as [string, string]; u[next] = src; return u; });
-    setTimeout(() => { setActiveSlot(next); crossfadeInFlight.current = false; }, 60);
-  }, [activeSlot]);
+  const crossfadeTo = useCallback(
+    (src: string) => {
+      if (crossfadeInFlight.current) return;
+
+      crossfadeInFlight.current = true;
+
+      const next = activeSlot === 0 ? 1 : 0;
+
+      setSlotSrcs((srcs) => {
+        const updated = [...srcs] as [string, string];
+        updated[next] = src;
+        return updated;
+      });
+
+      setTimeout(() => {
+        setActiveSlot(next);
+        crossfadeInFlight.current = false;
+      }, 60);
+    },
+    [activeSlot]
+  );
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
+
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => { if (mounted) setUser(data.session?.user ?? null); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_, s) => setUser(s?.user ?? null));
-    supabase.from("routes").select("*").limit(6).then(({ data }) => {
-      if (!mounted) return;
-      const r = data?.length ? data : FALLBACK_ROUTES;
-      setRoutes(r);
-      setSlotSrcs([r[0]?.image_url || "/Pacific Route Highway.jpg", r[0]?.image_url || "/Pacific Route Highway.jpg"]);
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setUser(data.session?.user ?? null);
     });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    supabase
+      .from("routes")
+      .select("*")
+      .limit(6)
+      .then(({ data }) => {
+        if (!mounted) return;
+
+        const loadedRoutes = data?.length ? data : FALLBACK_ROUTES;
+
+        setRoutes(loadedRoutes);
+        setSlotSrcs([
+          loadedRoutes[0]?.image_url || "/Pacific Route Highway.jpg",
+          loadedRoutes[0]?.image_url || "/Pacific Route Highway.jpg",
+        ]);
+      });
+
     requestAnimationFrame(() => requestAnimationFrame(() => setHeroVisible(true)));
-    const tT = setInterval(() => setTestimonialIdx(p => (p + 1) % TESTIMONIALS.length), 6000);
-    return () => { mounted = false; listener.subscription.unsubscribe(); clearInterval(tT); };
+
+    const testimonialTimer = setInterval(() => {
+      setTestimonialIdx((p) => (p + 1) % TESTIMONIALS.length);
+    }, 6000);
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+      clearInterval(testimonialTimer);
+    };
   }, []);
 
   useEffect(() => {
     const src = displayRoutes[carouselIdx]?.image_url || "/Pacific Route Highway.jpg";
     crossfadeTo(src);
-  }, [carouselIdx, displayRoutes]);
+  }, [carouselIdx, displayRoutes, crossfadeTo]);
 
   useEffect(() => {
-    if (!user) { setAvatarUrl(""); setUsername(""); return; }
-    supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single().then(({ data }) => {
-      setAvatarUrl(data?.avatar_url || "");
-      setUsername(data?.username || "");
-    });
+    if (!user) {
+      setAvatarUrl("");
+      setUsername("");
+      return;
+    }
+
+    supabase
+      .from("profiles")
+      .select("avatar_url, username")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        setAvatarUrl(data?.avatar_url || "");
+        setUsername(data?.username || "");
+      });
   }, [user]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!showUserMenu) return;
+
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest(".user-menu-wrap")) setShowUserMenu(false);
+
+      if (!target.closest(".user-menu-wrap")) {
+        setShowUserMenu(false);
+      }
     };
+
     document.addEventListener("mousedown", handler);
+
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+
+    setUser(null);
+    setSavedRoutes([]);
+    setShowUserMenu(false);
   }
 
   const handleNewsletter = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const cleanEmail = email.trim().toLowerCase();
+
     if (!cleanEmail) return;
-    await supabase.from("newsletter_subscribers").insert({ email: cleanEmail, created_at: new Date().toISOString() });
-    setEmailSent(true); setEmail("");
+
+    await supabase.from("newsletter_subscribers").insert({
+      email: cleanEmail,
+      created_at: new Date().toISOString(),
+    });
+
+    setEmailSent(true);
+    setEmail("");
   };
 
   const displayName = username || user?.email?.split("@")[0] || "";
@@ -178,6 +284,7 @@ export default function HomePage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
         :root {
           --bg:    #0c0b09;
           --bg2:   #111009;
@@ -190,6 +297,7 @@ export default function HomePage() {
           --serif: 'Cormorant Garamond', Georgia, serif;
           --sans:  'Inter', system-ui, sans-serif;
         }
+
         .pg *, .pg *::before, .pg *::after { box-sizing:border-box; margin:0; padding:0; }
         .pg a { color:inherit; text-decoration:none; }
         .pg button { border:none; font:inherit; cursor:pointer; background:none; }
@@ -224,11 +332,6 @@ export default function HomePage() {
         .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
         .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
         .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
-        .ud-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--border); }
-        .ud-stat { padding:13px 8px; text-align:center; border-right:1px solid var(--border); }
-        .ud-stat:last-child { border-right:none; }
-        .ud-stat-num { font-family:var(--serif); font-size:22px; font-weight:300; color:var(--cream); line-height:1; }
-        .ud-stat-label { font-size:7px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); margin-top:3px; }
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
@@ -240,31 +343,17 @@ export default function HomePage() {
         /* HERO */
         .hero { position:relative; height:100vh; min-height:680px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
         .hero-bg { position:absolute; inset:0; }
-        .hero-slot { position:absolute; inset:0; transition:opacity 1.4s ease; }
-        .hero-slot img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.52) contrast(1.08) saturate(0.9); }
-        .hero-slot.active  { opacity:1; z-index:2; }
-        .hero-slot.inactive{ opacity:0; z-index:1; }
         .hero-bg::after { content:""; position:absolute; inset:0; z-index:3; background: linear-gradient(to bottom, rgba(12,11,9,0.1) 0%, rgba(12,11,9,0.05) 30%, rgba(12,11,9,0.65) 70%, rgba(12,11,9,0.95) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%); }
         .hero-content { position:relative; z-index:10; padding:0 clamp(24px,5vw,80px) clamp(50px,7vh,90px); max-width:1280px; }
         .hero-copy { opacity:0; transform:translateY(22px); transition:opacity .9s, transform .9s; }
         .hero-copy.visible { opacity:1; transform:translateY(0); }
-        .hero-h1 { font-family:var(--serif); font-size:clamp(56px,8.5vw,122px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:20px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
-        .hero-sub { font-size:14px; font-weight:300; color:rgba(237,229,212,0.65); margin-bottom:32px; max-width:420px; line-height:1.7; }
-        .btn-gold { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:transparent; border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); transition:all .25s; }
-        .btn-gold:hover { background:var(--gold); color:var(--bg); }
+        .hero-h1 { font-family:var(--serif); font-size:clamp(56px,8.5vw,122px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:30px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
+        .hero-sub { font-size:16px; font-weight:300; color:rgba(237,229,212,0.65); margin-bottom:20px; max-width:420px; line-height:1.7; }
         .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
         .btn-gold-filled:hover { background:#d8b978; border-color:#d8b978; transform:translateY(-1px); }
 
-        /* STATS BAR */
-        .stats-bar { position:relative; z-index:10; background:rgba(12,11,9,0.96); border-top:1px solid var(--border); padding:28px clamp(24px,5vw,80px); display:flex; gap:0; align-items:center; }
-        .stat-item { flex:1; padding:0 clamp(16px,3vw,40px); border-right:1px solid var(--border); }
-        .stat-item:first-child { padding-left:0; }
-        .stat-item:last-child  { border-right:none; }
-        .stat-num   { font-family:var(--serif); font-size:clamp(28px,3vw,40px); font-weight:300; color:var(--cream); line-height:1; margin-bottom:6px; }
-        .stat-label { font-size:9px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:rgba(237,229,212,0.35); }
-
         /* POPULAR DESTINATIONS */
-        .popular-section { padding:clamp(76px,8vw,116px) clamp(24px,5vw,80px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .popular-section { padding:clamp(90px,9vw,130px) clamp(24px,5vw,80px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
         .popular-container { max-width:1500px; margin:0 auto; }
         .popular-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:40px; }
         .popular-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
@@ -291,23 +380,23 @@ export default function HomePage() {
         .popular-content span { display:block; max-width:500px; color:rgba(255,255,255,0.68); font-size:14px; font-weight:300; line-height:1.8; }
         .popular-arrow { position:absolute; top:50%; z-index:20; transform:translateY(-50%); width:45px; height:45px; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:rgba(0,0,0,0.35); color:#fff; backdrop-filter:blur(14px); transition:background .2s,border-color .2s,color .2s; }
         .popular-arrow:hover { background:var(--gold); border-color:var(--gold); color:var(--bg); }
-        .popular-left  { left:24px; }
+        .popular-left { left:24px; }
         .popular-right { right:24px; }
 
         /* BUILDER */
         .builder-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
-        .builder-inner   { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; align-items:center; }
-        .builder-image   { position:relative; aspect-ratio:4/5; overflow:hidden; }
+        .builder-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; align-items:center; }
+        .builder-image { position:relative; aspect-ratio:4/5; overflow:hidden; }
         .builder-image img { width:100%; height:100%; object-fit:cover; filter:brightness(0.75) contrast(1.05) saturate(0.88); }
         .builder-image::after { content:""; position:absolute; inset:0; background:linear-gradient(to right,transparent 60%,var(--bg2)); }
         .builder-content { padding:clamp(50px,7vw,90px) clamp(30px,5vw,70px); }
-        .builder-h2  { font-family:var(--serif); font-size:clamp(36px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:12px; }
+        .builder-h2 { font-family:var(--serif); font-size:clamp(36px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:12px; }
         .builder-sub { font-size:14px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:40px; max-width:340px; }
         .builder-steps { display:flex; flex-direction:column; gap:28px; margin-bottom:40px; }
-        .builder-step  { display:flex; align-items:flex-start; gap:20px; }
-        .step-icon     { width:40px; height:40px; border-radius:50%; border:1px solid rgba(201,168,106,0.4); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:14px; }
-        .step-text h4  { font-size:13px; font-weight:700; color:var(--cream); margin-bottom:4px; letter-spacing:0.05em; }
-        .step-text p   { font-size:12px; color:var(--dim); line-height:1.6; }
+        .builder-step { display:flex; align-items:flex-start; gap:20px; }
+        .step-icon { width:40px; height:40px; border-radius:50%; border:1px solid rgba(201,168,106,0.4); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:14px; }
+        .step-text h4 { font-size:13px; font-weight:700; color:var(--cream); margin-bottom:4px; letter-spacing:0.05em; }
+        .step-text p { font-size:12px; color:var(--dim); line-height:1.6; }
         .eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
 
         /* DESTINATIONS MAP */
@@ -316,7 +405,7 @@ export default function HomePage() {
 
         /* TESTIMONIAL */
         .testimonial-section { padding:clamp(70px,9vw,110px) clamp(24px,5vw,80px); background:var(--bg2); border-top:1px solid var(--border); text-align:center; }
-        .testimonial-qq   { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; }
+        .testimonial-qq { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; }
         .testimonial-text { font-family:var(--serif); font-size:clamp(22px,3vw,38px); font-weight:300; font-style:italic; color:var(--cream); line-height:1.4; max-width:820px; margin:0 auto 28px; }
         .testimonial-name { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
         .testimonial-dots { display:flex; justify-content:center; gap:8px; margin-top:24px; }
@@ -326,114 +415,146 @@ export default function HomePage() {
 
         /* FEATURES */
         .features-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
-        .features-inner   { max-width:1200px; margin:0 auto; }
-        .features-h2      { font-family:var(--serif); font-size:clamp(34px,4.5vw,56px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:48px; }
-        .features-grid    { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-        .feature-card     { padding:28px 22px 32px; border:1px solid var(--border); border-radius:18px; background:rgba(237,229,212,0.025); transition:border-color .3s,transform .3s,background .3s; }
+        .features-inner { max-width:1200px; margin:0 auto; }
+        .features-h2 { font-family:var(--serif); font-size:clamp(34px,4.5vw,56px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:48px; }
+        .features-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+        .feature-card { padding:28px 22px 32px; border:1px solid var(--border); border-radius:18px; background:rgba(237,229,212,0.025); transition:border-color .3s,transform .3s,background .3s; }
         .feature-card:hover { border-color:rgba(201,168,106,0.28); transform:translateY(-3px); background:rgba(237,229,212,0.045); }
-        .feature-icon  { font-size:22px; color:var(--gold); margin-bottom:18px; }
+        .feature-icon { font-size:22px; color:var(--gold); margin-bottom:18px; }
         .feature-title { font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--cream); margin-bottom:10px; }
-        .feature-text  { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; }
+        .feature-text { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; }
 
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
-        .footer-inner  { max-width:1200px; margin:0 auto; }
-        .footer-top    { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
-        .footer-brand  { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
-        .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
-        .footer-socials{ display:flex; gap:8px; }
+        .footer-inner { max-width:1200px; margin:0 auto; }
+        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
+        .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
+        .footer-socials { display:flex; gap:8px; }
         .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
         .footer-social:hover { border-color:var(--gold); color:var(--gold); }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
-        .footer-col a  { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
+        .footer-col a { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
         .footer-col a:hover { color:var(--cream); }
         .footer-nl-sub { font-size:12px; color:var(--dim); line-height:1.6; margin-bottom:14px; font-weight:300; }
-        .footer-nl-form{ display:flex; }
+        .footer-nl-form { display:flex; }
         .footer-nl-input { flex:1; padding:11px 14px; border:1px solid var(--border); border-right:none; border-radius:999px 0 0 999px; background:rgba(237,229,212,0.04); color:var(--cream); font-size:12px; outline:none; }
         .footer-nl-input::placeholder { color:var(--dim); }
         .footer-nl-btn { width:44px; background:var(--gold); border:1px solid var(--gold); border-radius:0 999px 999px 0; color:var(--bg); font-size:15px; font-weight:800; transition:background .2s; }
         .footer-nl-btn:hover { background:#d8b978; }
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
-        .footer-copy   { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
-        .footer-legal  { display:flex; gap:22px; }
-        .footer-legal a{ font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
+        .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+        .footer-legal { display:flex; gap:22px; }
+        .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
         .footer-legal a:hover { color:var(--cream); }
 
         @media (max-width:1024px) {
-          .builder-inner  { grid-template-columns:1fr; }
-          .builder-image  { display:none; }
-          .builder-content{ padding:60px 30px; }
-          .features-grid  { grid-template-columns:repeat(2,1fr); }
-          .footer-top     { grid-template-columns:1fr 1fr; }
+          .builder-inner { grid-template-columns:1fr; }
+          .builder-image { display:none; }
+          .builder-content { padding:60px 30px; }
+          .features-grid { grid-template-columns:repeat(2,1fr); }
+          .footer-top { grid-template-columns:1fr 1fr; }
         }
+
         @media (max-width:760px) {
           .popular-header { align-items:flex-start; flex-direction:column; }
-          .popular-card   { height:520px; border-radius:26px; }
-          .popular-arrow  { display:none; }
-          .popular-type   { display:none; }
+          .popular-card { height:520px; border-radius:26px; }
+          .popular-arrow { display:none; }
+          .popular-type { display:none; }
           .popular-content h3 { font-size:clamp(42px,12vw,66px); line-height:0.94; }
         }
+
         @media (max-width:680px) {
-          .nav-links      { display:none; }
-          .stat-label     { display:none; }
-          .features-grid  { grid-template-columns:1fr; }
-          .footer-top     { grid-template-columns:1fr; }
-          .footer-bottom  { flex-direction:column; align-items:flex-start; }
+          .nav-links { display:none; }
+          .features-grid { grid-template-columns:1fr; }
+          .footer-top { grid-template-columns:1fr; }
+          .footer-bottom { flex-direction:column; align-items:flex-start; }
         }
       `}</style>
 
       <main className="pg">
-
         {/* NAV */}
-        <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
-          <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
+        <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
+          <Link href="/" className="nav-logo">
+            <span>SCENIC</span>
+            <span>ROUTES</span>
+          </Link>
+
           <div className="nav-links">
-            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
-              <Link key={l} href={h} className="nav-link">{l}</Link>
+            {[
+              ["Explore Routes", "/explore"],
+              ["About", "/about"],
+            ].map(([label, href]) => (
+              <Link key={label} href={href} className="nav-link">
+                {label}
+              </Link>
             ))}
-            {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
+
+            {user && (
+              <Link href="/my-trips" className="nav-link" style={{ color: "#EDE5D4" }}>
+                My Trips
+              </Link>
+            )}
           </div>
+
           <div className="nav-right">
             {user ? (
               <div className="user-menu-wrap">
-                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                <button className="user-avatar" onClick={() => setShowUserMenu((p) => !p)}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" />
+                  ) : (
+                    displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()
+                  )}
                 </button>
+
                 {showUserMenu && (
                   <div className="user-dropdown">
-                    {/* HEADER */}
                     <div className="ud-header">
                       <div className="ud-avatar">
-                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt="avatar" />
+                        ) : (
+                          displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()
+                        )}
                       </div>
-                      <div style={{minWidth:0}}>
+
+                      <div style={{ minWidth: 0 }}>
                         <p className="ud-name">{displayName}</p>
                         <p className="ud-email">{user.email}</p>
                         <p className="ud-role">Scenic Route Explorer</p>
                       </div>
                     </div>
-                    
-                    {/* LINKS */}
+
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}>
                         <span className="ud-link-icon">◎</span> Profile
                       </Link>
-                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+
+                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}>
                         <span className="ud-link-icon">△</span> My Trips
                       </Link>
-                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+
+                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}>
                         <span className="ud-link-icon">⬡</span> Explore Routes
                       </Link>
-                      <div className="ud-divider"/>
+
+                      <div className="ud-divider" />
+
                       <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+                        <span className="ud-link-icon" style={{ color: "#e08080" }}>
+                          →
+                        </span>{" "}
+                        Sign Out
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="/login" className="login-btn">Login</Link>
+              <Link href="/login" className="login-btn">
+                Login
+              </Link>
             )}
           </div>
         </nav>
@@ -441,26 +562,37 @@ export default function HomePage() {
         {/* HERO */}
         <section className="hero">
           <div className="hero-bg">
-            <img src="/hero.png" alt="Hero" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 40%",filter:"brightness(0.92) contrast(1.08) saturate(0.9)"}}/>
+            <img
+              src="/hero.png"
+              alt="Hero"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 40%",
+                filter: "brightness(0.92) contrast(1.08) saturate(0.9)",
+              }}
+            />
           </div>
+
           <div className="hero-content">
-            <div className={`hero-copy ${heroVisible?"visible":""}`}>
-              <h1 className="hero-h1">Start<br/>your journey</h1>
-              <p className="hero-sub">Scenic drives. Hidden places. Stories worth the journey.</p>
-              <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
+            <div className={`hero-copy ${heroVisible ? "visible" : ""}`}>
+              <h1 className="hero-h1">
+                Start
+                <br />
+                your journey
+              </h1>
+
+              <p className="hero-sub">
+                Scenic drives. Hidden places. Stories worth the journey.
+              </p>
+
+              <Link href="/explore" className="btn-gold-filled">
+                Explore Routes →
+              </Link>
             </div>
           </div>
         </section>
-
-        {/* STATS BAR */}
-        <div className="stats-bar">
-          {[["50+","Curated Routes"],["10+","Countries"],["2","Travelers"],["100+","Hidden Places"]].map(([n,l])=>(
-            <div className="stat-item" key={l}>
-              <div className="stat-num">{n}</div>
-              <div className="stat-label">{l}</div>
-            </div>
-          ))}
-        </div>
 
         {/* POPULAR DESTINATIONS */}
         <PopularCarousel routes={displayRoutes} />
@@ -469,45 +601,89 @@ export default function HomePage() {
         <section className="builder-section" id="experiences">
           <div className="builder-inner">
             <div className="builder-image">
-              <img src="/Toscana.jpg" alt="Tuscany road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
+              <img
+                src="/Toscana.jpg"
+                alt="Tuscany road"
+                onError={(e) => {
+                  e.currentTarget.src = "/Amalfi coast road.jpg";
+                }}
+              />
             </div>
+
             <div className="builder-content">
               <p className="eyebrow">Build your route</p>
-              <h2 className="builder-h2">Your journey,<br/>your way</h2>
-              <p className="builder-sub">Choose your terrain, pace, and places. We'll craft a route that fits you</p>
+
+              <h2 className="builder-h2">
+                Your journey,
+                <br />
+                your way
+              </h2>
+
+              <p className="builder-sub">
+                Choose your terrain, pace, and places. We'll craft a route that fits you
+              </p>
+
               <div className="builder-steps">
                 <div className="builder-step">
                   <div className="step-icon">△</div>
-                  <div className="step-text"><h4>Choose your terrain</h4><p>Mountains, coastlines, deserts, or forests</p></div>
+                  <div className="step-text">
+                    <h4>Choose your terrain</h4>
+                    <p>Mountains, coastlines, deserts, or forests</p>
+                  </div>
                 </div>
+
                 <div className="builder-step">
                   <div className="step-icon">◎</div>
-                  <div className="step-text"><h4>Set your time</h4><p>A weekend escape or the long way around</p></div>
+                  <div className="step-text">
+                    <h4>Set your time</h4>
+                    <p>A weekend escape or the long way around</p>
+                  </div>
                 </div>
+
                 <div className="builder-step">
                   <div className="step-icon">⬡</div>
-                  <div className="step-text"><h4>Pick your style</h4><p>Relaxed, adventurous, cultural, or off-grid</p></div>
+                  <div className="step-text">
+                    <h4>Pick your style</h4>
+                    <p>Relaxed, adventurous, cultural, or off-grid</p>
+                  </div>
                 </div>
               </div>
-              <Link href="/explore" className="btn-gold-filled">Start Building →</Link>
+
+              <Link href="/explore" className="btn-gold-filled">
+                Start Building →
+              </Link>
             </div>
           </div>
         </section>
 
         {/* DESTINATIONS MAP */}
         <section className="dest-section">
-          <div style={{maxWidth:"700px",margin:"0 auto",textAlign:"center",marginBottom:"40px"}}>
+          <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center", marginBottom: "40px" }}>
             <p className="eyebrow">Destinations</p>
             <h2 className="dest-h2">Places that stay with you</h2>
-            <p style={{fontSize:"13px",color:"var(--dim)",marginTop:"14px",lineHeight:1.6}}>
+            <p style={{ fontSize: "13px", color: "var(--dim)", marginTop: "14px", lineHeight: 1.6 }}>
               Explore handpicked regions around the world
             </p>
           </div>
-          <div style={{maxWidth:"900px",margin:"0 auto"}}>
+
+          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
             <WorldMap />
           </div>
-          <div style={{textAlign:"center",marginTop:"32px"}}>
-            <Link href="/explore" style={{fontSize:"9px",fontWeight:800,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--gold)",display:"inline-flex",alignItems:"center",gap:"8px"}}>
+
+          <div style={{ textAlign: "center", marginTop: "32px" }}>
+            <Link
+              href="/explore"
+              style={{
+                fontSize: "9px",
+                fontWeight: 800,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--gold)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
               View all destinations →
             </Link>
           </div>
@@ -518,9 +694,15 @@ export default function HomePage() {
           <div className="testimonial-qq">"</div>
           <p className="testimonial-text">{TESTIMONIALS[testimonialIdx].quote}</p>
           <p className="testimonial-name">— {TESTIMONIALS[testimonialIdx].name}</p>
+
           <div className="testimonial-dots">
-            {TESTIMONIALS.map((_,i)=>(
-              <button key={i} className={`t-dot ${i===testimonialIdx?"active":""}`} onClick={()=>setTestimonialIdx(i)} aria-label={`Testimonial ${i+1}`}/>
+            {TESTIMONIALS.map((_, i) => (
+              <button
+                key={i}
+                className={`t-dot ${i === testimonialIdx ? "active" : ""}`}
+                onClick={() => setTestimonialIdx(i)}
+                aria-label={`Testimonial ${i + 1}`}
+              />
             ))}
           </div>
         </section>
@@ -529,9 +711,15 @@ export default function HomePage() {
         <section className="features-section">
           <div className="features-inner">
             <p className="eyebrow">Why travel with Scenic Routes</p>
-            <h2 className="features-h2">Designed for<br/>the road ahead</h2>
+
+            <h2 className="features-h2">
+              Designed for
+              <br />
+              the road ahead
+            </h2>
+
             <div className="features-grid">
-              {FEATURES.map(({icon,title,text})=>(
+              {FEATURES.map(({ icon, title, text }) => (
                 <div className="feature-card" key={title}>
                   <div className="feature-icon">{icon}</div>
                   <div className="feature-title">{title}</div>
@@ -547,36 +735,77 @@ export default function HomePage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">SCENIC<br/>ROUTES</div>
-                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey as much as the destination</p>
+                <div className="footer-brand">
+                  SCENIC
+                  <br />
+                  ROUTES
+                </div>
+
+                <p className="footer-tagline">
+                  Thoughtfully curated road trips for people who value the journey as much as the destination
+                </p>
+
                 <div className="footer-socials">
-                  {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
+                  {["IG", "FB", "YT"].map((social) => (
+                    <a key={social} href="#" className="footer-social">
+                      {social[0]}
+                    </a>
+                  ))}
                 </div>
               </div>
-              {[["Explore",["All Routes","Destinations","Experiences","Journal"]],["Company",["About Us","Membership","Gift Cards","Careers"]],["Support",["FAQ","Travel Policies","Contact Us","Privacy Policy"]]].map(([heading,links])=>(
+
+              {[
+                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
+                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
+                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
+              ].map(([heading, links]) => (
                 <div className="footer-col" key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
-                  {(links as string[]).map(l=><a href="#" key={l}>{l}</a>)}
+
+                  {(links as string[]).map((link) => (
+                    <a href="#" key={link}>
+                      {link}
+                    </a>
+                  ))}
                 </div>
               ))}
+
               <div>
                 <p className="footer-col-title">Stay Inspired</p>
                 <p className="footer-nl-sub">Subscribe for new routes, stories, and exclusive guides</p>
+
                 <form className="footer-nl-form" onSubmit={handleNewsletter}>
-                  <input type="email" required className="footer-nl-input" value={email} onChange={e=>setEmail(e.target.value)} placeholder={emailSent?"Subscribed!":"Enter your email"}/>
-                  <button type="submit" className="footer-nl-btn">→</button>
+                  <input
+                    type="email"
+                    required
+                    className="footer-nl-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={emailSent ? "Subscribed!" : "Enter your email"}
+                  />
+
+                  <button type="submit" className="footer-nl-btn">
+                    →
+                  </button>
                 </form>
               </div>
             </div>
+
             <div className="footer-bottom">
-              <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
-              <div className="footer-legal"><a href="#">Terms & Conditions</a><a href="#">Privacy</a></div>
+              <p className="footer-copy">
+                © {new Date().getFullYear()} Scenic Routes. All Rights Reserved.
+              </p>
+
+              <div className="footer-legal">
+                <a href="#">Terms & Conditions</a>
+                <a href="#">Privacy</a>
+              </div>
             </div>
           </div>
         </footer>
-
       </main>
-      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
 }

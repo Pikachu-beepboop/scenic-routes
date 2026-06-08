@@ -136,7 +136,10 @@ export default function RouteDetailPage() {
     };
 
     const handleSaveToggle = async () => {
-        if (!user) { setIsAuthModalOpen(true); return; }
+        if (!user) {
+            setIsAuthModalOpen(true);
+            return;
+        }
 
         if (isSaved) {
             await supabase
@@ -307,7 +310,7 @@ export default function RouteDetailPage() {
 
             {/* ── 2. Quick Stats Bar ── */}
             <div className="sticky top-0 z-40 w-full backdrop-blur-3xl bg-black/70 border-y border-white/5 shadow-2xl">
-                <div className="max-w-7xl mx-auto px-12 py-12 grid grid-cols-2 md:grid-cols-4 gap-12 text-[10px] font-bold uppercase tracking-[0.6em] opacity-70">
+                <div className="max-w-7xl mx-auto px-12 py-10 grid grid-cols-2 md:grid-cols-5 gap-8 text-[10px] font-bold uppercase tracking-[0.6em] opacity-90">
                     {[
                         { icon: <Clock size={18} strokeWidth={1} />, label: route?.duration },
                         { icon: <Navigation size={18} strokeWidth={1} />, label: `${route?.distance_km} km` },
@@ -321,11 +324,19 @@ export default function RouteDetailPage() {
                             {icon} {label}
                         </div>
                     ))}
+
+                    <a
+                        href="#route-map"
+                        className="flex items-center gap-3 justify-center md:justify-center text-emerald-400 border border-emerald-500/60 rounded-full px-6 py-3 bg-emerald-500/10 hover:bg-emerald-500 hover:text-black hover:border-emerald-400 transition-all duration-300 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
+                    >
+                        <MapPin size={18} strokeWidth={1.6} />
+                        <span>Map</span>
+                    </a>
                 </div>
             </div>
 
             {/* ── 3. Story Section ── */}
-            <section className="max-w-7xl mx-auto px-12 py-32 md:py-64 space-y-32">
+            <section className="max-w-7xl mx-auto px-12 pt-12 pb-24 md:pt-16 md:pb-32 space-y-32">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
@@ -429,7 +440,7 @@ export default function RouteDetailPage() {
             </section>
 
             {/* ── 4. Map Section ── */}
-            <section className="max-w-7xl mx-auto px-6 md:px-12 pb-48">
+            <section id="route-map" className="max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-10">
                 <div className="bg-zinc-900/80 rounded-[3rem] border border-white/20 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-md">
                     <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[650px]">
                         <div className="lg:col-span-4 p-10 md:p-14 flex flex-col justify-between border-r border-white/10 bg-black/40">
