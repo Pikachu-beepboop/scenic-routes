@@ -1,34 +1,131 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 
-const fmtKm = (km?: number) => km != null ? `${km.toLocaleString("en-US")} km` : "—";
-const WorldMap = dynamic(() => import("./components/WorldMap"), { ssr: false });
+const WorldMap = dynamic(() => import("./components/WorldMap"), {
+  ssr: false,
+});
 
 const FALLBACK_ROUTES = [
-  { id: "1", title: "Amalfi Coast Road", country: "Italy", distance_km: 50, image_url: "/Amalfi coast road.jpg", duration: "Half day (< 4h)", type: "Coastal Highway", terrain: "Coastal", description: "A ribbon of coastal beauty — cliffside villages, endless sea, and curves that stay with you." },
-  { id: "2", title: "Pacific Coast Highway", country: "USA", distance_km: 650, image_url: "/Pacific Route Highway.jpg", duration: "Multi-day journey", type: "Coastal Highway", terrain: "Coastal", description: "One of the world's great coastal drives, tracing the California shoreline." },
-  { id: "3", title: "Trollstigen", country: "Norway", distance_km: 27, image_url: "/Trollstigen.jpg", duration: "Half day (< 4h)", type: "Scenic Pass", terrain: "Mountains", description: "Norway's most dramatic mountain road with 11 legendary hairpin bends." },
-  { id: "4", title: "Stelvio Pass", country: "Italy", distance_km: 75, image_url: "/Stellvio Pass.jpg", duration: "Half day (< 4h)", type: "Alpine Pass", terrain: "Mountains", description: "The highest paved mountain pass in the Eastern Alps." },
-  { id: "5", title: "Garden Route", country: "South Africa", distance_km: 300, image_url: "/Garden Route.jpg", duration: "Weekend trip", type: "Scenic Route", terrain: "Coastal", description: "South Africa's lush coastal corridor of forests, lagoons and beaches." },
-  { id: "6", title: "North Coast 500", country: "Scotland", distance_km: 830, image_url: "/North Coast 500.jpg", duration: "Multi-day journey", type: "Circular Route", terrain: "Mountains", description: "Scotland's iconic 830 km loop through remote Highlands and dramatic sea cliffs." },
+  {
+    id: "1",
+    title: "Amalfi Coast Road",
+    country: "Italy",
+    distance_km: 50,
+    image_url: "/Amalfi coast road.jpg",
+    duration: "Half day (< 4h)",
+    type: "Coastal Highway",
+    terrain: "Coastal",
+    description:
+      "A ribbon of coastal beauty — cliffside villages, endless sea, and curves that stay with you.",
+  },
+  {
+    id: "2",
+    title: "Pacific Coast Highway",
+    country: "USA",
+    distance_km: 650,
+    image_url: "/Pacific Route Highway.jpg",
+    duration: "Multi-day journey",
+    type: "Coastal Highway",
+    terrain: "Coastal",
+    description:
+      "One of the world's great coastal drives, tracing the California shoreline.",
+  },
+  {
+    id: "3",
+    title: "Trollstigen",
+    country: "Norway",
+    distance_km: 27,
+    image_url: "/Trollstigen.jpg",
+    duration: "Half day (< 4h)",
+    type: "Scenic Pass",
+    terrain: "Mountains",
+    description:
+      "Norway's most dramatic mountain road with 11 legendary hairpin bends.",
+  },
+  {
+    id: "4",
+    title: "Stelvio Pass",
+    country: "Italy",
+    distance_km: 75,
+    image_url: "/Stellvio Pass.jpg",
+    duration: "Half day (< 4h)",
+    type: "Alpine Pass",
+    terrain: "Mountains",
+    description: "The highest paved mountain pass in the Eastern Alps.",
+  },
+  {
+    id: "5",
+    title: "Garden Route",
+    country: "South Africa",
+    distance_km: 300,
+    image_url: "/Garden Route.jpg",
+    duration: "Weekend trip",
+    type: "Scenic Route",
+    terrain: "Coastal",
+    description:
+      "South Africa's lush coastal corridor of forests, lagoons and beaches.",
+  },
+  {
+    id: "6",
+    title: "North Coast 500",
+    country: "Scotland",
+    distance_km: 830,
+    image_url: "/North Coast 500.jpg",
+    duration: "Multi-day journey",
+    type: "Circular Route",
+    terrain: "Mountains",
+    description:
+      "Scotland's iconic 830 km loop through remote Highlands and dramatic sea cliffs.",
+  },
 ];
 
 const TESTIMONIALS = [
-  { quote: "Every curve led to something unforgettable. Scenic Routes turned a trip into a story.", name: "Sarah G.", role: "Traveler" },
-  { quote: "I've driven roads all over the world. Scenic Routes showed me places I never would have found alone.", name: "Marcus K.", role: "Automotive Journalist" },
-  { quote: "The routes, the timing, the hidden gems along the way — absolutely flawless.", name: "Alex M.", role: "World Traveler" },
+  {
+    quote:
+      "Every curve led to something unforgettable. Scenic Routes turned a trip into a story.",
+    name: "Sarah G.",
+    role: "Traveler",
+  },
+  {
+    quote:
+      "I've driven roads all over the world. Scenic Routes showed me places I never would have found alone.",
+    name: "Marcus K.",
+    role: "Automotive Journalist",
+  },
+  {
+    quote:
+      "The routes, the timing, the hidden gems along the way — absolutely flawless.",
+    name: "Alex M.",
+    role: "World Traveler",
+  },
 ];
 
 const FEATURES = [
-  { icon: "◎", title: "Curated with care", text: "Handpicked routes and places researched by real travelers." },
-  { icon: "△", title: "Driven by detail", text: "Maps, tips, and insights that make every mile smoother." },
-  { icon: "⬡", title: "Built for freedom", text: "Flexible plans that adapt to the way you travel." },
-  { icon: "◈", title: "Stories that inspire", text: "Journeys, guides, and journals to fuel your next adventure." },
+  {
+    icon: "◎",
+    title: "Curated with care",
+    text: "Handpicked routes and places researched by real travelers.",
+  },
+  {
+    icon: "△",
+    title: "Driven by detail",
+    text: "Maps, tips, and insights that make every mile smoother.",
+  },
+  {
+    icon: "⬡",
+    title: "Built for freedom",
+    text: "Flexible plans that adapt to the way you travel.",
+  },
+  {
+    icon: "◈",
+    title: "Stories that inspire",
+    text: "Journeys, guides, and journals to fuel your next adventure.",
+  },
 ];
 
 type Route = {
@@ -46,14 +143,15 @@ type Route = {
 function PopularCarousel({ routes }: { routes: Route[] }) {
   const [idx, setIdx] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+
   const items = useMemo(() => routes.slice(0, 6), [routes]);
   const route = items[idx] ?? items[0];
 
   useEffect(() => {
-    items.forEach((route) => {
-      if (!route.image_url) return;
+    items.forEach((routeItem) => {
+      if (!routeItem.image_url) return;
       const img = new Image();
-      img.src = route.image_url;
+      img.src = routeItem.image_url;
     });
   }, [items]);
 
@@ -88,15 +186,27 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
         </div>
 
         <div className="popular-card-wrap">
-          <button className="popular-arrow popular-left" onClick={prev} aria-label="Previous route">
+          <button
+            className="popular-arrow popular-left"
+            onClick={prev}
+            aria-label="Previous route"
+          >
             ←
           </button>
 
-          <button className="popular-arrow popular-right" onClick={next} aria-label="Next route">
+          <button
+            className="popular-arrow popular-right"
+            onClick={next}
+            aria-label="Next route"
+          >
             →
           </button>
 
-          <Link key={route.id} href={`/routedetail/${route.id}`} className={`popular-card slide-${slideDirection}`}>
+          <Link
+            key={route.id}
+            href={`/routedetail/${route.id}`}
+            className={`popular-card slide-${slideDirection}`}
+          >
             <img
               src={route.image_url || "/Pacific Route Highway.jpg"}
               alt={route.title}
@@ -108,15 +218,21 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             <div className="popular-card-overlay" />
 
             <span className="popular-counter">
-              {String(idx + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
+              {String(idx + 1).padStart(2, "0")} /{" "}
+              {String(items.length).padStart(2, "0")}
             </span>
 
-            <span className="popular-type">{route.terrain || route.type || "Scenic Route"}</span>
+            <span className="popular-type">
+              {route.terrain || route.type || "Scenic Route"}
+            </span>
 
             <div className="popular-content">
               <p>{route.country}</p>
               <h3>{route.title}</h3>
-              <span>{route.description || "One of the world's most scenic driving routes"}</span>
+              <span>
+                {route.description ||
+                  "One of the world's most scenic driving routes"}
+              </span>
             </div>
           </Link>
         </div>
@@ -137,39 +253,14 @@ export default function HomePage() {
   const [navScrolled, setNavScrolled] = useState(false);
   const [heroVisible, setHeroVisible] = useState(false);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
-  const [carouselIdx, setCarouselIdx] = useState(0);
-  const [activeSlot, setActiveSlot] = useState(0);
-  const [slotSrcs, setSlotSrcs] = useState(["", ""]);
-  const crossfadeInFlight = useRef(false);
-  const [savedRoutes, setSavedRoutes] = useState<string[]>([]);
 
-  const displayRoutes = useMemo(() => (routes.length ? routes : FALLBACK_ROUTES), [routes]);
-
-  const crossfadeTo = useCallback(
-    (src: string) => {
-      if (crossfadeInFlight.current) return;
-
-      crossfadeInFlight.current = true;
-
-      const next = activeSlot === 0 ? 1 : 0;
-
-      setSlotSrcs((srcs) => {
-        const updated = [...srcs] as [string, string];
-        updated[next] = src;
-        return updated;
-      });
-
-      setTimeout(() => {
-        setActiveSlot(next);
-        crossfadeInFlight.current = false;
-      }, 60);
-    },
-    [activeSlot]
+  const displayRoutes = useMemo<Route[]>(
+    () => (routes.length ? routes : FALLBACK_ROUTES),
+    [routes]
   );
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
-
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => window.removeEventListener("scroll", onScroll);
@@ -193,16 +284,16 @@ export default function HomePage() {
       .then(({ data }) => {
         if (!mounted) return;
 
-        const loadedRoutes = data?.length ? data : FALLBACK_ROUTES;
+        const loadedRoutes = data?.length
+          ? (data as Route[])
+          : FALLBACK_ROUTES;
 
         setRoutes(loadedRoutes);
-        setSlotSrcs([
-          loadedRoutes[0]?.image_url || "/Pacific Route Highway.jpg",
-          loadedRoutes[0]?.image_url || "/Pacific Route Highway.jpg",
-        ]);
       });
 
-    requestAnimationFrame(() => requestAnimationFrame(() => setHeroVisible(true)));
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => setHeroVisible(true))
+    );
 
     const testimonialTimer = setInterval(() => {
       setTestimonialIdx((p) => (p + 1) % TESTIMONIALS.length);
@@ -214,11 +305,6 @@ export default function HomePage() {
       clearInterval(testimonialTimer);
     };
   }, []);
-
-  useEffect(() => {
-    const src = displayRoutes[carouselIdx]?.image_url || "/Pacific Route Highway.jpg";
-    crossfadeTo(src);
-  }, [carouselIdx, displayRoutes, crossfadeTo]);
 
   useEffect(() => {
     if (!user) {
@@ -256,9 +342,7 @@ export default function HomePage() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-
     setUser(null);
-    setSavedRoutes([]);
     setShowUserMenu(false);
   }
 
@@ -316,8 +400,10 @@ export default function HomePage() {
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
         .nav-right { display:flex; align-items:center; gap:12px; }
+
         .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
+
         .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
         .user-avatar:hover { border-color:var(--gold); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
@@ -326,12 +412,14 @@ export default function HomePage() {
         .user-menu-wrap { position:relative; }
         .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
         @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
         .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
         .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
         .ud-avatar img { width:100%; height:100%; object-fit:cover; }
         .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
         .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
         .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
@@ -349,6 +437,7 @@ export default function HomePage() {
         .hero-copy.visible { opacity:1; transform:translateY(0); }
         .hero-h1 { font-family:var(--serif); font-size:clamp(56px,8.5vw,122px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:30px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
         .hero-sub { font-size:16px; font-weight:300; color:rgba(237,229,212,0.65); margin-bottom:20px; max-width:420px; line-height:1.7; }
+
         .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
         .btn-gold-filled:hover { background:#d8b978; border-color:#d8b978; transform:translateY(-1px); }
 
@@ -360,24 +449,34 @@ export default function HomePage() {
         .popular-heading { font-family:var(--serif); font-size:clamp(42px,5vw,70px); font-weight:300; line-height:0.92; letter-spacing:-0.045em; color:var(--cream); }
         .popular-view-all { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:color .2s; }
         .popular-view-all:hover { color:var(--cream); }
+
         .popular-card-wrap { position:relative; }
         .popular-card { position:relative; display:block; height:clamp(520px,58vw,680px); overflow:hidden; border-radius:34px; border:1px solid rgba(237,229,212,0.14); background:var(--bg3); box-shadow:0 36px 110px rgba(0,0,0,0.52); isolation:isolate; }
+
         .popular-card.slide-next { animation:popularSlideNext 0.46s cubic-bezier(0.22,1,0.36,1) both; }
         .popular-card.slide-prev { animation:popularSlidePrev 0.46s cubic-bezier(0.22,1,0.36,1) both; }
-        @keyframes popularSlideNext { 0%{opacity:0.72;transform:translateX(26px)} 100%{opacity:1;transform:translateX(0)} }
-        @keyframes popularSlidePrev { 0%{opacity:0.72;transform:translateX(-26px)} 100%{opacity:1;transform:translateX(0)} }
+
+        @keyframes popularSlideNext {
+          0% { opacity:0.72; transform:translateX(26px); }
+          100% { opacity:1; transform:translateX(0); }
+        }
+
+        @keyframes popularSlidePrev {
+          0% { opacity:0.72; transform:translateX(-26px); }
+          100% { opacity:1; transform:translateX(0); }
+        }
+
         .popular-card img { width:100%; height:100%; object-fit:cover; filter:brightness(0.82) contrast(1.06) saturate(0.98); transition:transform 1s ease,filter 1s ease; }
         .popular-card-wrap:hover .popular-card img { transform:scale(1.04); filter:brightness(0.94) contrast(1.1) saturate(1.08); }
-        .popular-card-wrap:hover .popular-arrow { border-color:rgba(201,168,106,0.45); }
+
         .popular-card-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(to top,rgba(0,0,0,0.9),rgba(0,0,0,0.28) 48%,rgba(0,0,0,0.18)),linear-gradient(to right,rgba(0,0,0,0.5),transparent 58%); }
         .popular-counter { position:absolute; top:28px; left:32px; z-index:2; font-family:var(--serif); font-size:clamp(26px,3vw,42px); font-weight:300; letter-spacing:-0.03em; color:rgba(255,255,255,0.76); }
         .popular-type { position:absolute; top:34px; right:34px; z-index:2; color:rgba(255,255,255,0.66); font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
         .popular-content { position:absolute; z-index:2; left:clamp(28px,5vw,90px); right:clamp(28px,5vw,70px); bottom:clamp(34px,6vw,74px); max-width:min(1120px,calc(100% - 80px)); }
-        .popular-card.slide-next .popular-content, .popular-card.slide-next .popular-counter, .popular-card.slide-next .popular-type, .popular-card.slide-prev .popular-content, .popular-card.slide-prev .popular-counter, .popular-card.slide-prev .popular-type { animation:popularTextReveal 0.42s cubic-bezier(0.22,1,0.36,1) both; }
-        @keyframes popularTextReveal { 0%{opacity:0.78;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
         .popular-content p { margin-bottom:12px; color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
         .popular-content h3 { margin-bottom:22px; color:#fff; font-family:var(--serif); font-size:clamp(48px,6.2vw,92px); font-weight:300; line-height:0.9; letter-spacing:-0.055em; text-shadow:0 20px 60px rgba(0,0,0,0.65); }
         .popular-content span { display:block; max-width:500px; color:rgba(255,255,255,0.68); font-size:14px; font-weight:300; line-height:1.8; }
+
         .popular-arrow { position:absolute; top:50%; z-index:20; transform:translateY(-50%); width:45px; height:45px; display:grid; place-items:center; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:rgba(0,0,0,0.35); color:#fff; backdrop-filter:blur(14px); transition:background .2s,border-color .2s,color .2s; }
         .popular-arrow:hover { background:var(--gold); border-color:var(--gold); color:var(--bg); }
         .popular-left { left:24px; }
@@ -391,13 +490,44 @@ export default function HomePage() {
         .builder-image::after { content:""; position:absolute; inset:0; background:linear-gradient(to right,transparent 60%,var(--bg2)); }
         .builder-content { padding:clamp(50px,7vw,90px) clamp(30px,5vw,70px); }
         .builder-h2 { font-family:var(--serif); font-size:clamp(36px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:12px; }
-        .builder-sub { font-size:14px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:40px; max-width:340px; }
-        .builder-steps { display:flex; flex-direction:column; gap:28px; margin-bottom:40px; }
-        .builder-step { display:flex; align-items:flex-start; gap:20px; }
-        .step-icon { width:40px; height:40px; border-radius:50%; border:1px solid rgba(201,168,106,0.4); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:14px; }
-        .step-text h4 { font-size:13px; font-weight:700; color:var(--cream); margin-bottom:4px; letter-spacing:0.05em; }
-        .step-text p { font-size:12px; color:var(--dim); line-height:1.6; }
+        .builder-sub { font-size:14px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:0; max-width:340px; }
         .eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
+
+        .builder-find-card {
+          width:100%;
+          max-width:520px;
+          margin-top:36px;
+          padding:8px;
+          border:1px solid rgba(237,229,212,0.13);
+          border-radius:26px;
+          background:rgba(237,229,212,0.045);
+          backdrop-filter:blur(24px);
+          box-shadow:0 28px 80px rgba(0,0,0,0.38);
+        }
+
+        .builder-find-button {
+          width:100%;
+          height:68px;
+          border-radius:20px;
+          background:var(--gold);
+          color:var(--bg);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:12px;
+          font-size:11px;
+          font-weight:800;
+          letter-spacing:0.24em;
+          text-transform:uppercase;
+          transition:all .25s;
+          box-shadow:0 12px 30px rgba(201,168,106,0.22);
+        }
+
+        .builder-find-button:hover {
+          background:#d8b978;
+          transform:translateY(-1px);
+          box-shadow:0 18px 40px rgba(201,168,106,0.28);
+        }
 
         /* DESTINATIONS MAP */
         .dest-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
@@ -491,7 +621,11 @@ export default function HomePage() {
             ))}
 
             {user && (
-              <Link href="/my-trips" className="nav-link" style={{ color: "#EDE5D4" }}>
+              <Link
+                href="/my-trips"
+                className="nav-link"
+                style={{ color: "#EDE5D4" }}
+              >
                 My Trips
               </Link>
             )}
@@ -500,11 +634,15 @@ export default function HomePage() {
           <div className="nav-right">
             {user ? (
               <div className="user-menu-wrap">
-                <button className="user-avatar" onClick={() => setShowUserMenu((p) => !p)}>
+                <button
+                  className="user-avatar"
+                  onClick={() => setShowUserMenu((p) => !p)}
+                >
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="avatar" />
                   ) : (
-                    displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()
+                    displayName?.[0]?.toUpperCase() ||
+                    user.email?.[0]?.toUpperCase()
                   )}
                 </button>
 
@@ -515,7 +653,8 @@ export default function HomePage() {
                         {avatarUrl ? (
                           <img src={avatarUrl} alt="avatar" />
                         ) : (
-                          displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()
+                          displayName?.[0]?.toUpperCase() ||
+                          user.email?.[0]?.toUpperCase()
                         )}
                       </div>
 
@@ -527,22 +666,37 @@ export default function HomePage() {
                     </div>
 
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}>
+                      <Link
+                        href="/profile"
+                        className="ud-link"
+                        onClick={() => setShowUserMenu(false)}
+                      >
                         <span className="ud-link-icon">◎</span> Profile
                       </Link>
 
-                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}>
+                      <Link
+                        href="/my-trips"
+                        className="ud-link"
+                        onClick={() => setShowUserMenu(false)}
+                      >
                         <span className="ud-link-icon">△</span> My Trips
                       </Link>
 
-                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}>
+                      <Link
+                        href="/explore"
+                        className="ud-link"
+                        onClick={() => setShowUserMenu(false)}
+                      >
                         <span className="ud-link-icon">⬡</span> Explore Routes
                       </Link>
 
                       <div className="ud-divider" />
 
                       <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{ color: "#e08080" }}>
+                        <span
+                          className="ud-link-icon"
+                          style={{ color: "#e08080" }}
+                        >
                           →
                         </span>{" "}
                         Sign Out
@@ -620,48 +774,41 @@ export default function HomePage() {
               </h2>
 
               <p className="builder-sub">
-                Choose your terrain, pace, and places. We'll craft a route that fits you
+                Discover handpicked scenic drives and find the route that fits
+                your next adventure.
               </p>
 
-              <div className="builder-steps">
-                <div className="builder-step">
-                  <div className="step-icon">△</div>
-                  <div className="step-text">
-                    <h4>Choose your terrain</h4>
-                    <p>Mountains, coastlines, deserts, or forests</p>
-                  </div>
-                </div>
-
-                <div className="builder-step">
-                  <div className="step-icon">◎</div>
-                  <div className="step-text">
-                    <h4>Set your time</h4>
-                    <p>A weekend escape or the long way around</p>
-                  </div>
-                </div>
-
-                <div className="builder-step">
-                  <div className="step-icon">⬡</div>
-                  <div className="step-text">
-                    <h4>Pick your style</h4>
-                    <p>Relaxed, adventurous, cultural, or off-grid</p>
-                  </div>
-                </div>
+              <div className="builder-find-card">
+                <Link href="/explore" className="builder-find-button">
+                  Find Route →
+                </Link>
               </div>
-
-              <Link href="/explore" className="btn-gold-filled">
-                Start Building →
-              </Link>
             </div>
           </div>
         </section>
 
         {/* DESTINATIONS MAP */}
         <section className="dest-section">
-          <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center", marginBottom: "40px" }}>
+          <div
+            style={{
+              maxWidth: "700px",
+              margin: "0 auto",
+              textAlign: "center",
+              marginBottom: "40px",
+            }}
+          >
             <p className="eyebrow">Destinations</p>
+
             <h2 className="dest-h2">Places that stay with you</h2>
-            <p style={{ fontSize: "13px", color: "var(--dim)", marginTop: "14px", lineHeight: 1.6 }}>
+
+            <p
+              style={{
+                fontSize: "13px",
+                color: "var(--dim)",
+                marginTop: "14px",
+                lineHeight: 1.6,
+              }}
+            >
               Explore handpicked regions around the world
             </p>
           </div>
@@ -692,8 +839,14 @@ export default function HomePage() {
         {/* TESTIMONIAL */}
         <section className="testimonial-section">
           <div className="testimonial-qq">"</div>
-          <p className="testimonial-text">{TESTIMONIALS[testimonialIdx].quote}</p>
-          <p className="testimonial-name">— {TESTIMONIALS[testimonialIdx].name}</p>
+
+          <p className="testimonial-text">
+            {TESTIMONIALS[testimonialIdx].quote}
+          </p>
+
+          <p className="testimonial-name">
+            — {TESTIMONIALS[testimonialIdx].name}
+          </p>
 
           <div className="testimonial-dots">
             {TESTIMONIALS.map((_, i) => (
@@ -742,7 +895,8 @@ export default function HomePage() {
                 </div>
 
                 <p className="footer-tagline">
-                  Thoughtfully curated road trips for people who value the journey as much as the destination
+                  Thoughtfully curated road trips for people who value the
+                  journey as much as the destination
                 </p>
 
                 <div className="footer-socials">
@@ -755,9 +909,18 @@ export default function HomePage() {
               </div>
 
               {[
-                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
-                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
-                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
+                [
+                  "Explore",
+                  ["All Routes", "Destinations", "Experiences", "Journal"],
+                ],
+                [
+                  "Company",
+                  ["About Us", "Membership", "Gift Cards", "Careers"],
+                ],
+                [
+                  "Support",
+                  ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"],
+                ],
               ].map(([heading, links]) => (
                 <div className="footer-col" key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
@@ -772,7 +935,10 @@ export default function HomePage() {
 
               <div>
                 <p className="footer-col-title">Stay Inspired</p>
-                <p className="footer-nl-sub">Subscribe for new routes, stories, and exclusive guides</p>
+
+                <p className="footer-nl-sub">
+                  Subscribe for new routes, stories, and exclusive guides
+                </p>
 
                 <form className="footer-nl-form" onSubmit={handleNewsletter}>
                   <input
@@ -793,7 +959,8 @@ export default function HomePage() {
 
             <div className="footer-bottom">
               <p className="footer-copy">
-                © {new Date().getFullYear()} Scenic Routes. All Rights Reserved.
+                © {new Date().getFullYear()} Scenic Routes. All Rights
+                Reserved.
               </p>
 
               <div className="footer-legal">
