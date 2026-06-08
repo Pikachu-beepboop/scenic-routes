@@ -1,333 +1,553 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabase';
-import AuthModal from '../AuthModal';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
+import AuthModal from "../AuthModal";
 
-const fmtKm = (km?: number) => km != null ? `${km.toLocaleString("en-US")} km` : "—";
+const fmtKm = (km?: number) =>
+  km != null ? `${km.toLocaleString("en-US")} km` : "—";
 
 export default function MyTripsPage() {
-  const [user,         setUser]         = useState<any>(null);
-  const [savedRoutes,  setSavedRoutes]  = useState<any[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [isAuthOpen,   setIsAuthOpen]   = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [savedRoutes, setSavedRoutes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [avatarUrl,    setAvatarUrl]    = useState('');
-  const [navScrolled,  setNavScrolled]  = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [navScrolled, setNavScrolled] = useState(false);
   const router = useRouter();
+
+  const [username, setUsername] = useState("");
+  const displayName = username || user?.email?.split("@")[0] || "";
+
+  const savedCountriesCount = new Set(
+    savedRoutes.map((route: any) => route.country).filter(Boolean)
+  ).size;
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);
-      if (!u) { setLoading(false); return; }
+
+      if (!u) {
+        setLoading(false);
+        return;
+      }
+
       fetchSavedRoutes(u.id);
       fetchProfile(u.id);
     });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
-      setUser(s?.user ?? null);
+      const u = s?.user ?? null;
+      setUser(u);
+
+      if (u) {
+        fetchSavedRoutes(u.id);
+        fetchProfile(u.id);
+      } else {
+        setSavedRoutes([]);
+        setAvatarUrl("");
+        setLoading(false);
+      }
     });
+
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!showUserMenu) return;
+
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".user-menu-wrap")) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUserMenu]);
+
   async function fetchSavedRoutes(userId: string) {
     setLoading(true);
-    const { data } = await supabase
-      .from('saved_routes')
-      .select('route_id, routes(*)')
-      .eq('user_id', userId);
-    if (data) setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
+
+    const { data, error } = await supabase
+      .from("saved_routes")
+      .select("route_id, routes(*)")
+      .eq("user_id", userId);
+
+    if (!error && data) {
+      setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
+    }
+
     setLoading(false);
   }
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
-    if (data) setAvatarUrl(data.avatar_url || '');
+    const { data } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", userId)
+      .single();
+
+    if (data) setAvatarUrl(data.avatar_url || "");
   }
 
   async function handleUnsave(routeId: string) {
-    await supabase.from('saved_routes').delete().eq('user_id', user.id).eq('route_id', routeId);
-    setSavedRoutes(prev => prev.filter((r: any) => r.id !== routeId));
+    if (!user) return;
+
+    await supabase
+      .from("saved_routes")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("route_id", routeId);
+
+    setSavedRoutes((prev) => prev.filter((r: any) => r.id !== routeId));
   }
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    setUser(null); setShowUserMenu(false);
-    router.push('/');
+    setUser(null);
+    setSavedRoutes([]);
+    setShowUserMenu(false);
+    router.push("/");
   }
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
-        :root {
-          --bg:    #0c0b09; --bg2: #111009; --bg3: #181510;
-          --gold:  #C9A86A; --cream: #EDE5D4;
-          --muted: rgba(237,229,212,0.56); --dim: rgba(237,229,212,0.32);
-          --border:rgba(237,229,212,0.10);
-          --serif: 'Cormorant Garamond', Georgia, serif;
-          --sans:  'Inter', system-ui, sans-serif;
-        }
-        .mt *, .mt *::before, .mt *::after { box-sizing:border-box; margin:0; padding:0; }
-        .mt a      { color:inherit; text-decoration:none; }
-        .mt button { border:none; font:inherit; cursor:pointer; background:none; }
-        .mt img    { display:block; }
-        .mt { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; }
 
-        /* NAV */
+:root { --bg:#0c0b09; --bg2:#111009; --bg3:#181510; --gold:#C9A86A; --cream:#EDE5D4; --muted:rgba(237,229,212,0.56); --dim:rgba(237,229,212,0.32); --border:rgba(237,229,212,0.10); --serif:'Cormorant Garamond',Georgia,serif; --sans:'Inter',system-ui,sans-serif; }
+.mt *, .mt *::before, .mt *::after { box-sizing:border-box; margin:0; padding:0; }
+.mt a { color:inherit; text-decoration:none; }
+.mt button { border:none; font:inherit; cursor:pointer; background:none; }
+.mt img { display:block; }
+.mt { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; }
+
+/* NAV */
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
         .nav-right { display:flex; align-items:center; gap:12px; }
-        .nav-cta { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
-        .nav-cta:hover { background:var(--cream); color:var(--bg); }
-        .user-btn { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(237,229,212,0.06); overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--cream); }
-        .user-btn img { width:100%; height:100%; object-fit:cover; }
-        .user-dd { position:absolute; top:50px; right:0; width:210px; background:rgba(20,18,12,0.98); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.52); }
-        .user-dd-email { padding:12px 14px; border-bottom:1px solid var(--border); font-size:10px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .user-dd a, .user-dd button { display:block; width:100%; padding:12px 14px; font-size:13px; color:var(--cream); text-align:left; transition:background .15s; }
-        .user-dd a:hover, .user-dd button:hover { background:rgba(237,229,212,0.06); }
-        .user-dd button { color:#E08080; }
+        .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
+        .login-btn:hover { background:var(--cream); color:var(--bg); }
+        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
+        .user-avatar:hover { border-color:var(--gold); }
+        .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
-        /* PAGE HEADER */
-        .page-header { position:relative; padding:clamp(180px,22vh,260px) clamp(24px,5vw,80px) clamp(120px,15vh,180px); border-bottom:1px solid var(--border); overflow:hidden; min-height:700px; }
-        .page-header-bg { position:absolute; inset:0; }
-        .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position: top; filter:brightness(0.75) contrast(1.05) saturate(0.95); }
-        .page-header-bg::after { content:""; position:absolute; inset:0; background: linear-gradient(to bottom, rgba(12,11,9,0.3) 0%, rgba(12,11,9,0.5) 60%, rgba(12,11,9,0.98) 100%), linear-gradient(to right, rgba(12,11,9,0.6) 0%, transparent 60%); }
-        .page-header-inner { position:relative; z-index:10; max-width:1380px; margin:0 auto; display:flex; align-items:flex-end; justify-content:space-between; gap:24px; }
+        /* USER DROPDOWN */
+        .user-menu-wrap { position:relative; }
+        .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
+        @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+        .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
+        .ud-avatar img { width:100%; height:100%; object-fit:cover; }
+        .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
+        .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
+        .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+        .ud-links { padding:8px; }
+        .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
+        .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
+        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
+        .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
+        .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
-        .page-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:16px; }
-        .page-h1 { font-family:var(--serif); font-size:clamp(42px,6vw,80px); font-weight:300; line-height:0.9; letter-spacing:-0.04em; color:var(--cream); }
-        .page-sub { font-size:14px; color:var(--dim); font-weight:300; line-height:1.6; max-width:320px; text-align:right; }
+/* HERO */
+.page-header { position:relative; min-height:100vh; padding:120px clamp(24px,5vw,80px) 58px; overflow:hidden; display:flex; align-items:center; }
+.page-header-bg { position:absolute; inset:0; z-index:0; }
+.page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(0.56) contrast(1.08) saturate(0.9); }
+.page-header-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 65% 42%,rgba(201,168,106,0.13) 0%,transparent 28%),linear-gradient(to right,rgba(12,11,9,0.96) 0%,rgba(12,11,9,0.75) 42%,rgba(12,11,9,0.48) 100%),linear-gradient(to bottom,rgba(12,11,9,0.20) 0%,rgba(12,11,9,0.42) 55%,rgba(12,11,9,0.94) 100%); }
+.page-header-inner { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; display:grid; grid-template-columns:minmax(340px,0.85fr) minmax(560px,1.15fr); align-items:center; gap:clamp(48px,7vw,96px); }
 
-        /* MAIN CONTENT */
-        .main { max-width:1380px; margin:0 auto; padding:clamp(48px,6vw,80px) clamp(24px,5vw,80px) clamp(80px,10vw,120px); }
+/* LEFT SIDE */
+.collection-copy { max-width:560px; }
+.collection-eyebrow-wrap { display:flex; align-items:center; gap:18px; margin-bottom:22px; }
+.collection-line { width:58px; height:1px; background:linear-gradient(to right,transparent,rgba(201,168,106,0.75)); }
+.page-eyebrow { font-size:10px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); }
+.page-h1 { font-family:var(--serif); font-size:clamp(76px,7vw,118px); font-weight:300; line-height:0.86; letter-spacing:-0.055em; color:var(--cream); text-shadow:0 24px 70px rgba(0,0,0,0.55); }
+.page-sub { margin-top:30px; font-size:18px; color:rgba(237,229,212,0.62); font-weight:300; line-height:1.75; max-width:470px; }
+.collection-stats { display:flex; gap:14px; margin-top:46px; }
+.collection-stat { min-width:180px; padding:22px 24px; border:1px solid rgba(237,229,212,0.13); border-radius:18px; background:rgba(237,229,212,0.045); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.22); }
+.collection-stat-icon { font-size:19px; color:var(--gold); margin-bottom:10px; }
+.collection-stat-main { display:flex; align-items:flex-end; gap:8px; }
+.collection-stat-number { font-family:var(--serif); font-size:42px; font-weight:300; line-height:0.8; color:var(--cream); }
+.collection-stat-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:rgba(237,229,212,0.6); padding-bottom:3px; }
 
-        /* EMPTY STATE */
-        .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:clamp(60px,10vh,100px) 20px; text-align:center; }
-        .empty-icon { width:72px; height:72px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--dim); margin-bottom:24px; }
-        .empty-h2 { font-family:var(--serif); font-size:clamp(28px,4vw,44px); font-weight:300; font-style:italic; color:var(--cream); margin-bottom:12px; }
-        .empty-p  { font-size:14px; color:var(--dim); font-weight:300; margin-bottom:32px; }
-        .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
-        .btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
+/* RIGHT PANEL */
+.saved-preview-panel { width:100%; border:1px solid rgba(237,229,212,0.14); border-radius:26px; background:linear-gradient(135deg,rgba(237,229,212,0.09),rgba(237,229,212,0.025)),rgba(12,11,9,0.46); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; }
+.saved-preview-head { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
+.saved-preview-title { font-family:var(--serif); font-size:25px; font-weight:300; color:var(--cream); }
+.saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); opacity:0.88; white-space:nowrap; }
+.saved-preview-list { display:flex; flex-direction:column; height:auto; max-height:520px; overflow-y:auto; padding-right:10px; }
+.saved-preview-list::-webkit-scrollbar { width:4px; }
+.saved-preview-list::-webkit-scrollbar-track { background:rgba(237,229,212,0.05); border-radius:999px; }
+.saved-preview-list::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.38); border-radius:999px; }
+.saved-preview-item { display:grid; grid-template-columns:170px 1fr auto; gap:26px; align-items:center; min-height:130px; padding:14px 0; border-bottom:1px solid rgba(237,229,212,0.1); }
+.saved-preview-item:first-child { padding-top:0; }
+.saved-preview-item:last-child { border-bottom:none; }
+.saved-preview-thumb { position:relative; height:104px; border-radius:13px; overflow:hidden; background:var(--bg3); border:1px solid rgba(237,229,212,0.1); }
+.saved-preview-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88) saturate(0.9); transition:transform .7s ease; }
+.saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
+.saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+.saved-preview-name { font-family:var(--serif); font-size:30px; font-weight:300; line-height:1; color:var(--cream); margin-bottom:12px; }
+.saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px; color:rgba(237,229,212,0.48); }
+.saved-preview-meta span { display:inline-flex; align-items:center; gap:6px; }
+.saved-preview-action-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; font-size:23px; line-height:1; padding-bottom:3px; }
+.saved-preview-action:hover { background:var(--gold); color:var(--bg); transform:translateX(2px); }
+.saved-preview-remove { width:32px; height:32px; border-radius:50%; border:1px solid rgba(237,229,212,0.12); color:rgba(237,229,212,0.36); display:flex; align-items:center; justify-content:center; transition:all .2s; font-size:15px; }
+.saved-preview-remove:hover { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
+.saved-preview-empty { min-height:360px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px dashed rgba(237,229,212,0.16); border-radius:20px; background:rgba(12,11,9,0.28); padding:34px; }
+.saved-preview-empty-icon { width:62px; height:62px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:24px; margin-bottom:18px; }
+.saved-preview-empty h3 { font-family:var(--serif); font-size:32px; font-weight:300; color:var(--cream); margin-bottom:10px; }
+.saved-preview-empty p { color:var(--dim); font-size:14px; line-height:1.7; max-width:340px; margin-bottom:24px; }
+.btn-gold-filled { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
+.btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
+.spinner { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; }
 
-        /* LOADING */
-        .loading-wrap { display:flex; justify-content:center; align-items:center; min-height:300px; }
-        .spinner { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; }
-        @keyframes spin { to { transform:rotate(360deg); } }
+@keyframes spin {
+  to { transform:rotate(360deg); }
+}
 
-        /* GRID */
-        .routes-count { font-size:12px; color:var(--dim); font-weight:500; letter-spacing:0.06em; margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--border); }
-        .routes-count strong { color:var(--cream); font-weight:700; }
-        .routes-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+/* FOOTER */
+.footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
+.footer-inner { max-width:1380px; margin:0 auto; }
+.footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+.footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
+.footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
+.footer-socials { display:flex; gap:8px; }
+.footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
+.footer-social:hover { border-color:var(--gold); color:var(--gold); }
+.footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
+.footer-col a { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
+.footer-col a:hover { color:var(--cream); }
+.footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+.footer-legal { display:flex; gap:22px; }
+.footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
+.footer-legal a:hover { color:var(--cream); }
 
-        /* ROUTE CARD */
-        .route-card { position:relative; border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); transition:transform .4s cubic-bezier(.25,.46,.45,.94),box-shadow .4s,border-color .4s; cursor:pointer; }
-        .route-card:hover { transform:translateY(-6px); box-shadow:0 32px 80px rgba(0,0,0,0.5); border-color:rgba(201,168,106,0.22); }
-        .route-card-img { position:relative; height:220px; overflow:hidden; }
-        .route-card-img img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88); transition:transform .7s ease; }
-        .route-card:hover .route-card-img img { transform:scale(1.07); }
-        .route-card-img::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.6) 100%); }
-        .unsave-btn { position:absolute; top:12px; right:12px; z-index:5; width:36px; height:36px; border-radius:50%; background:rgba(12,11,9,0.55); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.18); display:flex; align-items:center; justify-content:center; transition:background .25s; }
-        .unsave-btn:hover { background:rgba(224,80,80,0.3); border-color:rgba(224,80,80,0.5); }
-        .unsave-btn svg { width:16px; height:16px; }
-        .route-card-type { position:absolute; bottom:12px; left:12px; z-index:5; padding:5px 10px; border-radius:999px; background:rgba(12,11,9,0.65); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.16); font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(237,229,212,0.8); }
-        .route-card-body { padding:18px 18px 20px; }
-        .route-card-country { font-size:9px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
-        .route-card-title { font-family:var(--serif); font-size:22px; font-weight:400; color:var(--cream); line-height:1.05; letter-spacing:-0.02em; margin-bottom:8px; }
-        .route-card-desc { font-size:12px; color:var(--dim); line-height:1.65; font-weight:300; margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .route-card-meta { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-        .meta-item { display:flex; align-items:center; gap:5px; font-size:10px; color:rgba(237,229,212,0.45); font-weight:500; }
-        .meta-item svg { opacity:0.55; flex-shrink:0; }
-        .route-card-footer { display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid var(--border); }
-        .rating { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gold); font-weight:700; }
-        .view-btn { font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); transition:color .2s; }
-        .view-btn:hover { color:var(--cream); }
+@media (max-width:1100px) {
+  .page-header { min-height:auto; padding-top:140px; }
+  .page-header-inner { grid-template-columns:1fr; }
+  .saved-preview-panel { max-width:780px; }
+  .footer-top { grid-template-columns:1fr 1fr; }
+}
 
-        /* FOOTER */
-        .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
-        .footer-inner  { max-width:1380px; margin:0 auto; }
-        .footer-top    { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
-        .footer-brand  { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
-        .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
-        .footer-socials{ display:flex; gap:8px; }
-        .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
-        .footer-social:hover { border-color:var(--gold); color:var(--gold); }
-        .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
-        .footer-col a  { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
-        .footer-col a:hover { color:var(--cream); }
-        .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
-        .footer-copy   { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
-        .footer-legal  { display:flex; gap:22px; }
-        .footer-legal a{ font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
-        .footer-legal a:hover { color:var(--cream); }
+@media (max-width:760px) {
+  .nav-links { display:none; }
+  .page-header { padding:120px 20px 56px; }
+  .page-h1 { font-size:clamp(58px,17vw,82px); }
+  .page-sub { font-size:15px; }
+  .collection-stats { flex-direction:column; }
+  .collection-stat { width:100%; }
+  .saved-preview-panel { padding:20px; border-radius:20px; }
+  .saved-preview-head { flex-direction:column; align-items:flex-start; }
+  .saved-preview-list { max-height:520px; }
+  .saved-preview-item { grid-template-columns:1fr; gap:14px; min-height:auto; }
+  .saved-preview-thumb { height:190px; }
+  .saved-preview-action-wrap { flex-direction:row; width:100%; }
+  .saved-preview-action, .saved-preview-remove { width:100%; border-radius:999px; }
+  .footer-top { grid-template-columns:1fr; }
+  .footer-bottom { flex-direction:column; align-items:flex-start; }
+}
 
-        @media (max-width:1024px) { .routes-grid { grid-template-columns:repeat(2,1fr); } .footer-top { grid-template-columns:1fr 1fr; } }
-        @media (max-width:640px)  { .nav-links { display:none; } .routes-grid { grid-template-columns:1fr; } .page-header-inner { flex-direction:column; align-items:flex-start; } .page-sub { text-align:left; } .footer-top { grid-template-columns:1fr; } .footer-bottom { flex-direction:column; align-items:flex-start; } }
+
       `}</style>
 
       <div className="mt">
-
         {/* NAV */}
-        <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
-          <Link href="/" className="nav-logo">
-            <span>SCENIC</span><span>ROUTES</span>
-          </Link>
+        <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
+          <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            <Link href="/explore"  className="nav-link">Explore Routes</Link>
-            <Link href="/about"    className="nav-link">About</Link>
-            {user && <Link href="/my-trips" className="nav-link" style={{color:"var(--gold)"}}>My Trips</Link>}
+            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
+              <Link key={l} href={h} className="nav-link">{l}</Link>
+            ))}
+            {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {user ? (
-              <div style={{position:"relative"}}>
-                <button className="user-btn" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : user.email?.[0]?.toUpperCase()}
+              <div className="user-menu-wrap">
+                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
-                  <div className="user-dd">
-                    <div className="user-dd-email">{user.email}</div>
-                    <Link href="/profile" onClick={()=>setShowUserMenu(false)}>Profile</Link>
-                    <Link href="/my-trips" onClick={()=>setShowUserMenu(false)}>My Trips</Link>
-                    <button onClick={handleLogout}>Sign Out</button>
+                  <div className="user-dropdown">
+                    <div className="ud-header">
+                      <div className="ud-avatar">
+                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{minWidth:0}}>
+                        <p className="ud-name">{displayName}</p>
+                        <p className="ud-email">{user.email}</p>
+                        <p className="ud-role">Scenic Route Explorer</p>
+                      </div>
+                    </div>
+                    <div className="ud-links">
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">◎</span> Profile
+                      </Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">△</span> My Trips
+                      </Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                        <span className="ud-link-icon">⬡</span> Explore Routes
+                      </Link>
+                      <div className="ud-divider"/>
+                      <button className="ud-logout" onClick={handleLogout}>
+                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
-              <button className="nav-cta" onClick={()=>setIsAuthOpen(true)}>Login</button>
+              <Link href="/login" className="login-btn">Login</Link>
             )}
           </div>
         </nav>
 
-        {/* PAGE HEADER */}
-        <div className="page-header">
+        {/* HERO */}
+        <section className="page-header">
           <div className="page-header-bg">
-            <img src="/Misty mountain road to the valley.jpg" alt="Hero" onError={e=>{e.currentTarget.src="/Trollstigen.jpg";}}/>
+            <img
+              src="/Misty mountain road to the valley.jpg"
+              alt="Hero"
+              onError={(e) => {
+                e.currentTarget.src = "/Trollstigen.jpg";
+              }}
+            />
           </div>
-          <div className="page-header-inner">
-            <div>
-              <p className="page-eyebrow">Your Collection</p>
-              <h1 className="page-h1">My Trips</h1>
-            </div>
-            <p className="page-sub">
-              Your saved scenic routes — ready whenever the road calls.
-            </p>
-          </div>
-        </div>
 
-        {/* MAIN */}
-        <main className="main">
-          {!user ? (
-            <div className="empty-state">
-              <div className="empty-icon">♡</div>
-              <h2 className="empty-h2">Sign in to see your saved routes.</h2>
-              <p className="empty-p">Create an account to start building your personal collection.</p>
-              <button className="btn-gold-filled" onClick={()=>setIsAuthOpen(true)}>Login →</button>
-            </div>
-          ) : loading ? (
-            <div className="loading-wrap">
-              <div className="spinner"/>
-            </div>
-          ) : savedRoutes.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">♡</div>
-              <h2 className="empty-h2">No saved routes yet.</h2>
-              <p className="empty-p">Explore our collection and save the routes that speak to you.</p>
-              <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
-            </div>
-          ) : (
-            <>
-              <p className="routes-count"><strong>{savedRoutes.length}</strong> saved route{savedRoutes.length !== 1 ? "s" : ""}</p>
-              <div className="routes-grid">
-                {savedRoutes.map((route: any) => (
-                  <div key={route.id} className="route-card">
-                    <div className="route-card-img">
-                      <Link href={`/routedetail/${route.id}`}>
-                        <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
-                      </Link>
-                      <button className="unsave-btn" onClick={()=>handleUnsave(route.id)} title="Remove from saved">
-                        <svg viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{fill:"#ef4444",stroke:"#ef4444"}}>
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                      </button>
-                      {(route.terrain || route.type) && (
-                        <div className="route-card-type">{route.terrain || route.type}</div>
-                      )}
-                    </div>
-                    <div className="route-card-body">
-                      <div className="route-card-country">{route.country}</div>
-                      <Link href={`/routedetail/${route.id}`}>
-                        <div className="route-card-title">{route.title}</div>
-                      </Link>
-                      {route.description && (
-                        <p className="route-card-desc">{route.description}</p>
-                      )}
-                      <div className="route-card-meta">
-                        {route.duration && (
-                          <div className="meta-item">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            {route.duration}
-                          </div>
-                        )}
-                        {route.distance_km && (
-                          <div className="meta-item">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-                            {fmtKm(route.distance_km)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="route-card-footer">
-                        <div className="rating">★ {route.rating ? route.rating.toFixed(1) : "—"}</div>
-                        <Link href={`/routedetail/${route.id}`} className="view-btn">View Route →</Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <div className="page-header-inner">
+            <div className="collection-copy">
+              <div className="collection-eyebrow-wrap">
+                <span className="collection-line" />
+                <p className="page-eyebrow">Your Collection</p>
               </div>
-            </>
-          )}
-        </main>
+
+              <h1 className="page-h1">My Trips</h1>
+
+              <p className="page-sub">
+                The journeys you’ve chosen to remember. Revisit your favorite
+                scenic routes and plan your next adventure.
+              </p>
+
+              <div className="collection-stats">
+                <div className="collection-stat">
+                  <div className="collection-stat-icon">▱</div>
+                  <div className="collection-stat-main">
+                    <span className="collection-stat-number">
+                      {user ? savedRoutes.length : 0}
+                    </span>
+                    <span className="collection-stat-label">Saved Routes</span>
+                  </div>
+                </div>
+
+                <div className="collection-stat">
+                  <div className="collection-stat-icon">◎</div>
+                  <div className="collection-stat-main">
+                    <span className="collection-stat-number">
+                      {user ? savedCountriesCount : 0}
+                    </span>
+                    <span className="collection-stat-label">Countries</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="saved-preview-panel">
+              <div className="saved-preview-head">
+                <h2 className="saved-preview-title">
+                  Your saved scenic routes
+                </h2>
+
+                {user && savedRoutes.length > 0 && (
+                  <span className="saved-preview-count">
+                    {savedRoutes.length} saved
+                  </span>
+                )}
+              </div>
+
+              {!user ? (
+                <div className="saved-preview-empty">
+                  <div className="saved-preview-empty-icon">♡</div>
+                  <h3>Sign in to build your collection.</h3>
+                  <p>
+                    Create an account and save the scenic routes you want to
+                    drive later.
+                  </p>
+                  <button
+                    className="btn-gold-filled"
+                    onClick={() => setIsAuthOpen(true)}
+                  >
+                    Login →
+                  </button>
+                </div>
+              ) : loading ? (
+                <div className="saved-preview-empty">
+                  <div className="spinner" />
+                </div>
+              ) : savedRoutes.length === 0 ? (
+                <div className="saved-preview-empty">
+                  <div className="saved-preview-empty-icon">♡</div>
+                  <h3>No saved routes yet.</h3>
+                  <p>
+                    Explore the collection and save the routes that speak to
+                    you.
+                  </p>
+                  <Link href="/explore" className="btn-gold-filled">
+                    Explore Routes →
+                  </Link>
+                </div>
+              ) : (
+                <div className="saved-preview-list">
+                  {savedRoutes.map((route: any) => (
+                    <div key={route.id} className="saved-preview-item">
+                      <Link
+                        href={`/routedetail/${route.id}`}
+                        className="saved-preview-thumb"
+                      >
+                        <img
+                          src={route.image_url || "/Amalfi coast road.jpg"}
+                          alt={route.title}
+                          onError={(e) => {
+                            e.currentTarget.src = "/Amalfi coast road.jpg";
+                          }}
+                        />
+                      </Link>
+
+                      <div>
+                        <p className="saved-preview-country">
+                          {route.country || "Scenic Route"}
+                        </p>
+
+                        <Link href={`/routedetail/${route.id}`}>
+                          <h3 className="saved-preview-name">{route.title}</h3>
+                        </Link>
+
+                        <div className="saved-preview-meta">
+                          {route.distance_km && (
+                            <span>⌁ {fmtKm(route.distance_km)}</span>
+                          )}
+                          {route.duration && <span>◷ {route.duration}</span>}
+                          {(route.terrain || route.type) && (
+                            <span>• {route.terrain || route.type}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="saved-preview-action-wrap">
+                        <Link
+                          href={`/routedetail/${route.id}`}
+                          className="saved-preview-action"
+                          title="Open route"
+                        >
+                          ›
+                        </Link>
+
+                        <button
+                          className="saved-preview-remove"
+                          onClick={() => handleUnsave(route.id)}
+                          title="Remove from saved"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* FOOTER */}
         <footer className="footer">
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">SCENIC<br/>ROUTES</div>
-                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey.</p>
+                <div className="footer-brand">
+                  SCENIC
+                  <br />
+                  ROUTES
+                </div>
+                <p className="footer-tagline">
+                  Thoughtfully curated road trips for people who value the
+                  journey.
+                </p>
                 <div className="footer-socials">
-                  {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}
+                  {["IG", "FB", "YT"].map((s) => (
+                    <a key={s} href="#" className="footer-social">
+                      {s[0]}
+                    </a>
+                  ))}
                 </div>
               </div>
-              {[["Explore",["All Routes","Destinations","Experiences","Journal"]],["Company",["About Us","Membership","Gift Cards","Careers"]],["Support",["FAQ","Travel Policies","Contact Us","Privacy Policy"]]].map(([heading,links])=>(
+
+              {[
+                [
+                  "Explore",
+                  ["All Routes", "Destinations", "Experiences", "Journal"],
+                ],
+                [
+                  "Company",
+                  ["About Us", "Membership", "Gift Cards", "Careers"],
+                ],
+                [
+                  "Support",
+                  ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"],
+                ],
+              ].map(([heading, links]) => (
                 <div key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
                   <div className="footer-col">
-                    {(links as string[]).map(l=><a href="#" key={l}>{l}</a>)}
+                    {(links as string[]).map((l) => (
+                      <a href="#" key={l}>
+                        {l}
+                      </a>
+                    ))}
                   </div>
                 </div>
               ))}
+
               <div>
                 <p className="footer-col-title">Stay Inspired</p>
-                <p style={{fontSize:"12px",color:"var(--dim)",lineHeight:1.6,marginBottom:"14px",fontWeight:300}}>Subscribe for new routes, stories, and exclusive guides.</p>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--dim)",
+                    lineHeight: 1.6,
+                    marginBottom: "14px",
+                    fontWeight: 300,
+                  }}
+                >
+                  Subscribe for new routes, stories, and exclusive guides.
+                </p>
               </div>
             </div>
+
             <div className="footer-bottom">
-              <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
+              <p className="footer-copy">
+                © {new Date().getFullYear()} Scenic Routes. All Rights
+                Reserved.
+              </p>
               <div className="footer-legal">
                 <a href="#">Terms & Conditions</a>
                 <a href="#">Privacy</a>
@@ -335,9 +555,9 @@ export default function MyTripsPage() {
             </div>
           </div>
         </footer>
-
       </div>
-      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
 }
