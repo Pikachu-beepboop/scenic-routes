@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
@@ -9,7 +9,6 @@ import {
     Heart, ArrowLeft, User, ArrowRight, Send
 } from 'lucide-react';
 import Link from 'next/link';
-import AuthModal from "@/app/AuthModal";
 
 interface Route {
     id: string;
@@ -64,14 +63,16 @@ function HighlightedTitle({ title }: { title: string }) {
 export default function RouteDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const pathname = usePathname();
+    const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
 
     const [route, setRoute] = useState<Route | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
     const [user, setUser] = useState<any>(null);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState('');
+    const [username, setUsername] = useState('');
 
     const { scrollY } = useScroll();
 
@@ -97,7 +98,6 @@ export default function RouteDetailPage() {
             const currentUser = session?.user ?? null;
             setUser(currentUser);
             if (currentUser) {
-                setIsAuthModalOpen(false);
                 checkIfSaved(currentUser.id);
                 fetchProfile(currentUser.id);
             }
@@ -106,9 +106,30 @@ export default function RouteDetailPage() {
         return () => subscription.unsubscribe();
     }, [params.id]);
 
+    useEffect(() => {
+        if (!showUserMenu) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+
+            if (!target.closest('.route-user-menu-wrap')) {
+                setShowUserMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showUserMenu]);
+
     async function fetchProfile(userId: string) {
-        const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
-        if (data) setAvatarUrl(data.avatar_url || '');
+        const { data } = await supabase.from('profiles').select('avatar_url, username').eq('id', userId).single();
+        if (data) {
+            setAvatarUrl(data.avatar_url || '');
+            setUsername(data.username || '');
+        }
     }
 
     useEffect(() => {
@@ -137,7 +158,7 @@ export default function RouteDetailPage() {
 
     const handleSaveToggle = async () => {
         if (!user) {
-            setIsAuthModalOpen(true);
+            router.push(loginHref);
             return;
         }
 
@@ -180,14 +201,12 @@ export default function RouteDetailPage() {
     return (
         <div className="bg-black text-white text-[#0a0a0a] font-sans selection:bg-emerald-500/30 overflow-x-hidden">
 
-            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-
             {/* ── Back Button ── */}
-            <div className="fixed top-10 left-10 z-[60]">
+            <div className="fixed top-6 left-10 z-[60]">
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => router.push('/explore')}
                     className="group relative flex items-center justify-center w-16 h-16 transition-all duration-500"
-                    aria-label="Zurück"
+                    aria-label="Back to Explore"
                 >
                     <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl rounded-full border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-700 group-hover:bg-white/20 group-hover:scale-110 group-hover:border-emerald-500/40" />
                     <ArrowLeft
@@ -195,7 +214,7 @@ export default function RouteDetailPage() {
                         className="relative text-white group-hover:text-emerald-400 group-hover:-translate-x-1.5 transition-all duration-500 ease-out"
                     />
                     <span className="absolute left-20 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-700 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none whitespace-nowrap bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                        Go Back
+                        Back to Explore
                     </span>
                 </button>
             </div>
@@ -211,9 +230,9 @@ export default function RouteDetailPage() {
                 className="fixed top-0 left-0 w-full z-50 border-b border-white/5 pointer-events-auto"
             >
                 <div className="max-w-screen-2xl mx-auto px-12 h-28 flex items-center justify-between">
-                    <Link href="/" className="flex flex-col leading-[0.75] pl-24">
-                        <span className="text-2xl font-black uppercase tracking-tighter italic">Scenic</span>
-                        <span className="text-xl font-light uppercase tracking-[0.25em] opacity-60">Routes</span>
+                    <Link href="/" className="flex flex-col leading-none pl-24">
+                        <span className="font-sans text-[13px] font-extrabold uppercase tracking-[0.22em] text-white not-italic">SCENIC</span>
+                        <span className="font-sans text-[13px] font-extrabold uppercase tracking-[0.22em] text-white not-italic">ROUTES</span>
                     </Link>
 
                     <div className="hidden lg:flex items-center gap-14 text-[10px] font-bold uppercase tracking-[0.5em]">
@@ -227,47 +246,98 @@ export default function RouteDetailPage() {
                     </div>
 
                     {/* ── User Menu ── */}
-                    <div className="relative">
+                    <div className="relative route-user-menu-wrap">
                         <button
-                            onClick={() => user ? setShowUserMenu(!showUserMenu) : setIsAuthModalOpen(true)}
+                            onClick={() => {
+                                if (user) {
+                                    setShowUserMenu((prev) => !prev);
+                                } else {
+                                    router.push(loginHref);
+                                }
+                            }}
                             aria-label="Account"
-                            className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-emerald-500 hover:text-black hover:scale-110 transition-all duration-700 shadow-2xl overflow-hidden"
+                            className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-[#C9A86A] hover:text-black hover:scale-110 transition-all duration-700 shadow-2xl overflow-hidden"
                         >
                             {user ? (
-                                avatarUrl
-                                    ? <img src={avatarUrl} className="w-full h-full object-cover" />
-                                    : <span className="text-sm font-bold uppercase italic">{user.email?.charAt(0)}</span>
+                                avatarUrl ? (
+                                    <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-sm font-bold uppercase">
+                                        {user.email?.charAt(0)}
+                                    </span>
+                                )
                             ) : (
                                 <User size={18} />
                             )}
                         </button>
 
                         {showUserMenu && user && (
-                            <>
-                                <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                                <div className="absolute right-0 top-14 w-52 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden z-20">
-                                    <div className="px-4 py-3 border-b border-gray-100">
-                                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                            <div className="absolute right-0 top-16 w-[290px] bg-[rgba(14,12,10,0.97)] border border-[rgba(237,229,212,0.12)] rounded-[20px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65)] backdrop-blur-[28px] z-50">
+                                <div className="p-5 border-b border-[rgba(237,229,212,0.12)] flex items-center gap-4">
+                                    <div className="w-[46px] h-[46px] rounded-[11px] border border-[rgba(201,168,106,0.3)] bg-[rgba(201,168,106,0.1)] flex items-center justify-center font-serif text-[22px] font-light text-[#C9A86A] overflow-hidden shrink-0">
+                                        {avatarUrl ? (
+                                            <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            user.email?.charAt(0).toUpperCase()
+                                        )}
                                     </div>
+
+                                    <div className="min-w-0">
+                                        <p className="font-serif text-[18px] font-light text-[#EDE5D4] leading-tight truncate">
+                                            {username || user.email?.split('@')[0]}
+                                        </p>
+                                        <p className="text-[10px] text-[rgba(237,229,212,0.32)] mt-1 truncate max-w-[180px]">
+                                            {user.email}
+                                        </p>
+                                        <p className="text-[8px] font-extrabold tracking-[0.18em] uppercase text-[#C9A86A] mt-1 opacity-70">
+                                            Scenic Route Explorer
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="p-2">
                                     <Link
                                         href="/profile"
                                         onClick={() => setShowUserMenu(false)}
-                                        className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(237,229,212,0.56)] hover:bg-[rgba(237,229,212,0.06)] hover:text-[#EDE5D4] transition-all"
                                     >
+                                        <span className="text-[#C9A86A] w-[18px] text-center">◎</span>
                                         Profile
                                     </Link>
+
+                                    <Link
+                                        href="/my-trips"
+                                        onClick={() => setShowUserMenu(false)}
+                                        className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(237,229,212,0.56)] hover:bg-[rgba(237,229,212,0.06)] hover:text-[#EDE5D4] transition-all"
+                                    >
+                                        <span className="text-[#C9A86A] w-[18px] text-center">△</span>
+                                        My Trips
+                                    </Link>
+
+                                    <Link
+                                        href="/explore"
+                                        onClick={() => setShowUserMenu(false)}
+                                        className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(237,229,212,0.56)] hover:bg-[rgba(237,229,212,0.06)] hover:text-[#EDE5D4] transition-all"
+                                    >
+                                        <span className="text-[#C9A86A] w-[18px] text-center">⬡</span>
+                                        Explore Routes
+                                    </Link>
+
+                                    <div className="h-px bg-[rgba(237,229,212,0.12)] my-1 mx-2" />
+
                                     <button
                                         onClick={async () => {
                                             await supabase.auth.signOut();
                                             setShowUserMenu(false);
                                             router.push('/');
                                         }}
-                                        className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                        className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(224,128,128,0.55)] hover:bg-[rgba(224,128,128,0.07)] hover:text-[#e08080] transition-all"
                                     >
+                                        <span className="text-[#e08080] w-[18px] text-center">→</span>
                                         Sign Out
                                     </button>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>

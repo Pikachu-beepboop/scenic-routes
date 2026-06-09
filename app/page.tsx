@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
@@ -242,6 +243,9 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
 }
 
 export default function HomePage() {
+  const pathname = usePathname();
+  const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
+
   const [routes, setRoutes] = useState<Route[]>([]);
   const [user, setUser] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -706,7 +710,7 @@ export default function HomePage() {
                 )}
               </div>
             ) : (
-              <Link href="/login" className="login-btn">
+              <Link href={loginHref} className="login-btn">
                 Login
               </Link>
             )}

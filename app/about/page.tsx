@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
-import AuthModal from '../AuthModal';
 
 const TEAM = [
   { initials: "LV", name: "Lavr V.",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
@@ -29,9 +28,10 @@ export default function AboutPage() {
   const [user,         setUser]         = useState<any>(null);
   const [avatarUrl,    setAvatarUrl]    = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isAuthOpen,   setIsAuthOpen]   = useState(false);
   const [navScrolled,  setNavScrolled]  = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
 
@@ -56,13 +56,16 @@ export default function AboutPage() {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("avatar_url").eq("id", userId).single();
-    if (data) setAvatarUrl(data.avatar_url || "");
+    const { data } = await supabase.from("profiles").select("avatar_url, username").eq("id", userId).single();
+    if (data) {
+      setAvatarUrl(data.avatar_url || "");
+      setUsername(data.username || "");
+    }
   }
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    setUser(null); setShowUserMenu(false);
+    setUser(null); setUsername(""); setAvatarUrl(""); setShowUserMenu(false);
     router.push("/");
   }
 
@@ -287,7 +290,7 @@ export default function AboutPage() {
                 )}
               </div>
             ) : (
-              <Link href="/login" className="login-btn">Login</Link>
+              <Link href={loginHref} className="login-btn">Login</Link>
             )}
           </div>
         </nav>
@@ -415,7 +418,7 @@ export default function AboutPage() {
               <div className="cta-actions">
                 <Link href="/explore" className="btn-gold-filled">Browse Routes →</Link>
                 {!user && (
-                  <button className="btn-outline" onClick={()=>setIsAuthOpen(true)}>Create Account →</button>
+                  <Link href={loginHref} className="btn-outline">Create Account →</Link>
                 )}
               </div>
             </div>
@@ -456,7 +459,6 @@ export default function AboutPage() {
         </footer>
 
       </div>
-      <AuthModal isOpen={isAuthOpen} onClose={()=>setIsAuthOpen(false)}/>
     </>
   );
 }
