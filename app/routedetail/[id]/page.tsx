@@ -73,6 +73,7 @@ export default function RouteDetailPage() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState('');
     const [username, setUsername] = useState('');
+    const [activeChapter, setActiveChapter] = useState(0);
 
     const { scrollY } = useScroll();
 
@@ -142,6 +143,7 @@ export default function RouteDetailPage() {
                 .single();
             if (data) setRoute(data as Route);
             setLoading(false);
+            setActiveChapter(0);
         }
         loadRoute();
     }, [params.id]);
@@ -443,67 +445,100 @@ export default function RouteDetailPage() {
                 </div>
 
                 {chapters.length > 0 && (
-                    <div className="space-y-16">
-                        <div
-                            id="story-slider"
-                            className="flex gap-8 overflow-x-auto snap-x snap-mandatory pb-12 pt-4 scroll-smooth"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                            {chapters.map(({ key, title, body }, index) => (
-                                <motion.div
-                                    key={key}
-                                    className="min-w-[85vw] md:min-w-[480px] snap-start group"
-                                    initial={{ opacity: 0, y: 30 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.8, delay: index * 0.1 }}
-                                    viewport={{ once: true }}
-                                >
-                                    <div className="relative h-[400px] md:h-[450px] w-full overflow-hidden rounded-[2.5rem] border border-white/10 mb-10 shadow-2xl group-hover:border-emerald-500/20 transition-all duration-500">
-                                        <img
-                                            src={route?.image_url}
-                                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                                            alt={title}
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                                    </div>
-                                    <div className="space-y-4 px-2">
-                                        <h3 className="text-3xl md:text-4xl font-serif italic text-white group-hover:text-emerald-400 transition-colors duration-300">
-                                            {title}
-                                        </h3>
-                                        <p className="text-zinc-400 text-lg leading-relaxed line-clamp-3 font-light max-w-md">
-                                            {body}
-                                        </p>
-                                    </div>
-                                </motion.div>
-                            ))}
+                    <div className="space-y-12">
+                        {/* Kapitel-Label + Tabs */}
+                        <div className="space-y-6">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-500">
+                                Kapitel der Route
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                                {chapters.map((chapter, index) => (
+                                    <button
+                                        key={chapter.key}
+                                        type="button"
+                                        onClick={() => setActiveChapter(index)}
+                                        className={`px-5 py-3 rounded-xl border text-sm font-bold tracking-wider transition-all duration-300
+                                            ${activeChapter === index
+                                                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
+                                                : 'border-white/10 text-zinc-500 hover:text-white hover:border-white/20'
+                                            }`}
+                                    >
+                                        {String(index + 1).padStart(2, '0')}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-10 px-2">
-                            <button
-                                type="button"
-                                onClick={() => document.getElementById('story-slider')?.scrollBy({ left: -500, behavior: 'smooth' })}
-                                className="text-zinc-600 hover:text-white transition-all hover:scale-110"
-                                aria-label="Zurückblättern"
-                            >
-                                <ArrowLeft size={28} />
-                            </button>
-                            <div className="flex-1 h-[1px] bg-zinc-800 relative rounded-full overflow-hidden">
-                                <motion.div
-                                    initial={{ scaleX: 0 }}
-                                    whileInView={{ scaleX: 1 }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 1.5, ease: 'easeInOut' }}
-                                    className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500 to-emerald-500/0 origin-left"
-                                />
+                        {/* Aktives Kapitel */}
+                        <motion.div
+                            key={chapters[activeChapter].key}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className="bg-zinc-900/40 border border-white/10 rounded-[2rem] p-10 md:p-12"
+                        >
+                            <div className="flex items-start gap-5 mb-6">
+                                <span className="font-serif text-4xl md:text-5xl text-emerald-500/40 italic leading-none">
+                                    {String(activeChapter + 1).padStart(2, '0')}
+                                </span>
+                                <h3 className="text-2xl md:text-3xl font-serif italic text-white pt-1">
+                                    {chapters[activeChapter].title}
+                                </h3>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => document.getElementById('story-slider')?.scrollBy({ left: 500, behavior: 'smooth' })}
-                                className="text-zinc-600 hover:text-white transition-all hover:scale-110"
-                                aria-label="Weiterblättern"
+
+                            <p className="text-zinc-400 text-lg leading-relaxed font-light max-w-3xl whitespace-pre-line">
+                                {chapters[activeChapter].body}
+                            </p>
+
+                            {/* Optionale Etappe/Höhe-Felder, falls in der DB vorhanden */}
+                            {(Boolean(route?.[`${chapters[activeChapter].key}_distance`]) || Boolean(route?.[`${chapters[activeChapter].key}_elevation`])) && (
+                                <div className="flex gap-10 mt-8 pt-8 border-t border-white/5 text-xs uppercase tracking-[0.2em] text-zinc-500">
+                                    {Boolean(route?.[`${chapters[activeChapter].key}_distance`]) && (
+                                        <span>
+                                            Etappe
+                                            <span className="text-emerald-400 font-bold ml-2">
+                                                {String(route?.[`${chapters[activeChapter].key}_distance`] ?? '')}
+                                            </span>
+                                        </span>
+                                    )}
+                                    {Boolean(route?.[`${chapters[activeChapter].key}_elevation`]) && (
+                                        <span>
+                                            Höhe
+                                            <span className="text-emerald-400 font-bold ml-2">
+                                                {String(route?.[`${chapters[activeChapter].key}_elevation`] ?? '')}
+                                            </span>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Impressionen */}
+                        <div className="space-y-4">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-500">
+                                Impressionen
+                            </p>
+                            <motion.div
+                                key={`img-${chapters[activeChapter].key}`}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.6 }}
+                                className="relative h-[400px] md:h-[480px] w-full overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl group"
                             >
-                                <ArrowRight size={28} />
-                            </button>
+                                <img
+                                    src={
+                                        (route?.[`${chapters[activeChapter].key}_image`] as string) || route?.image_url
+                                    }
+                                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                    alt={chapters[activeChapter].title}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                <div className="absolute bottom-6 left-6 right-6">
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-400">
+                                        {chapters[activeChapter].title}
+                                    </p>
+                                </div>
+                            </motion.div>
                         </div>
                     </div>
                 )}
@@ -511,62 +546,54 @@ export default function RouteDetailPage() {
 
             {/* ── 4. Map Section ── */}
             <section id="route-map" className="max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-10">
-                <div className="bg-zinc-900/80 rounded-[3rem] border border-white/20 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-md">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[650px]">
-                        <div className="lg:col-span-4 p-10 md:p-14 flex flex-col justify-between border-r border-white/10 bg-black/40">
-                            <div className="space-y-12">
-                                <div className="space-y-4">
-                                    <h2 className="text-4xl md:text-5xl font-serif italic text-white leading-tight">
-                                        The Route<span className="text-emerald-500">.</span>
-                                    </h2>
-                                    <p className="text-zinc-500 text-xs leading-relaxed uppercase tracking-[0.2em] font-medium italic">
-                                        {route?.['start_point']}
-                                        <span className="text-emerald-500/50 mx-2">—</span>
-                                        {route?.['end_point']}
-                                    </p>
-                                </div>
+                <div className="bg-zinc-900/80 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-md">
+                    {/* ── Night-Mode Map Card (full width) ── */}
+                    <div className="relative h-[600px] w-full overflow-hidden bg-[#0b1220]">
+                        {route?.['google_maps'] && (
+                            <iframe
+                                src={route['google_maps']}
+                                width="100%"
+                                height="100%"
+                                style={{
+                                    border: 0,
+                                    filter: 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
+                                }}
+                                allowFullScreen
+                                loading="lazy"
+                                title="Route Map"
+                                className="w-full h-full outline-none border-none"
+                            />
+                        )}
 
-                                <div className="space-y-10 relative">
-                                    <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-emerald-500/20" />
-                                    {route?.['start_point'] && (
-                                        <TimelineStop label={route['start_point']} sublabel="Departure Point" active />
-                                    )}
-                                    {highlights.map((stop, i) => (
-                                        <TimelineStop key={i} label={stop} />
-                                    ))}
-                                    {route?.['end_point'] && (
-                                        <TimelineStop label={route['end_point']} sublabel="Final Destination" active pulse />
-                                    )}
-                                </div>
-                            </div>
+                        {/* Vignette für mehr Tiefe */}
+                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
+                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
+                    </div>
 
-                            <div className="pt-12">
-                                <a
-                                    href={route?.['maps_URL']}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="group flex items-center justify-center gap-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-5 rounded-2xl transition-all duration-500 uppercase tracking-widest text-[11px] w-full shadow-2xl active:scale-95"
-                                >
-                                    <Navigation size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-500" />
-                                    Begin Navigation
-                                </a>
-                            </div>
+                    {/* ── Info-Leiste unterhalb der Map ── */}
+                    <div className="flex items-center justify-between gap-6 bg-[#0d1626] px-8 py-7">
+                        <div className="space-y-1.5 min-w-0">
+                            <p className="text-white font-bold text-lg md:text-xl truncate">
+                                {route?.['start_point']}
+                                <span className="text-emerald-400 mx-2">→</span>
+                                {route?.['end_point']}
+                            </p>
+                            <p className="text-zinc-400 text-xs md:text-sm flex items-center gap-2 flex-wrap">
+                                <span className="text-emerald-400">{route?.duration}</span>
+                                <span className="opacity-40">·</span>
+                                <span>{route?.distance_km} km</span>
+                            </p>
                         </div>
 
-                        <div className="lg:col-span-8 relative h-[500px] lg:h-auto overflow-hidden">
-                            {route?.['google_maps'] && (
-                                <iframe
-                                    src={route['google_maps']}
-                                    width="100%"
-                                    height="100%"
-                                    style={{ border: 0 }}
-                                    allowFullScreen
-                                    loading="lazy"
-                                    title="Route Map"
-                                    className="w-full h-full outline-none border-none"
-                                />
-                            )}
-                        </div>
+                        <a
+                            href={route?.['maps_URL']}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 flex items-center gap-2 bg-white text-black font-bold text-xs uppercase tracking-wider px-5 py-3.5 rounded-full hover:bg-emerald-400 transition-all duration-300 active:scale-95 shadow-lg"
+                        >
+                            <Navigation size={14} />
+                            Route
+                        </a>
                     </div>
                 </div>
             </section>
@@ -667,28 +694,4 @@ export default function RouteDetailPage() {
     );
 }
 
-interface TimelineStopProps {
-    label: string;
-    sublabel?: string;
-    active?: boolean;
-    pulse?: boolean;
-}
-
-function TimelineStop({ label, sublabel, active = false, pulse = false }: TimelineStopProps) {
-    return (
-        <div className="relative pl-10 group cursor-default">
-            <div className={`absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 bg-black z-10 flex items-center justify-center transition-all duration-300
-                ${active ? 'border-emerald-500' : 'border-emerald-500/40 group-hover:border-emerald-500 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]'}`}>
-                <div className={`rounded-full bg-emerald-500 transition-all duration-300
-                    ${active ? 'w-2 h-2' : 'w-1.5 h-1.5 opacity-60 group-hover:opacity-100'}
-                    ${pulse ? 'animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]' : ''}`} />
-            </div>
-            <div className="space-y-1">
-                <h4 className={`font-medium transition-colors duration-300 ${active ? 'text-white italic' : 'text-white/80 group-hover:text-emerald-400'}`}>
-                    {label}
-                </h4>
-                {sublabel && <p className="text-zinc-500 text-[10px] uppercase tracking-widest">{sublabel}</p>}
-            </div>
-        </div>
-    );
-}
+// uses this map for the black theme and the code from claude code for the white theme
