@@ -49,6 +49,11 @@ export default function AdminPage() {
   chapter4: row.chapter4 || null,
   chapter5: row.chapter5 || null,
   google_maps: row.google_maps || null,
+  image1: row.image1 || null,
+  image2: row.image2 || null,
+  image3: row.image3 || null,
+  image4: row.image4 || null,
+  image5: row.image5 || null,
 };
 
     const { data: existing } = await supabase
@@ -106,7 +111,7 @@ export default function AdminPage() {
         <div className="mt-6 p-5 bg-gray-50 rounded-xl">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Excel columns (first row = headers):</p>
           <div className="grid grid-cols-2 gap-2">
-            {['title *', 'country *', 'description', 'long_description', 'duration', 'distance_km','image_url', 'season', 'start_point', 'end_poi', 'route_highlights', 'maps_URL', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5', 'google_maps'].map(col => (
+            {['title *', 'country *', 'description', 'long_description', 'duration', 'distance_km', 'image_url', 'season', 'start_point', 'end_poi', 'route_highlights', 'maps_URL', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5', 'google_maps', 'image1', 'image2', 'image3', 'image4', 'image5'].map(col => (
               <div key={col} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${col.includes('*') ? 'bg-emerald-500' : 'bg-gray-300'}`}/>
                 <span className="text-sm text-gray-600 font-mono">{col}</span>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
     Clock, MapPin, Navigation, Star, ChevronDown,
     Heart, ArrowLeft, User, ArrowRight, Send
@@ -57,6 +57,68 @@ function HighlightedTitle({ title }: { title: string }) {
             {words.slice(0, -1).join(' ')}{' '}
             <span className="text-emerald-500">{words[words.length - 1]}</span>
         </>
+    );
+}
+
+/* ── Impression Slideshow ──
+   Eigenständiger Bereich, unabhängig von den Kapiteln der Route.
+   Zeigt mehrere Bilder (image1..image5 aus Supabase) und wechselt sie
+   automatisch alle paar Sekunden mit einem sanften Fade-Übergang. */
+function ImpressionSlideshow({
+    images,
+    intervalMs = 4000,
+}: {
+    images: string[];
+    intervalMs?: number;
+}) {
+    const [activeIndex, setActiveIndex] = useState(0);
+
+    useEffect(() => {
+        if (images.length <= 1) return;
+
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % images.length);
+        }, intervalMs);
+
+        return () => clearInterval(timer);
+    }, [images, intervalMs]);
+
+    if (images.length === 0) return null;
+
+    return (
+        <div className="relative h-[600px] md:h-[680px] w-full overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl group">
+            <AnimatePresence mode="sync">
+                <motion.img
+                    key={`${images[activeIndex]}-${activeIndex}`}
+                    src={images[activeIndex]}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    alt="Impression"
+                />
+            </AnimatePresence>
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+            {/* Dots zur Anzeige, welches Bild aktuell läuft */}
+            {images.length > 1 && (
+                <div className="absolute bottom-6 right-6 flex gap-2">
+                    {images.map((_, i) => (
+                        <button
+                            key={i}
+                            type="button"
+                            onClick={() => setActiveIndex(i)}
+                            aria-label={`Bild ${i + 1} anzeigen`}
+                            className={`h-1.5 rounded-full transition-all duration-500 ${
+                                i === activeIndex ? 'w-6 bg-emerald-400' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                            }`}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -191,6 +253,27 @@ export default function RouteDetailPage() {
         .split('\n')
         .map((s: string) => s.trim())
         .filter(Boolean);
+
+    // Sammelt alle vorhandenen image1..image5 (oder beliebig viele imageN) aus Supabase,
+    // überspringt leere/NULL-Werte. Unabhängig von Kapiteln — läuft routenweit durch.
+    // Fällt auf route.image_url zurück, falls keine imageN-Spalten gefüllt sind.
+    const impressionImages: string[] = (() => {
+        if (!route) return [];
+
+        const numbered = Object.entries(route)
+            .filter(([key, value]) => /^image\d+$/.test(key) && typeof value === 'string' && (value as string).trim() !== '')
+            .sort(([a], [b]) => {
+                const numA = parseInt(a.replace('image', ''), 10);
+                const numB = parseInt(b.replace('image', ''), 10);
+                return numA - numB;
+            })
+            .map(([, value]) => value as string);
+
+        if (numbered.length > 0) return numbered;
+        if (route.image_url) return [route.image_url];
+
+        return [];
+    })();
 
     if (loading) {
         return (
@@ -475,77 +558,79 @@ export default function RouteDetailPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
-                            className="bg-zinc-900/40 border border-white/10 rounded-[2rem] p-10 md:p-12"
+                            className="relative flex border border-white/10 rounded-[2rem] overflow-hidden bg-zinc-950"
                         >
-                            <div className="flex items-start gap-5 mb-6">
-                                <span className="font-serif text-4xl md:text-5xl text-emerald-500/40 italic leading-none">
+                            {/* Linker Gradient-Rand mit Nummer */}
+                            <div className="relative flex items-start justify-center w-28 md:w-36 shrink-0 pt-10">
+                                <span className="font-serif text-5xl md:text-6xl text-emerald-400 italic leading-none">
                                     {String(activeChapter + 1).padStart(2, '0')}
                                 </span>
-                                <h3 className="text-2xl md:text-3xl font-serif italic text-white pt-1">
-                                    {chapters[activeChapter].title}
-                                </h3>
+                                {/* Mittige Trennlinie */}
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 h-50 w-px bg-white/30" />
                             </div>
 
-                            <p className="text-zinc-400 text-lg leading-relaxed font-light max-w-3xl whitespace-pre-line">
-                                {chapters[activeChapter].body}
-                            </p>
+                            {/* Inhalt */}
+                            <div className="flex-1 p-10 md:p-12">
+                                <h3 className="text-2xl md:text-3xl font-serif italic text-white leading-snug mb-6">
+                                    {chapters[activeChapter].title}
+                                </h3>
 
-                            {/* Optionale Etappe/Höhe-Felder, falls in der DB vorhanden */}
-                            {(Boolean(route?.[`${chapters[activeChapter].key}_distance`]) || Boolean(route?.[`${chapters[activeChapter].key}_elevation`])) && (
-                                <div className="flex gap-10 mt-8 pt-8 border-t border-white/5 text-xs uppercase tracking-[0.2em] text-zinc-500">
-                                    {Boolean(route?.[`${chapters[activeChapter].key}_distance`]) && (
-                                        <span>
-                                            Etappe
-                                            <span className="text-emerald-400 font-bold ml-2">
-                                                {String(route?.[`${chapters[activeChapter].key}_distance`] ?? '')}
+                                <p className="text-zinc-400 text-lg leading-relaxed font-light max-w-3xl whitespace-pre-line">
+                                    {chapters[activeChapter].body}
+                                </p>
+
+                                {/* Optionale Etappe/Höhe-Felder, falls in der DB vorhanden */}
+                                {(Boolean(route?.[`${chapters[activeChapter].key}_distance`]) || Boolean(route?.[`${chapters[activeChapter].key}_elevation`])) && (
+                                    <div className="flex gap-10 mt-8 pt-8 border-t border-white/5 text-xs uppercase tracking-[0.2em] text-zinc-500">
+                                        {Boolean(route?.[`${chapters[activeChapter].key}_distance`]) && (
+                                            <span>
+                                                Etappe
+                                                <span className="text-emerald-400 font-bold ml-2">
+                                                    {String(route?.[`${chapters[activeChapter].key}_distance`] ?? '')}
+                                                </span>
                                             </span>
-                                        </span>
-                                    )}
-                                    {Boolean(route?.[`${chapters[activeChapter].key}_elevation`]) && (
-                                        <span>
-                                            Höhe
-                                            <span className="text-emerald-400 font-bold ml-2">
-                                                {String(route?.[`${chapters[activeChapter].key}_elevation`] ?? '')}
+                                        )}
+                                        {Boolean(route?.[`${chapters[activeChapter].key}_elevation`]) && (
+                                            <span>
+                                                Höhe
+                                                <span className="text-emerald-400 font-bold ml-2">
+                                                    {String(route?.[`${chapters[activeChapter].key}_elevation`] ?? '')}
+                                                </span>
                                             </span>
-                                        </span>
-                                    )}
-                                </div>
-                            )}
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </motion.div>
+                    </div>
+                )}
 
-                        {/* Impressionen */}
-                        <div className="space-y-4">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-500">
-                                Impressionen
-                            </p>
-                            <motion.div
-                                key={`img-${chapters[activeChapter].key}`}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.6 }}
-                                className="relative h-[400px] md:h-[480px] w-full overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl group"
-                            >
-                                <img
-                                    src={
-                                        (route?.[`${chapters[activeChapter].key}_image`] as string) || route?.image_url
-                                    }
-                                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                                    alt={chapters[activeChapter].title}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                <div className="absolute bottom-6 left-6 right-6">
-                                    <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-400">
-                                        {chapters[activeChapter].title}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        </div>
+                {/* Impressionen — eigenständiger Bereich, unabhängig von den Kapiteln */}
+                {impressionImages.length > 0 && (
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-500">
+                            Impressionen
+                        </p>
+                        <ImpressionSlideshow
+                            images={impressionImages}
+                            intervalMs={4000}
+                        />
                     </div>
                 )}
             </section>
 
             {/* ── 4. Map Section ── */}
             <section id="route-map" className="max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-10">
+                <div className="space-y-6 mb-10 px-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-zinc-500">
+                        Navigation
+                    </p>
+                    <h2 className="text-5xl md:text-6xl font-serif italic text-emerald-50 leading-tight">
+                        Route <span className="text-emerald-500">Overview</span>
+                    </h2>
+                    <div className="h-px w-32 bg-emerald-500/30" />
+                </div>
+
                 <div className="bg-zinc-900/80 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-md">
                     {/* ── Night-Mode Map Card (full width) ── */}
                     <div className="relative h-[600px] w-full overflow-hidden bg-[#0b1220]">
@@ -693,5 +778,3 @@ export default function RouteDetailPage() {
         </div>
     );
 }
-
-// uses this map for the black theme and the code from claude code for the white theme
