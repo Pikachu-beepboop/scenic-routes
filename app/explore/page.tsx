@@ -30,6 +30,9 @@ function ExplorePageInner() {
   const loginRedirect = `${pathname}${currentQueryForLogin ? `?${currentQueryForLogin}` : ""}`;
   const loginHref = `/login?redirect=${encodeURIComponent(loginRedirect)}`;
 
+  // "selected" / "selectedDate" sind nur der Entwurf im Dropdown.
+  // "appliedSelected" / "appliedSelectedDate" sind die tatsächlich
+  // angewendeten Werte, die Fetch + URL steuern (erst bei "Find Route").
   const [selected, setSelected] = useState(
     searchParams.get("destination") || searchParams.get("country") || ""
   );
@@ -37,6 +40,9 @@ function ExplorePageInner() {
   const [selectedDate, setSelectedDate] = useState(
     searchParams.get("duration") || ""
   );
+
+  const [appliedSelected, setAppliedSelected] = useState(selected);
+  const [appliedSelectedDate, setAppliedSelectedDate] = useState(selectedDate);
 
   const [filters, setFilters] = useState<{
     difficulty: string[];
@@ -60,8 +66,8 @@ function ExplorePageInner() {
 
     const params = new URLSearchParams();
 
-    if (selected) params.set("destination", selected);
-    if (selectedDate) params.set("duration", selectedDate);
+    if (appliedSelected) params.set("destination", appliedSelected);
+    if (appliedSelectedDate) params.set("duration", appliedSelectedDate);
     if (filters.difficulty.length > 0)
       params.set("terrain", filters.difficulty.join(","));
     if (filters.duration !== "any") params.set("dur", filters.duration);
@@ -75,7 +81,7 @@ function ExplorePageInner() {
       scroll: false,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, selectedDate, filters]);
+  }, [appliedSelected, appliedSelectedDate, filters]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenDate, setIsOpenDate] = useState(false);
@@ -107,6 +113,8 @@ function ExplorePageInner() {
   const clearAllFilters = () => {
     setSelected("");
     setSelectedDate("");
+    setAppliedSelected("");
+    setAppliedSelectedDate("");
     setFilters({
       difficulty: [],
       duration: "any",
@@ -260,12 +268,12 @@ function ExplorePageInner() {
 
     let query = supabase.from("routes").select("*");
 
-    if (selected && selected !== "Choose destination") {
-      query = query.eq("country", selected);
+    if (appliedSelected && appliedSelected !== "Choose destination") {
+      query = query.eq("country", appliedSelected);
     }
 
-    if (selectedDate && selectedDate !== "Choose duration") {
-      query = query.eq("duration", selectedDate);
+    if (appliedSelectedDate && appliedSelectedDate !== "Choose duration") {
+      query = query.eq("duration", appliedSelectedDate);
     }
 
     if (filters.countries.length > 0) {
@@ -294,7 +302,7 @@ function ExplorePageInner() {
 
   useEffect(() => {
     fetchRoutes();
-  }, [selected, selectedDate, filters]);
+  }, [appliedSelected, appliedSelectedDate, filters]);
 
   useEffect(() => {
     if (!user) {
@@ -832,7 +840,13 @@ img { display:block; }
                   )}
                 </div>
 
-                <button className="search-btn" onClick={fetchRoutes}>
+                <button
+                  className="search-btn"
+                  onClick={() => {
+                    setAppliedSelected(selected);
+                    setAppliedSelectedDate(selectedDate);
+                  }}
+                >
                   Find Route →
                 </button>
               </div>
@@ -1000,7 +1014,7 @@ img { display:block; }
           </div>
 
           {/* ACTIVE TAGS */}
-          {(activeFilterCount > 0 || selected || selectedDate) && (
+          {(activeFilterCount > 0 || appliedSelected || appliedSelectedDate) && (
             <div className="active-tags">
               {filters.difficulty.map((t) => (
                 <span key={t} className="active-tag">
@@ -1020,17 +1034,31 @@ img { display:block; }
                 </span>
               ))}
 
-              {selected && (
+              {appliedSelected && (
                 <span className="active-tag">
-                  {selected}
-                  <button onClick={() => setSelected("")}>×</button>
+                  {appliedSelected}
+                  <button
+                    onClick={() => {
+                      setSelected("");
+                      setAppliedSelected("");
+                    }}
+                  >
+                    ×
+                  </button>
                 </span>
               )}
 
-              {selectedDate && (
+              {appliedSelectedDate && (
                 <span className="active-tag">
-                  {selectedDate}
-                  <button onClick={() => setSelectedDate("")}>×</button>
+                  {appliedSelectedDate}
+                  <button
+                    onClick={() => {
+                      setSelectedDate("");
+                      setAppliedSelectedDate("");
+                    }}
+                  >
+                    ×
+                  </button>
                 </span>
               )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "next-themes";
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -33,6 +34,12 @@ export default function WorldMap() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [tooltip, setTooltip] = useState<{ title: string; country: string; x: number; y: number } | null>(null);
   const router = useRouter();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     supabase
@@ -46,16 +53,42 @@ export default function WorldMap() {
   }, []);
 
   const markers = routes.length > 0 ? routes : FALLBACK_MARKERS;
+  const isLight = mounted && theme === "light";
+
+  // Theme-abhängige Map-Farben — dunkel/erdig im Dark-Mode,
+  // warmes Creme im Light-Mode, passend zum restlichen Seitendesign.
+  const mapColors = isLight
+    ? {
+        containerBg: "#F4F0E8",
+        containerBorder: "rgba(43,38,32,0.14)",
+        geoDefault: "#E9E2D2",
+        geoStroke: "#D8CFB8",
+        geoHover: "#E0D7C2",
+        tooltipBg: "rgba(244,240,232,0.97)",
+        tooltipBorder: "rgba(201,168,106,0.35)",
+        tooltipTitle: "#2B2620",
+      }
+    : {
+        containerBg: "#0c0b09",
+        containerBorder: "rgba(255,255,255,0.2)",
+        geoDefault: "#1a1710",
+        geoStroke: "#2a2518",
+        geoHover: "#221f14",
+        tooltipBg: "rgba(18,16,10,0.96)",
+        tooltipBorder: "rgba(201,168,106,0.3)",
+        tooltipTitle: "#EDE5D4",
+      };
 
   return (
     <div style={{
       position: "relative",
-      background: "#0c0b09",
+      background: mapColors.containerBg,
       overflow: "hidden",
       lineHeight: 0,
       margin: "0 -7%",  // ← schiebt die Karte 8% über den Rand hinaus
-      border: "1px solid  rgba(255,255,255,0.2)",
+      border: `1px solid ${mapColors.containerBorder}`,
       borderRadius: "15px",
+      transition: "background .35s, border-color .35s",
     }}>
       <ComposableMap
         projection="geoMercator"
@@ -70,9 +103,9 @@ export default function WorldMap() {
                 key={geo.rsmKey}
                 geography={geo}
                 style={{
-                  default: { fill: "#1a1710", stroke: "#2a2518", strokeWidth: 0.5, outline: "none" },
-                  hover: { fill: "#221f14", stroke: "#2a2518", strokeWidth: 0.5, outline: "none" },
-                  pressed: { fill: "#1a1710", outline: "none" },
+                  default: { fill: mapColors.geoDefault, stroke: mapColors.geoStroke, strokeWidth: 0.5, outline: "none" },
+                  hover: { fill: mapColors.geoHover, stroke: mapColors.geoStroke, strokeWidth: 0.5, outline: "none" },
+                  pressed: { fill: mapColors.geoDefault, outline: "none" },
                 }}
               />
             ))
@@ -110,15 +143,15 @@ export default function WorldMap() {
           position: "absolute",
           left: tooltip.x > 600 ? tooltip.x - 160 : tooltip.x + 12,
           top: tooltip.y - 40,
-          background: "rgba(18,16,10,0.96)",
-          border: "1px solid rgba(201,168,106,0.3)",
+          background: mapColors.tooltipBg,
+          border: `1px solid ${mapColors.tooltipBorder}`,
           borderRadius: "10px",
           padding: "10px 14px",
           pointerEvents: "none",
           zIndex: 100,
           backdropFilter: "blur(12px)",
         }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#EDE5D4", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "12px" }}>{tooltip.title}</div>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: mapColors.tooltipTitle, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "12px" }}>{tooltip.title}</div>
           <div style={{ fontSize: "9px", color: "#C9A86A", letterSpacing: "0.15em", textTransform: "uppercase" }}>{tooltip.country}</div>
         </div>
       )}
