@@ -110,7 +110,7 @@ export default function MyTripsPage() {
         .light {
           --bg:#F4F0E8; --bg2:#EDE8DC; --bg3:#E5DFD0;
           --gold:#C9A86A; --cream:#2B2620;
-          --muted:rgba(43,38,32,0.62); --dim:rgba(43,38,32,0.38);
+          --muted:rgba(0, 0, 0, 0.62); --dim:rgba(43,38,32,0.38);
           --border:rgba(43,38,32,0.12);
           --serif:'Cormorant Garamond',Georgia,serif;
           --sans:'Inter',system-ui,sans-serif;
@@ -170,9 +170,9 @@ export default function MyTripsPage() {
         .page-header { position:relative; min-height:100vh; padding:120px clamp(24px,5vw,80px) 58px; overflow:hidden; display:flex; align-items:center; }
         .page-header-bg { position:absolute; inset:0; z-index:0; }
         .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(0.56) contrast(1.08) saturate(0.9); transition:filter .35s; }
-        .light .page-header-bg img { filter:brightness(0.9) contrast(1.02) saturate(0.95); }
+        .light .page-header-bg img { filter:brightness(0.85) contrast(1) saturate(1); }
         .page-header-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 65% 42%,rgba(201,168,106,0.13) 0%,transparent 28%),linear-gradient(to right,rgba(12,11,9,0.96) 0%,rgba(12,11,9,0.75) 42%,rgba(12,11,9,0.48) 100%),linear-gradient(to bottom,rgba(12,11,9,0.20) 0%,rgba(12,11,9,0.42) 55%,rgba(12,11,9,0.94) 100%); }
-        .light .page-header-bg::after { background:linear-gradient(to right,rgba(244,240,232,0.82) 0%,rgba(244,240,232,0.45) 40%,rgba(244,240,232,0.1) 70%,transparent 100%),linear-gradient(to bottom,transparent 0%,transparent 55%,rgba(244,240,232,0.6) 85%,rgba(244,240,232,0.9) 100%); }
+        .light .page-header-bg::after { background:linear-gradient(to right,rgba(244,240,232,0.35) 0%,rgba(244,240,232,0.15) 40%,rgba(244,240,232,0.05) 70%,transparent 100%); }
         .page-header-inner { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; display:grid; grid-template-columns:minmax(340px,0.85fr) minmax(560px,1.15fr); align-items:center; gap:clamp(48px,7vw,96px); }
 
         /* LEFT SIDE */
@@ -181,8 +181,8 @@ export default function MyTripsPage() {
         .collection-line { width:58px; height:1px; background:linear-gradient(to right,transparent,rgba(201,168,106,0.75)); }
         .page-eyebrow { font-size:10px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); }
         .page-h1 { font-family:var(--serif); font-size:clamp(76px,7vw,118px); font-weight:300; line-height:0.86; letter-spacing:-0.055em; color:var(--cream); text-shadow:0 24px 70px rgba(0,0,0,0.55); }
-        .light .page-h1 { text-shadow:0 4px 20px rgba(0,0,0,0.12); }
-        .page-sub { margin-top:30px; font-size:18px; color:var(--muted); font-weight:300; line-height:1.75; max-width:470px; }
+        .light .page-h1{color:#111; text-shadow:0 2px 8px rgba(0,0,0,.08);}
+        .page-sub { margin-top:30px; font-size:18px; color:var(--muted); font-weight:500; line-height:1.8; max-width:470px; }
         .collection-stats { display:flex; gap:14px; margin-top:46px; }
         .collection-stat { min-width:180px; padding:22px 24px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--border) 40%, transparent); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.12); transition:background .35s, border-color .35s; }
         .collection-stat-icon { font-size:19px; color:var(--gold); margin-bottom:10px; }
@@ -191,9 +191,9 @@ export default function MyTripsPage() {
         .collection-stat-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); padding-bottom:3px; }
 
         /* RIGHT PANEL */
-        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
+        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
         .saved-preview-head { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
-        .saved-preview-title { font-family:var(--serif); font-size:25px; font-weight:300; color:var(--cream); }
+        .saved-preview-title { font-family:var(--serif); font-size:28px; font-weight:400; color:var(--cream); }
         .saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); opacity:0.88; white-space:nowrap; }
         .saved-preview-list { display:flex; flex-direction:column; height:auto; max-height:520px; overflow-y:auto; padding-right:10px; }
         .saved-preview-list::-webkit-scrollbar { width:4px; }
@@ -206,8 +206,8 @@ export default function MyTripsPage() {
         .saved-preview-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88) saturate(0.9); transition:transform .7s ease; }
         .saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
         .saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
-        .saved-preview-name { font-family:var(--serif); font-size:30px; font-weight:300; line-height:1; color:var(--cream); margin-bottom:12px; }
-        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--dim); }
+        .saved-preview-name { font-family:var(--serif); font-size:32px; font-weight:400; line-height:1; color:var(--cream); margin-bottom:12px; }
+        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px;  color:rgba(0,0,0,.62); font-weight:500; }
         .saved-preview-meta span { display:inline-flex; align-items:center; gap:6px; }
         .saved-preview-action-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
         .saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; font-size:23px; line-height:1; padding-bottom:3px; }

@@ -8,7 +8,7 @@ import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
 
 const TEAM = [
-  { initials: "LV", name: "Lavr V.",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
+  { initials: "LA", name: "Lavr",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
   { initials: "US", name: "Usman",    role: "Co-Founder & Engineering",  bio: "The brain behind the tech. Builds every feature from the ground up and keeps everything running smoothly." },
   { initials: "MD", name: "Madalina", role: "Design Manager",            bio: "Makes sure every pixel is in its right place. Turns complex ideas into clean, beautiful interfaces." },
 ];
