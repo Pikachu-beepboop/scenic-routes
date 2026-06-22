@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import AuthModal from "../AuthModal";
+import { useTheme } from "next-themes";
+import { ThemeSwitch } from "../components/ThemeSwitch";
 
 const fmtKm = (km?: number) =>
   km != null ? `${km.toLocaleString("en-US")} km` : "—";
@@ -17,6 +19,8 @@ export default function MyTripsPage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
   const router = useRouter();
 
   const [username, setUsername] = useState("");
@@ -25,6 +29,8 @@ export default function MyTripsPage() {
   const savedCountriesCount = new Set(
     savedRoutes.map((route: any) => route.country).filter(Boolean)
   ).size;
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
@@ -36,88 +42,52 @@ export default function MyTripsPage() {
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);
-
-      if (!u) {
-        setLoading(false);
-        return;
-      }
-
+      if (!u) { setLoading(false); return; }
       fetchSavedRoutes(u.id);
       fetchProfile(u.id);
     });
-
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
       const u = s?.user ?? null;
       setUser(u);
-
-      if (u) {
-        fetchSavedRoutes(u.id);
-        fetchProfile(u.id);
-      } else {
-        setSavedRoutes([]);
-        setAvatarUrl("");
-        setLoading(false);
-      }
+      if (u) { fetchSavedRoutes(u.id); fetchProfile(u.id); }
+      else { setSavedRoutes([]); setAvatarUrl(""); setLoading(false); }
     });
-
     return () => listener.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!showUserMenu) return;
-
     const handler = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest(".user-menu-wrap")) {
-        setShowUserMenu(false);
-      }
+      if (!(e.target as HTMLElement).closest(".user-menu-wrap")) setShowUserMenu(false);
     };
-
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
 
   async function fetchSavedRoutes(userId: string) {
     setLoading(true);
-
     const { data, error } = await supabase
       .from("saved_routes")
       .select("route_id, routes(*)")
       .eq("user_id", userId);
-
-    if (!error && data) {
-      setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
-    }
-
+    if (!error && data) setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
     setLoading(false);
   }
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", userId)
-      .single();
-
-    if (data) setAvatarUrl(data.avatar_url || "");
+    const { data } = await supabase.from("profiles").select("avatar_url, username").eq("id", userId).single();
+    if (data) { setAvatarUrl(data.avatar_url || ""); setUsername(data.username || ""); }
   }
 
   async function handleUnsave(routeId: string) {
     if (!user) return;
-
-    await supabase
-      .from("saved_routes")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("route_id", routeId);
-
+    await supabase.from("saved_routes").delete().eq("user_id", user.id).eq("route_id", routeId);
     setSavedRoutes((prev) => prev.filter((r: any) => r.id !== routeId));
   }
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    setUser(null);
-    setSavedRoutes([]);
-    setShowUserMenu(false);
+    setUser(null); setSavedRoutes([]); setShowUserMenu(false);
     router.push("/");
   }
 
@@ -126,16 +96,35 @@ export default function MyTripsPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-:root { --bg:#0c0b09; --bg2:#111009; --bg3:#181510; --gold:#C9A86A; --cream:#EDE5D4; --muted:rgba(237,229,212,0.56); --dim:rgba(237,229,212,0.32); --border:rgba(237,229,212,0.10); --serif:'Cormorant Garamond',Georgia,serif; --sans:'Inter',system-ui,sans-serif; }
-.mt *, .mt *::before, .mt *::after { box-sizing:border-box; margin:0; padding:0; }
-.mt a { color:inherit; text-decoration:none; }
-.mt button { border:none; font:inherit; cursor:pointer; background:none; }
-.mt img { display:block; }
-.mt { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; }
+        /* DARK THEME */
+        .dark {
+          --bg:#0c0b09; --bg2:#111009; --bg3:#181510;
+          --gold:#C9A86A; --cream:#EDE5D4;
+          --muted:rgba(237,229,212,0.56); --dim:rgba(237,229,212,0.32);
+          --border:rgba(237,229,212,0.10);
+          --serif:'Cormorant Garamond',Georgia,serif;
+          --sans:'Inter',system-ui,sans-serif;
+        }
 
-/* NAV */
+        /* LIGHT THEME */
+        .light {
+          --bg:#F4F0E8; --bg2:#EDE8DC; --bg3:#E5DFD0;
+          --gold:#C9A86A; --cream:#2B2620;
+          --muted:rgba(43,38,32,0.62); --dim:rgba(43,38,32,0.38);
+          --border:rgba(43,38,32,0.12);
+          --serif:'Cormorant Garamond',Georgia,serif;
+          --sans:'Inter',system-ui,sans-serif;
+        }
+
+        .mt *, .mt *::before, .mt *::after { box-sizing:border-box; margin:0; padding:0; }
+        .mt a { color:inherit; text-decoration:none; }
+        .mt button { border:none; font:inherit; cursor:pointer; background:none; }
+        .mt img { display:block; }
+        .mt { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; transition:background .35s, color .35s; }
+
+        /* NAV */
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
-        .nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
+        .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
@@ -143,16 +132,25 @@ export default function MyTripsPage() {
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
-        .nav-right { display:flex; align-items:center; gap:12px; }
-        .login-btn { padding:10px 22px; border:1px solid rgba(237,229,212,0.28); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:rgba(237,229,212,0.04); transition:all .25s; }
+        .nav-link-active { color:var(--cream) !important; font-weight:700; }
+        .nav-right { display:flex; align-items:center; gap:16px; }
+        .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
         .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
         .user-avatar:hover { border-color:var(--gold); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
+        /* THEME SWITCH */
+        .theme-switch { position:relative; display:flex; align-items:center; width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
+        .theme-switch:hover { border-color:var(--gold); }
+        .theme-switch-knob { position:absolute; top:3px; left:3px; width:30px; height:30px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
+        .theme-switch-knob.is-light { transform:translateX(50px); }
+        .theme-switch-icon { width:14px; height:14px; }
+        .theme-switch-placeholder { width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
+
         /* USER DROPDOWN */
         .user-menu-wrap { position:relative; }
-        .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:rgba(14,12,10,0.97); border:1px solid rgba(237,229,212,0.12); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
+        .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
         @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
         .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
         .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
@@ -162,113 +160,110 @@ export default function MyTripsPage() {
         .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
-        .ud-link:hover { background:rgba(237,229,212,0.06); color:var(--cream); }
+        .ud-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
         .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
         .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
         .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
         .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
-/* HERO */
-.page-header { position:relative; min-height:100vh; padding:120px clamp(24px,5vw,80px) 58px; overflow:hidden; display:flex; align-items:center; }
-.page-header-bg { position:absolute; inset:0; z-index:0; }
-.page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(0.56) contrast(1.08) saturate(0.9); }
-.page-header-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 65% 42%,rgba(201,168,106,0.13) 0%,transparent 28%),linear-gradient(to right,rgba(12,11,9,0.96) 0%,rgba(12,11,9,0.75) 42%,rgba(12,11,9,0.48) 100%),linear-gradient(to bottom,rgba(12,11,9,0.20) 0%,rgba(12,11,9,0.42) 55%,rgba(12,11,9,0.94) 100%); }
-.page-header-inner { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; display:grid; grid-template-columns:minmax(340px,0.85fr) minmax(560px,1.15fr); align-items:center; gap:clamp(48px,7vw,96px); }
+        /* HERO */
+        .page-header { position:relative; min-height:100vh; padding:120px clamp(24px,5vw,80px) 58px; overflow:hidden; display:flex; align-items:center; }
+        .page-header-bg { position:absolute; inset:0; z-index:0; }
+        .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(0.56) contrast(1.08) saturate(0.9); transition:filter .35s; }
+        .light .page-header-bg img { filter:brightness(0.9) contrast(1.02) saturate(0.95); }
+        .page-header-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 65% 42%,rgba(201,168,106,0.13) 0%,transparent 28%),linear-gradient(to right,rgba(12,11,9,0.96) 0%,rgba(12,11,9,0.75) 42%,rgba(12,11,9,0.48) 100%),linear-gradient(to bottom,rgba(12,11,9,0.20) 0%,rgba(12,11,9,0.42) 55%,rgba(12,11,9,0.94) 100%); }
+        .light .page-header-bg::after { background:linear-gradient(to right,rgba(244,240,232,0.82) 0%,rgba(244,240,232,0.45) 40%,rgba(244,240,232,0.1) 70%,transparent 100%),linear-gradient(to bottom,transparent 0%,transparent 55%,rgba(244,240,232,0.6) 85%,rgba(244,240,232,0.9) 100%); }
+        .page-header-inner { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; display:grid; grid-template-columns:minmax(340px,0.85fr) minmax(560px,1.15fr); align-items:center; gap:clamp(48px,7vw,96px); }
 
-/* LEFT SIDE */
-.collection-copy { max-width:560px; }
-.collection-eyebrow-wrap { display:flex; align-items:center; gap:18px; margin-bottom:22px; }
-.collection-line { width:58px; height:1px; background:linear-gradient(to right,transparent,rgba(201,168,106,0.75)); }
-.page-eyebrow { font-size:10px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); }
-.page-h1 { font-family:var(--serif); font-size:clamp(76px,7vw,118px); font-weight:300; line-height:0.86; letter-spacing:-0.055em; color:var(--cream); text-shadow:0 24px 70px rgba(0,0,0,0.55); }
-.page-sub { margin-top:30px; font-size:18px; color:rgba(237,229,212,0.62); font-weight:300; line-height:1.75; max-width:470px; }
-.collection-stats { display:flex; gap:14px; margin-top:46px; }
-.collection-stat { min-width:180px; padding:22px 24px; border:1px solid rgba(237,229,212,0.13); border-radius:18px; background:rgba(237,229,212,0.045); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.22); }
-.collection-stat-icon { font-size:19px; color:var(--gold); margin-bottom:10px; }
-.collection-stat-main { display:flex; align-items:flex-end; gap:8px; }
-.collection-stat-number { font-family:var(--serif); font-size:42px; font-weight:300; line-height:0.8; color:var(--cream); }
-.collection-stat-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:rgba(237,229,212,0.6); padding-bottom:3px; }
+        /* LEFT SIDE */
+        .collection-copy { max-width:560px; }
+        .collection-eyebrow-wrap { display:flex; align-items:center; gap:18px; margin-bottom:22px; }
+        .collection-line { width:58px; height:1px; background:linear-gradient(to right,transparent,rgba(201,168,106,0.75)); }
+        .page-eyebrow { font-size:10px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); }
+        .page-h1 { font-family:var(--serif); font-size:clamp(76px,7vw,118px); font-weight:300; line-height:0.86; letter-spacing:-0.055em; color:var(--cream); text-shadow:0 24px 70px rgba(0,0,0,0.55); }
+        .light .page-h1 { text-shadow:0 4px 20px rgba(0,0,0,0.12); }
+        .page-sub { margin-top:30px; font-size:18px; color:var(--muted); font-weight:300; line-height:1.75; max-width:470px; }
+        .collection-stats { display:flex; gap:14px; margin-top:46px; }
+        .collection-stat { min-width:180px; padding:22px 24px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--border) 40%, transparent); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.12); transition:background .35s, border-color .35s; }
+        .collection-stat-icon { font-size:19px; color:var(--gold); margin-bottom:10px; }
+        .collection-stat-main { display:flex; align-items:flex-end; gap:8px; }
+        .collection-stat-number { font-family:var(--serif); font-size:42px; font-weight:300; line-height:0.8; color:var(--cream); }
+        .collection-stat-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); padding-bottom:3px; }
 
-/* RIGHT PANEL */
-.saved-preview-panel { width:100%; border:1px solid rgba(237,229,212,0.14); border-radius:26px; background:linear-gradient(135deg,rgba(237,229,212,0.09),rgba(237,229,212,0.025)),rgba(12,11,9,0.46); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; }
-.saved-preview-head { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
-.saved-preview-title { font-family:var(--serif); font-size:25px; font-weight:300; color:var(--cream); }
-.saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); opacity:0.88; white-space:nowrap; }
-.saved-preview-list { display:flex; flex-direction:column; height:auto; max-height:520px; overflow-y:auto; padding-right:10px; }
-.saved-preview-list::-webkit-scrollbar { width:4px; }
-.saved-preview-list::-webkit-scrollbar-track { background:rgba(237,229,212,0.05); border-radius:999px; }
-.saved-preview-list::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.38); border-radius:999px; }
-.saved-preview-item { display:grid; grid-template-columns:170px 1fr auto; gap:26px; align-items:center; min-height:130px; padding:14px 0; border-bottom:1px solid rgba(237,229,212,0.1); }
-.saved-preview-item:first-child { padding-top:0; }
-.saved-preview-item:last-child { border-bottom:none; }
-.saved-preview-thumb { position:relative; height:104px; border-radius:13px; overflow:hidden; background:var(--bg3); border:1px solid rgba(237,229,212,0.1); }
-.saved-preview-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88) saturate(0.9); transition:transform .7s ease; }
-.saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
-.saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
-.saved-preview-name { font-family:var(--serif); font-size:30px; font-weight:300; line-height:1; color:var(--cream); margin-bottom:12px; }
-.saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px; color:rgba(237,229,212,0.48); }
-.saved-preview-meta span { display:inline-flex; align-items:center; gap:6px; }
-.saved-preview-action-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
-.saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; font-size:23px; line-height:1; padding-bottom:3px; }
-.saved-preview-action:hover { background:var(--gold); color:var(--bg); transform:translateX(2px); }
-.saved-preview-remove { width:32px; height:32px; border-radius:50%; border:1px solid rgba(237,229,212,0.12); color:rgba(237,229,212,0.36); display:flex; align-items:center; justify-content:center; transition:all .2s; font-size:15px; }
-.saved-preview-remove:hover { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
-.saved-preview-empty { min-height:360px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px dashed rgba(237,229,212,0.16); border-radius:20px; background:rgba(12,11,9,0.28); padding:34px; }
-.saved-preview-empty-icon { width:62px; height:62px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:24px; margin-bottom:18px; }
-.saved-preview-empty h3 { font-family:var(--serif); font-size:32px; font-weight:300; color:var(--cream); margin-bottom:10px; }
-.saved-preview-empty p { color:var(--dim); font-size:14px; line-height:1.7; max-width:340px; margin-bottom:24px; }
-.btn-gold-filled { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
-.btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
-.spinner { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; }
+        /* RIGHT PANEL */
+        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
+        .saved-preview-head { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
+        .saved-preview-title { font-family:var(--serif); font-size:25px; font-weight:300; color:var(--cream); }
+        .saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); opacity:0.88; white-space:nowrap; }
+        .saved-preview-list { display:flex; flex-direction:column; height:auto; max-height:520px; overflow-y:auto; padding-right:10px; }
+        .saved-preview-list::-webkit-scrollbar { width:4px; }
+        .saved-preview-list::-webkit-scrollbar-track { background:color-mix(in srgb, var(--border) 40%, transparent); border-radius:999px; }
+        .saved-preview-list::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.38); border-radius:999px; }
+        .saved-preview-item { display:grid; grid-template-columns:170px 1fr auto; gap:26px; align-items:center; min-height:130px; padding:14px 0; border-bottom:1px solid var(--border); }
+        .saved-preview-item:first-child { padding-top:0; }
+        .saved-preview-item:last-child { border-bottom:none; }
+        .saved-preview-thumb { position:relative; height:104px; border-radius:13px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); }
+        .saved-preview-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88) saturate(0.9); transition:transform .7s ease; }
+        .saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
+        .saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+        .saved-preview-name { font-family:var(--serif); font-size:30px; font-weight:300; line-height:1; color:var(--cream); margin-bottom:12px; }
+        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--dim); }
+        .saved-preview-meta span { display:inline-flex; align-items:center; gap:6px; }
+        .saved-preview-action-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+        .saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; font-size:23px; line-height:1; padding-bottom:3px; }
+        .saved-preview-action:hover { background:var(--gold); color:var(--bg); transform:translateX(2px); }
+        .saved-preview-remove { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); color:var(--dim); display:flex; align-items:center; justify-content:center; transition:all .2s; font-size:15px; }
+        .saved-preview-remove:hover { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
+        .saved-preview-empty { min-height:360px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px dashed var(--border); border-radius:20px; background:color-mix(in srgb, var(--border) 30%, transparent); padding:34px; }
+        .saved-preview-empty-icon { width:62px; height:62px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:24px; margin-bottom:18px; }
+        .saved-preview-empty h3 { font-family:var(--serif); font-size:32px; font-weight:300; color:var(--cream); margin-bottom:10px; }
+        .saved-preview-empty p { color:var(--dim); font-size:14px; line-height:1.7; max-width:340px; margin-bottom:24px; }
+        .btn-gold-filled { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:#0c0b09; transition:all .25s; }
+        .btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
+        .spinner { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
 
-@keyframes spin {
-  to { transform:rotate(360deg); }
-}
+        /* FOOTER */
+        .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; transition:background .35s; }
+        .footer-inner { max-width:1380px; margin:0 auto; }
+        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
+        .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
+        .footer-socials { display:flex; gap:8px; }
+        .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
+        .footer-social:hover { border-color:var(--gold); color:var(--gold); }
+        .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
+        .footer-col a { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
+        .footer-col a:hover { color:var(--cream); }
+        .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+        .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+        .footer-legal { display:flex; gap:22px; }
+        .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
+        .footer-legal a:hover { color:var(--cream); }
 
-/* FOOTER */
-.footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
-.footer-inner { max-width:1380px; margin:0 auto; }
-.footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
-.footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
-.footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
-.footer-socials { display:flex; gap:8px; }
-.footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
-.footer-social:hover { border-color:var(--gold); color:var(--gold); }
-.footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
-.footer-col a { display:block; font-size:12px; color:rgba(237,229,212,0.38); margin-bottom:10px; font-weight:300; transition:color .2s; }
-.footer-col a:hover { color:var(--cream); }
-.footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
-.footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
-.footer-legal { display:flex; gap:22px; }
-.footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
-.footer-legal a:hover { color:var(--cream); }
-
-@media (max-width:1100px) {
-  .page-header { min-height:auto; padding-top:140px; }
-  .page-header-inner { grid-template-columns:1fr; }
-  .saved-preview-panel { max-width:780px; }
-  .footer-top { grid-template-columns:1fr 1fr; }
-}
-
-@media (max-width:760px) {
-  .nav-links { display:none; }
-  .page-header { padding:120px 20px 56px; }
-  .page-h1 { font-size:clamp(58px,17vw,82px); }
-  .page-sub { font-size:15px; }
-  .collection-stats { flex-direction:column; }
-  .collection-stat { width:100%; }
-  .saved-preview-panel { padding:20px; border-radius:20px; }
-  .saved-preview-head { flex-direction:column; align-items:flex-start; }
-  .saved-preview-list { max-height:520px; }
-  .saved-preview-item { grid-template-columns:1fr; gap:14px; min-height:auto; }
-  .saved-preview-thumb { height:190px; }
-  .saved-preview-action-wrap { flex-direction:row; width:100%; }
-  .saved-preview-action, .saved-preview-remove { width:100%; border-radius:999px; }
-  .footer-top { grid-template-columns:1fr; }
-  .footer-bottom { flex-direction:column; align-items:flex-start; }
-}
-
-
+        @media (max-width:1100px) {
+          .page-header { min-height:auto; padding-top:140px; }
+          .page-header-inner { grid-template-columns:1fr; }
+          .saved-preview-panel { max-width:780px; }
+          .footer-top { grid-template-columns:1fr 1fr; }
+        }
+        @media (max-width:760px) {
+          .nav-links { display:none; }
+          .page-header { padding:120px 20px 56px; }
+          .page-h1 { font-size:clamp(58px,17vw,82px); }
+          .page-sub { font-size:15px; }
+          .collection-stats { flex-direction:column; }
+          .collection-stat { width:100%; }
+          .saved-preview-panel { padding:20px; border-radius:20px; }
+          .saved-preview-head { flex-direction:column; align-items:flex-start; }
+          .saved-preview-list { max-height:520px; }
+          .saved-preview-item { grid-template-columns:1fr; gap:14px; min-height:auto; }
+          .saved-preview-thumb { height:190px; }
+          .saved-preview-action-wrap { flex-direction:row; width:100%; }
+          .saved-preview-action, .saved-preview-remove { width:100%; border-radius:999px; }
+          .footer-top { grid-template-columns:1fr; }
+          .footer-bottom { flex-direction:column; align-items:flex-start; }
+        }
       `}</style>
 
       <div className="mt">
@@ -279,9 +274,10 @@ export default function MyTripsPage() {
             {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
               <Link key={l} href={h} className="nav-link">{l}</Link>
             ))}
-            {user && <Link href="/my-trips" className="nav-link" style={{color:'#EDE5D4'}}>My Trips</Link>}
+            {user && <Link href="/my-trips" className="nav-link nav-link-active">My Trips</Link>}
           </div>
           <div className="nav-right">
+            <ThemeSwitch />
             {user ? (
               <div className="user-menu-wrap">
                 <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
@@ -300,19 +296,11 @@ export default function MyTripsPage() {
                       </div>
                     </div>
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon">◎</span> Profile
-                      </Link>
-                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon">△</span> My Trips
-                      </Link>
-                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon">⬡</span> Explore Routes
-                      </Link>
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon">◎</span> Profile</Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon">△</span> My Trips</Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon">⬡</span> Explore Routes</Link>
                       <div className="ud-divider"/>
-                      <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
-                      </button>
+                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out</button>
                     </div>
                   </div>
                 )}
@@ -326,13 +314,7 @@ export default function MyTripsPage() {
         {/* HERO */}
         <section className="page-header">
           <div className="page-header-bg">
-            <img
-              src="/Misty mountain road to the valley.jpg"
-              alt="Hero"
-              onError={(e) => {
-                e.currentTarget.src = "/Trollstigen.jpg";
-              }}
-            />
+            <img src="/Misty mountain road to the valley.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
           </div>
 
           <div className="page-header-inner">
@@ -341,31 +323,20 @@ export default function MyTripsPage() {
                 <span className="collection-line" />
                 <p className="page-eyebrow">Your Collection</p>
               </div>
-
               <h1 className="page-h1">My Trips</h1>
-
-              <p className="page-sub">
-                The journeys you’ve chosen to remember. Revisit your favorite
-                scenic routes and plan your next adventure.
-              </p>
-
+              <p className="page-sub">The journeys you've chosen to remember. Revisit your favorite scenic routes and plan your next adventure.</p>
               <div className="collection-stats">
                 <div className="collection-stat">
                   <div className="collection-stat-icon">▱</div>
                   <div className="collection-stat-main">
-                    <span className="collection-stat-number">
-                      {user ? savedRoutes.length : 0}
-                    </span>
+                    <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
                     <span className="collection-stat-label">Saved Routes</span>
                   </div>
                 </div>
-
                 <div className="collection-stat">
                   <div className="collection-stat-icon">◎</div>
                   <div className="collection-stat-main">
-                    <span className="collection-stat-number">
-                      {user ? savedCountriesCount : 0}
-                    </span>
+                    <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
                     <span className="collection-stat-label">Countries</span>
                   </div>
                 </div>
@@ -374,14 +345,9 @@ export default function MyTripsPage() {
 
             <div className="saved-preview-panel">
               <div className="saved-preview-head">
-                <h2 className="saved-preview-title">
-                  Your saved scenic routes
-                </h2>
-
+                <h2 className="saved-preview-title">Your saved scenic routes</h2>
                 {user && savedRoutes.length > 0 && (
-                  <span className="saved-preview-count">
-                    {savedRoutes.length} saved
-                  </span>
+                  <span className="saved-preview-count">{savedRoutes.length} saved</span>
                 )}
               </div>
 
@@ -389,16 +355,8 @@ export default function MyTripsPage() {
                 <div className="saved-preview-empty">
                   <div className="saved-preview-empty-icon">♡</div>
                   <h3>Sign in to build your collection.</h3>
-                  <p>
-                    Create an account and save the scenic routes you want to
-                    drive later.
-                  </p>
-                  <button
-                    className="btn-gold-filled"
-                    onClick={() => setIsAuthOpen(true)}
-                  >
-                    Login →
-                  </button>
+                  <p>Create an account and save the scenic routes you want to drive later.</p>
+                  <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>Login →</button>
                 </div>
               ) : loading ? (
                 <div className="saved-preview-empty">
@@ -408,67 +366,30 @@ export default function MyTripsPage() {
                 <div className="saved-preview-empty">
                   <div className="saved-preview-empty-icon">♡</div>
                   <h3>No saved routes yet.</h3>
-                  <p>
-                    Explore the collection and save the routes that speak to
-                    you.
-                  </p>
-                  <Link href="/explore" className="btn-gold-filled">
-                    Explore Routes →
-                  </Link>
+                  <p>Explore the collection and save the routes that speak to you.</p>
+                  <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
                 </div>
               ) : (
                 <div className="saved-preview-list">
                   {savedRoutes.map((route: any) => (
                     <div key={route.id} className="saved-preview-item">
-                      <Link
-                        href={`/routedetail/${route.id}`}
-                        className="saved-preview-thumb"
-                      >
-                        <img
-                          src={route.image_url || "/Amalfi coast road.jpg"}
-                          alt={route.title}
-                          onError={(e) => {
-                            e.currentTarget.src = "/Amalfi coast road.jpg";
-                          }}
-                        />
+                      <Link href={`/routedetail/${route.id}`} className="saved-preview-thumb">
+                        <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
                       </Link>
-
                       <div>
-                        <p className="saved-preview-country">
-                          {route.country || "Scenic Route"}
-                        </p>
-
+                        <p className="saved-preview-country">{route.country || "Scenic Route"}</p>
                         <Link href={`/routedetail/${route.id}`}>
                           <h3 className="saved-preview-name">{route.title}</h3>
                         </Link>
-
                         <div className="saved-preview-meta">
-                          {route.distance_km && (
-                            <span>⌁ {fmtKm(route.distance_km)}</span>
-                          )}
+                          {route.distance_km && <span>⌁ {fmtKm(route.distance_km)}</span>}
                           {route.duration && <span>◷ {route.duration}</span>}
-                          {(route.terrain || route.type) && (
-                            <span>• {route.terrain || route.type}</span>
-                          )}
+                          {(route.terrain || route.type) && <span>• {route.terrain || route.type}</span>}
                         </div>
                       </div>
-
                       <div className="saved-preview-action-wrap">
-                        <Link
-                          href={`/routedetail/${route.id}`}
-                          className="saved-preview-action"
-                          title="Open route"
-                        >
-                          ›
-                        </Link>
-
-                        <button
-                          className="saved-preview-remove"
-                          onClick={() => handleUnsave(route.id)}
-                          title="Remove from saved"
-                        >
-                          ×
-                        </button>
+                        <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title="Open route">›</Link>
+                        <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title="Remove from saved">×</button>
                       </div>
                     </div>
                   ))}
@@ -483,71 +404,27 @@ export default function MyTripsPage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">
-                  SCENIC
-                  <br />
-                  ROUTES
-                </div>
-                <p className="footer-tagline">
-                  Thoughtfully curated road trips for people who value the
-                  journey.
-                </p>
+                <div className="footer-brand">SCENIC<br/>ROUTES</div>
+                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey.</p>
                 <div className="footer-socials">
-                  {["IG", "FB", "YT"].map((s) => (
-                    <a key={s} href="#" className="footer-social">
-                      {s[0]}
-                    </a>
-                  ))}
+                  {["IG","FB","YT"].map((s) => <a key={s} href="#" className="footer-social">{s[0]}</a>)}
                 </div>
               </div>
-
-              {[
-                [
-                  "Explore",
-                  ["All Routes", "Destinations", "Experiences", "Journal"],
-                ],
-                [
-                  "Company",
-                  ["About Us", "Membership", "Gift Cards", "Careers"],
-                ],
-                [
-                  "Support",
-                  ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"],
-                ],
-              ].map(([heading, links]) => (
+              {[["Explore",["All Routes","Destinations","Experiences","Journal"]],["Company",["About Us","Membership","Gift Cards","Careers"]],["Support",["FAQ","Travel Policies","Contact Us","Privacy Policy"]]].map(([heading,links]) => (
                 <div key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
                   <div className="footer-col">
-                    {(links as string[]).map((l) => (
-                      <a href="#" key={l}>
-                        {l}
-                      </a>
-                    ))}
+                    {(links as string[]).map((l) => <a href="#" key={l}>{l}</a>)}
                   </div>
                 </div>
               ))}
-
               <div>
                 <p className="footer-col-title">Stay Inspired</p>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--dim)",
-                    lineHeight: 1.6,
-                    marginBottom: "14px",
-                    fontWeight: 300,
-                  }}
-                >
-                  Subscribe for new routes, stories, and exclusive guides.
-                </p>
+                <p style={{fontSize:"12px",color:"var(--dim)",lineHeight:1.6,marginBottom:"14px",fontWeight:300}}>Subscribe for new routes, stories, and exclusive guides.</p>
               </div>
             </div>
-
             <div className="footer-bottom">
-              <p className="footer-copy">
-                © {new Date().getFullYear()} Scenic Routes. All Rights
-                Reserved.
-              </p>
+              <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
               <div className="footer-legal">
                 <a href="#">Terms & Conditions</a>
                 <a href="#">Privacy</a>
