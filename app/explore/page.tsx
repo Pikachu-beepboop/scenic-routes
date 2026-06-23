@@ -87,7 +87,13 @@ function ExplorePageInner() {
   const [username, setUsername] = useState("");
   const searchBarRef = useRef<HTMLDivElement | null>(null);
   const displayName = username || user?.email?.split("@")[0] || "";
+
+  // FIX: isLight ist jetzt unabhängig von "mounted" für die Klassen-Berechnung
+  // nutzbar; wir geben aber erst nach mount ein definitives Theme aus, um SSR-
+  // Hydration-Mismatches zu vermeiden. Default = "dark" (entspricht dem Server-
+  // Render), bis der Client das echte Theme kennt.
   const isLight = mounted && theme === "light";
+  const themeClass = isLight ? "light" : "dark";
 
   const toggleFilter = (key: "difficulty" | "countries", value: string) => {
     setFilters((prev) => ({
@@ -330,6 +336,19 @@ function ExplorePageInner() {
         .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
 
+        /* LIGHT THEME OVERRIDE FOR SEARCH BAR
+           Die Search-Bar liegt immer auf dem dunklen Hero-Foto, unabhängig
+           vom gewählten Theme. Die .light-Variablen (--border, --muted,
+           --cream) sind für HELLE Seitenhintergründe gedacht und werden auf
+           dem Foto unsichtbar. Daher hier feste, helle Werte erzwingen –
+           analog zu .light .hero-h1 / .hero-sub weiter oben. */
+        .light .search-bar { background:rgba(12,11,9,0.42); border-color:rgba(237,229,212,0.18); }
+        .light .search-field:hover { background:rgba(237,229,212,0.08); }
+        .light .search-field.open { background:rgba(237,229,212,0.14); }
+        .light .search-field-value { color:#fff; }
+        .light .search-field-value .placeholder { color:rgba(237,229,212,0.6); }
+        .light .search-divider { background:rgba(237,229,212,0.22); }
+
         /* DROPDOWN */
         @keyframes ddOpen { from{opacity:0;transform:translateY(-6px) scale(0.99)} to{opacity:1;transform:translateY(0) scale(1)} }
         .search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; min-width:320px; z-index:9999; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.8); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
@@ -480,7 +499,13 @@ function ExplorePageInner() {
         }
       `}</style>
 
-      <div className="page">
+      {/* FIX: themeClass ("dark" oder "light") wird hier auf das Root-Element
+          angewendet. Vorher fehlte diese Klasse komplett, wodurch sämtliche
+          CSS-Variablen (--bg, --border, --gold, --cream, --muted, --dim ...)
+          nie aufgelöst wurden. Das erklärte den fehlenden Divider, den
+          fehlenden Placeholder-Stil und den helleren/transparenten
+          Hintergrund der Search-Bar. */}
+      <div className={`page ${themeClass}`}>
         {/* NAV */}
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="nav-logo">

@@ -100,7 +100,7 @@ export default function MyTripsPage() {
         .dark {
           --bg:#0c0b09; --bg2:#111009; --bg3:#181510;
           --gold:#C9A86A; --cream:#EDE5D4;
-          --muted:rgba(237,229,212,0.56); --dim:rgba(237,229,212,0.32);
+          --muted:rgba(237,229,212,0.56); --dim:rgba(237, 212, 212, 0.32);
           --border:rgba(237,229,212,0.10);
           --serif:'Cormorant Garamond',Georgia,serif;
           --sans:'Inter',system-ui,sans-serif;
@@ -184,14 +184,18 @@ export default function MyTripsPage() {
         .light .page-h1{color:#111; text-shadow:0 2px 8px rgba(0,0,0,.08);}
         .page-sub { margin-top:30px; font-size:18px; color:var(--muted); font-weight:500; line-height:1.8; max-width:470px; }
         .collection-stats { display:flex; gap:14px; margin-top:46px; }
-        .collection-stat { min-width:180px; padding:22px 24px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--border) 40%, transparent); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.12); transition:background .35s, border-color .35s; }
+        .collection-stat { min-width:180px; padding:22px 24px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.12); transition:background .35s, border-color .35s; }
         .collection-stat-icon { font-size:19px; color:var(--gold); margin-bottom:10px; }
         .collection-stat-main { display:flex; align-items:flex-end; gap:8px; }
         .collection-stat-number { font-family:var(--serif); font-size:42px; font-weight:300; line-height:0.8; color:var(--cream); }
         .collection-stat-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); padding-bottom:3px; }
+        .light .collection-stat { background:color-mix(in srgb, var(--bg) 80%, transparent); border-color:rgba(43,38,32,0.10); box-shadow:0 18px 50px rgba(0,0,0,0.28); }
+        .light .collection-stat-icon { color:var(--gold); }
+        .light .collection-stat-number { color:#2B2620; }
+        .light .collection-stat-label { color:rgba(43,38,32,0.55); }
 
         /* RIGHT PANEL */
-        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
+        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 60%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
         .saved-preview-head { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
         .saved-preview-title { font-family:var(--serif); font-size:28px; font-weight:400; color:var(--cream); }
         .saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); opacity:0.88; white-space:nowrap; }
@@ -207,7 +211,8 @@ export default function MyTripsPage() {
         .saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
         .saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
         .saved-preview-name { font-family:var(--serif); font-size:32px; font-weight:400; line-height:1; color:var(--cream); margin-bottom:12px; }
-        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px;  color:rgba(0,0,0,.62); font-weight:500; }
+        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px;  color:rgba(255, 255, 255, 0.62); font-weight:500; }
+        .light .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px;  color:rgba(0, 0, 0, 0.84); font-weight:500; }
         .saved-preview-meta span { display:inline-flex; align-items:center; gap:6px; }
         .saved-preview-action-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
         .saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; font-size:23px; line-height:1; padding-bottom:3px; }
