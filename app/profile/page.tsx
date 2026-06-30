@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { ThemeSwitch } from "../components/ThemeSwitch";
+import { useTheme } from "next-themes";
+import {
+  User, Award, Settings as SettingsIcon, Map, LogOut,
+  Bell, ShieldCheck, LifeBuoy, Info,
+  ChevronRight,
+} from "lucide-react";
 
 type Stamp = {
   id: string;
@@ -47,18 +54,18 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
   };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,width:"100%",maxWidth:420}}>
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,width:"100%",maxWidth:420,margin:"0 auto"}}>
 
       {/* TABS */}
-      <div style={{display:"flex",border:"1px solid rgba(237,229,212,0.12)",borderRadius:10,overflow:"hidden",background:"rgba(14,12,10,0.6)"}}>
+      <div style={{display:"flex",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden",background:"color-mix(in srgb, var(--bg2) 60%, transparent)"}}>
         {(["cover","id","stamps"] as const).map((p) => (
-          <button key={p} onClick={() => goTo(p)} style={{padding:"9px 18px",fontSize:10,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color: page===p ? "#C9A86A" : "rgba(237,229,212,0.32)",background: page===p ? "rgba(201,168,106,0.08)" : "none",border:"none",borderRight:"1px solid rgba(237,229,212,0.08)",cursor:"pointer",transition:"all .2s",fontFamily:"Inter,sans-serif"}}>
+          <button key={p} onClick={() => goTo(p)} style={{padding:"9px 18px",fontSize:10,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color: page===p ? "#C9A86A" : "var(--dim)",background: page===p ? "rgba(201,168,106,0.08)" : "none",border:"none",borderRight:"1px solid var(--border)",cursor:"pointer",transition:"all .2s",fontFamily:"Inter,sans-serif"}}>
             {p === "cover" ? "Cover" : p === "id" ? "ID Page" : `Stamps (${stamps.length})`}
           </button>
         ))}
       </div>
 
-      {/* PASSPORT */}
+      {/* PASSPORT — eigenständiges Reisepass-Design, bewusst unverändert (eigene Materialfarben: dunkelgrünes Leder / cremefarbenes Papier, unabhängig vom Light/Dark-Theme der Seite) */}
       <div style={{width:"100%",animation: flipping ? "passFlip .35s ease" : "none"}}>
         <style>{`@keyframes passFlip{0%{opacity:1;transform:rotateY(0)}50%{opacity:.5;transform:rotateY(-10deg)}100%{opacity:1;transform:rotateY(0)}}`}</style>
 
@@ -223,6 +230,16 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
   );
 }
 
+const SUBTAB_META: Record<string, { title: string; subtitle: string; icon: ReactNode }> = {
+  account:       { title: "Account",            subtitle: "Manage your personal information and login details.", icon: <User size={20} strokeWidth={1.8} /> },
+  pass:          { title: "Traveller Pass",      subtitle: "Your digital passport — stamps, routes and identity.", icon: <Award size={20} strokeWidth={1.8} /> },
+  preferences:   { title: "Preferences",         subtitle: "Units, language, map style and recommendations.",      icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
+  notifications: { title: "Notifications",       subtitle: "Choose what you want to be notified about.",           icon: <Bell size={20} strokeWidth={1.8} /> },
+  privacy:       { title: "Privacy & Security",  subtitle: "Control your visibility and data.",                    icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
+  support:       { title: "Support & Feedback",  subtitle: "Get help or send us your feedback.",                   icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
+  about:         { title: "About",               subtitle: "Version, legal and app information.",                  icon: <Info size={20} strokeWidth={1.8} /> },
+};
+
 export default function ProfilePage() {
   const [user, setUser]                   = useState<any>(null);
   const [loading, setLoading]             = useState(true);
@@ -236,10 +253,32 @@ export default function ProfilePage() {
   const [success, setSuccess]             = useState("");
   const [avatarFile, setAvatarFile]       = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
-  const [activeSection, setActiveSection] = useState<"profile" | "favorites" | "settings" | "pass">("profile");
   const [navScrolled, setNavScrolled]     = useState(false);
   const [stamps, setStamps]               = useState<Stamp[]>([]);
   const router = useRouter();
+
+  const [subTab, setSubTab] = useState<
+    "account" | "pass" | "preferences" | "notifications" | "privacy" | "support" | "about"
+  >("account");
+
+  const [toggles, setToggles] = useState({
+    nearbyRoutes: true,
+    tripReminders: true,
+    communityUpdates: false,
+    profileVisible: true,
+    activityTracking: true,
+  });
+
+  function toggleSwitch(key: keyof typeof toggles) {
+    setToggles((t) => ({ ...t, [key]: !t[key] }));
+  }
+
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
@@ -273,7 +312,6 @@ export default function ProfilePage() {
   }
 
   async function fetchStamps(userId: string) {
-    // Try saved_routes or my_trips table — adjust table name to match your schema
     const { data } = await supabase
       .from("saved_routes")
       .select("id, title, country, terrain, completed_at")
@@ -337,34 +375,56 @@ export default function ProfilePage() {
   );
 
   const initials = (username || user?.email || "U")[0].toUpperCase();
+  const meta = SUBTAB_META[subTab];
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
         :root {
+          --gold:  #C9A86A;
+          --serif: 'Cormorant Garamond', Georgia, serif;
+          --sans:  'Inter', system-ui, sans-serif;
+        }
+
+        .light { --gold: #B08A3F; }
+
+        /* DARK THEME (Standard) */
+        .dark {
           --bg:    #0c0b09;
           --bg2:   #111009;
-          --gold:  #C9A86A;
+          --bg3:   #181510;
           --cream: #EDE5D4;
           --muted: rgba(237,229,212,0.56);
           --dim:   rgba(237,229,212,0.32);
           --border:rgba(237,229,212,0.10);
-          --serif: 'Cormorant Garamond', Georgia, serif;
-          --sans:  'Inter', system-ui, sans-serif;
         }
+
+        /* LIGHT THEME — klar, warm, hoher Kontrast statt blassem Creme-Einheitsbrei */
+        .light {
+          --bg:    #FAF6EE;
+          --bg2:   #FFFFFF;
+          --bg3:   #F1EADA;
+          --cream: #221C13;
+          --muted: rgba(34,28,19,0.68);
+          --dim:   rgba(34,28,19,0.44);
+          --border:rgba(34,28,19,0.14);
+        }
+
         .pp *, .pp *::before, .pp *::after { box-sizing:border-box; margin:0; padding:0; }
         .pp a { color:inherit; text-decoration:none; }
         .pp button { border:none; font:inherit; cursor:pointer; background:none; }
-        .pp input  { font:inherit; }
+        .pp input, .pp select { font:inherit; }
         .pp { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); }
 
         .pp-bg { position:fixed; inset:0; z-index:0; }
         .pp-bg img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.28) contrast(1.1) saturate(0.7); }
-        .pp-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(135deg, rgba(12,11,9,0.88) 0%, rgba(12,11,9,0.6) 50%, rgba(12,11,9,0.82) 100%); }
+        .pp-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(135deg, color-mix(in srgb, var(--bg) 88%, transparent) 0%, color-mix(in srgb, var(--bg) 60%, transparent) 50%, color-mix(in srgb, var(--bg) 82%, transparent) 100%); }
+        .light .pp-bg img { filter:brightness(0.78) contrast(1.12) saturate(1.05); }
+        .light .pp-bg::after { background:linear-gradient(135deg, rgba(250,246,238,0.92) 0%, rgba(250,246,238,0.7) 50%, rgba(250,246,238,0.9) 100%); }
 
         .pp-nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
-        .pp-nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
+        .pp-nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .pp-nav-logo { display:flex; flex-direction:column; line-height:1; }
         .pp-nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .pp-nav-links { display:flex; gap:36px; }
@@ -372,69 +432,92 @@ export default function ProfilePage() {
         .pp-nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .pp-nav-link:hover { color:var(--cream); }
         .pp-nav-link:hover::after { width:100%; }
-        .pp-nav-right { width:107px; display:flex; justify-content:flex-end; }
+        .pp-nav-right { display:flex; align-items:center; justify-content:flex-end; }
         @media (max-width:680px) { .pp-nav-links { display:none; } .pp-nav-right { display:none; } }
 
-        .pp-layout { position:relative; z-index:10; min-height:100vh; display:flex; padding-top:72px; }
+        /* THEME SWITCH — glasmorpher Apple-Stil */
+        .theme-switch { position:relative; display:flex; align-items:center; width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
+        .theme-switch:hover { border-color: var(--gold); }
+        .theme-switch-knob { position:absolute; top:3px; left:3px; width:30px; height:30px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
+        .theme-switch-knob.is-light { transform:translateX(50px); }
+        .theme-switch-icon { width:14px; height:14px; }
+        .theme-switch-placeholder { width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
 
-        .pp-sidebar { width:220px; flex-shrink:0; display:flex; flex-direction:column; justify-content:space-between; padding:40px 20px 32px; border-right:1px solid var(--border); background:rgba(12,11,9,0.5); backdrop-filter:blur(20px); }
-        .pp-sidebar-top { display:flex; flex-direction:column; gap:32px; }
-        .pp-sidebar-label { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:8px; }
-        .pp-nav-items { display:flex; flex-direction:column; gap:4px; }
-        .pp-nav-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.06em; color:var(--dim); border:1px solid transparent; transition:all .2s; text-align:left; width:100%; }
-        .pp-nav-item:hover { color:var(--muted); background:rgba(237,229,212,0.04); }
-        .pp-nav-item.active { color:var(--gold); background:rgba(201,168,106,0.08); border-color:rgba(201,168,106,0.18); }
-        .pp-nav-item-icon { font-size:15px; width:18px; text-align:center; }
-        .pp-logout { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.06em; color:rgba(224,128,128,0.5); border:1px solid transparent; transition:all .2s; width:100%; }
-        .pp-logout:hover { color:#e08080; background:rgba(224,128,128,0.06); }
+        .pp-layout { position:relative; z-index:10; min-height:100vh; padding:112px clamp(20px,4vw,60px) 60px; display:flex; justify-content:center; }
 
-        .pp-main { flex:1; display:flex; align-items:flex-start; justify-content:center; padding:48px clamp(20px,4vw,60px); gap:32px; }
+        /* ── SETTINGS-STYLE PAGE ── */
+        .st-wrap { width:100%; max-width:1180px; display:flex; flex-direction:column; gap:24px; }
+        .st-megacard { background:color-mix(in srgb, var(--bg2) 82%, transparent); border:1px solid var(--border); border-radius:28px; padding:28px; box-shadow:0 40px 100px rgba(0,0,0,0.45); display:flex; flex-direction:column; gap:24px; }
+        .light .st-megacard { background:#FFFFFF; box-shadow:0 30px 80px rgba(58,44,16,0.12); }
 
-        .pp-card { width:100%; max-width:420px; }
-        .pp-card-inner { background:rgba(14,12,10,0.82); backdrop-filter:blur(28px); border:1px solid var(--border); border-radius:24px; overflow:hidden; box-shadow:0 40px 100px rgba(0,0,0,0.55); }
+        .st-header { display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding-bottom:24px; border-bottom:1px solid var(--border); }
+        .st-header-left { display:flex; align-items:center; gap:14px; }
+        .st-header-icon { width:42px; height:42px; border-radius:12px; background:rgba(201,168,106,0.1); border:1px solid rgba(201,168,106,0.25); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
+        .st-title { font-family:var(--serif); font-size:26px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.1; }
+        .st-subtitle { font-size:12px; color:var(--dim); margin-top:3px; font-weight:300; }
+        .st-header .st-save-btn { padding:8px 16px; border-radius:10px; background:none; font-family:var(--serif); font-size:20px; font-weight:500; font-style:normal; letter-spacing:-0.01em; transition:all .2s; flex-shrink:0; }
+        .dark .st-header .st-save-btn { color:#FFFFFF; }
+        .light .st-header .st-save-btn { color:#000000; }
+        .st-header .st-save-btn:hover { background:var(--gold); transform:translateY(-1px); }
+        .dark .st-header .st-save-btn:hover { color:#1a1404; }
+        .light .st-header .st-save-btn:hover { color:#1a1404; }
+        .st-header .st-save-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
-        .pp-avatar-header { padding:32px 32px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:20px; position:relative; }
-        .pp-avatar-wrap { position:relative; flex-shrink:0; }
-        .pp-avatar { width:64px; height:64px; border-radius:14px; border:1px solid rgba(201,168,106,0.3); object-fit:cover; display:block; }
-        .pp-avatar-placeholder { width:64px; height:64px; border-radius:14px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:26px; font-weight:300; color:var(--gold); }
-        .pp-avatar-edit { position:absolute; bottom:-6px; right:-6px; width:22px; height:22px; border-radius:50%; background:var(--gold); border:2px solid var(--bg); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--bg); cursor:pointer; transition:transform .2s; }
-        .pp-avatar-edit:hover { transform:scale(1.15); }
-        .pp-user-name { font-family:var(--serif); font-size:22px; font-weight:300; color:var(--cream); letter-spacing:-0.02em; }
-        .pp-user-email { font-size:11px; color:var(--dim); margin-top:2px; }
-        .pp-user-role  { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-top:6px; }
+        .st-body { display:grid; grid-template-columns:230px 1fr; gap:0; align-items:start; padding-top:24px; }
+        .st-subnav { border-right:1px solid var(--border); padding-right:18px; display:flex; flex-direction:column; gap:2px; }
+        .st-subnav-item { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; color:var(--dim); transition:all .18s; width:100%; text-align:left; }
+        .st-subnav-item:hover { color:var(--muted); background:color-mix(in srgb, var(--border) 40%, transparent); }
+        .st-subnav-item.active { color:var(--gold); background:rgba(201,168,106,0.1); }
+        .st-subnav-item svg { flex-shrink:0; }
+        .st-subnav-divider { height:1px; background:var(--border); margin:6px 4px; }
+        .st-subnav-logout { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; color:rgba(224,128,128,0.55); transition:all .18s; width:100%; text-align:left; }
+        .st-subnav-logout:hover { color:#e08080; background:rgba(224,128,128,0.07); }
 
-        .pp-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--border); }
-        .pp-stat { padding:18px 12px; text-align:center; border-right:1px solid var(--border); }
-        .pp-stat:last-child { border-right:none; }
-        .pp-stat-num { font-family:var(--serif); font-size:28px; font-weight:300; color:var(--cream); line-height:1; }
-        .pp-stat-label { font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); margin-top:4px; }
+        .st-content { display:grid; grid-template-columns:1fr; max-width:560px; padding-left:28px; }
+        .st-content.wide { max-width:none; padding-left:28px; }
+        .st-card { background:none; border:none; border-radius:0; padding:0; display:flex; flex-direction:column; gap:16px; }
+        .st-card-title { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
 
-        .pp-form { padding:28px 32px 32px; display:flex; flex-direction:column; gap:16px; }
-        .pp-section-label { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
-        .pp-field { display:flex; flex-direction:column; gap:6px; }
-        .pp-field-label { font-size:9px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:rgba(237,229,212,0.28); }
-        .pp-input { width:100%; padding:13px 16px; background:rgba(237,229,212,0.04); border:1px solid rgba(237,229,212,0.10); border-radius:12px; color:var(--cream); font-size:13px; outline:none; transition:all .25s; }
-        .pp-input::placeholder { color:rgba(237,229,212,0.2); }
-        .pp-input:focus { border-color:rgba(201,168,106,0.45); background:rgba(237,229,212,0.07); box-shadow:0 0 0 3px rgba(201,168,106,0.09); }
-        .pp-divider { height:1px; background:var(--border); margin:4px 0; }
-        .pp-error   { font-size:12px; color:#e08080; padding:10px 14px; background:rgba(224,128,128,0.08); border:1px solid rgba(224,128,128,0.18); border-radius:10px; }
-        .pp-success { font-size:12px; color:#86c9a0; padding:10px 14px; background:rgba(134,201,160,0.08); border:1px solid rgba(134,201,160,0.18); border-radius:10px; }
-        .pp-submit { width:100%; padding:14px 24px; background:transparent; border:1px solid var(--gold); border-radius:999px; color:var(--gold); font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; cursor:pointer; transition:all .25s; margin-top:4px; }
-        .pp-submit:hover:not(:disabled) { background:var(--gold); color:var(--bg); }
-        .pp-submit:disabled { opacity:0.5; cursor:not-allowed; }
+        .st-profile-head { display:flex; align-items:center; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--border); position:relative; }
+        .st-avatar-wrap { position:relative; flex-shrink:0; }
+        .st-avatar-lg { width:64px; height:64px; border-radius:16px; object-fit:cover; border:1px solid rgba(201,168,106,0.3); display:block; }
+        .st-avatar-lg-placeholder { width:64px; height:64px; border-radius:16px; background:rgba(201,168,106,0.12); border:1px solid rgba(201,168,106,0.3); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:24px; color:var(--gold); }
+        .st-avatar-edit { position:absolute; bottom:-5px; right:-5px; width:21px; height:21px; border-radius:50%; background:var(--gold); border:2px solid var(--bg2); display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--bg); cursor:pointer; transition:transform .2s; }
+        .light .st-avatar-edit { border-color:#FFFFFF; }
+        .st-avatar-edit:hover { transform:scale(1.15); }
+        .st-profile-name { font-family:var(--serif); font-size:18px; font-weight:400; color:var(--cream); }
+        .st-profile-email { font-size:11px; color:var(--dim); margin-top:1px; }
+        .st-profile-role { font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:5px; opacity:0.85; }
 
-        .pp-info { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
-        .pp-info-card { background:rgba(14,12,10,0.72); backdrop-filter:blur(20px); border:1px solid var(--border); border-radius:18px; padding:24px; }
-        .pp-info-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--gold); margin-bottom:16px; }
-        .pp-info-item { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; }
-        .pp-info-icon { width:30px; height:30px; border-radius:50%; border:1px solid rgba(201,168,106,0.25); display:grid; place-items:center; flex-shrink:0; color:var(--gold); font-size:12px; }
-        .pp-info-text h4 { font-size:11px; font-weight:700; letter-spacing:0.06em; color:var(--cream); margin-bottom:2px; }
-        .pp-info-text p  { font-size:11px; color:var(--dim); line-height:1.5; font-weight:300; }
-        .pp-explore-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border:1px solid rgba(201,168,106,0.3); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); transition:all .25s; width:100%; }
-        .pp-explore-btn:hover { background:var(--gold); color:var(--bg); }
+        .st-field { display:flex; flex-direction:column; gap:6px; }
+        .st-field-label { font-size:9px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--dim); }
+        .st-input { width:100%; padding:12px 14px; background:color-mix(in srgb, var(--border) 35%, transparent); border:1px solid var(--border); border-radius:10px; color:var(--cream); font-size:13px; outline:none; transition:all .25s; }
+        .st-input::placeholder { color:var(--dim); }
+        .st-input:focus { border-color:rgba(201,168,106,0.45); background:color-mix(in srgb, var(--border) 55%, transparent); box-shadow:0 0 0 3px rgba(201,168,106,0.09); }
+        .light .st-input { background:#FBF8F2; border-color:rgba(34,28,19,0.16); }
+        .light .st-input:focus { background:#FFFFFF; }
+        .st-divider { height:1px; background:var(--border); margin:2px 0; }
+        .st-error   { font-size:12px; color:#e08080; padding:10px 14px; background:rgba(224,128,128,0.08); border:1px solid rgba(224,128,128,0.18); border-radius:10px; }
+        .st-success { font-size:12px; color:#86c9a0; padding:10px 14px; background:rgba(134,201,160,0.08); border:1px solid rgba(134,201,160,0.18); border-radius:10px; }
 
-        @media (max-width:1100px) { .pp-info { display:none; } }
-        @media (max-width:760px)  { .pp-sidebar { display:none; } .pp-main { padding-top:32px; } }
+        .st-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 0; border-bottom:1px solid var(--border); }
+        .st-row:last-child { border-bottom:none; padding-bottom:0; }
+        .st-row-label { font-size:12px; font-weight:600; color:var(--cream); }
+        .st-row-sub { font-size:11px; color:var(--dim); margin-top:2px; line-height:1.5; max-width:280px; }
+        .st-row-value { font-size:12px; color:var(--dim); display:flex; align-items:center; gap:6px; flex-shrink:0; }
+        .st-row-clickable { cursor:pointer; transition:opacity .2s; }
+        .st-row-clickable:hover { opacity:0.7; }
+        .st-row-danger .st-row-label { color:#e08080; }
+        .st-select { background:none; border:none; font:inherit; font-size:12px; color:var(--dim); cursor:pointer; }
+
+        .st-content .st-toggle { position:relative; width:38px; height:22px; border-radius:999px; background:var(--border); flex-shrink:0; transition:background .25s; cursor:pointer; }
+        .st-toggle.on { background:var(--gold); }
+        .st-toggle-knob { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.3); transition:transform .25s; }
+        .st-toggle.on .st-toggle-knob { transform:translateX(16px); }
+
+
+
+        @media (max-width:760px) { .st-body { grid-template-columns:1fr; } .st-subnav { position:static; flex-direction:row; overflow-x:auto; } }
       `}</style>
 
       <div className="pp">
@@ -449,156 +532,264 @@ export default function ProfilePage() {
           <div className="pp-nav-links">
             <Link href="/explore"  className="pp-nav-link">Explore Routes</Link>
             <Link href="/about"    className="pp-nav-link">About</Link>
-            <Link href="/my-trips" className="pp-nav-link" style={{ color: "#EDE5D4" }}>My Trips</Link>
+            <Link href="/my-trips" className="pp-nav-link" style={{ color: "var(--cream)" }}>My Trips</Link>
           </div>
-          <div className="pp-nav-right" />
+          <div className="pp-nav-right">
+            <ThemeSwitch />
+          </div>
         </nav>
 
         <div className="pp-layout">
-          <aside className="pp-sidebar">
-            <div className="pp-sidebar-top">
-              <div>
-                <p className="pp-sidebar-label">Navigation</p>
-                <div className="pp-nav-items">
-                  {([
-                    { id: "profile",   label: "Profile",        icon: "◎" },
-                    { id: "favorites", label: "Favorites",      icon: "♡" },
-                    { id: "settings",  label: "Settings",       icon: "⬡" },
-                    { id: "pass",      label: "Traveller Pass", icon: "✦" },
-                  ] as const).map(({ id, label, icon }) => (
-                    <button key={id} className={`pp-nav-item ${activeSection === id ? "active" : ""}`} onClick={() => setActiveSection(id)}>
-                      <span className="pp-nav-item-icon">{icon}</span>
-                      {label}
-                    </button>
-                  ))}
-                  <button className="pp-nav-item" onClick={() => router.push("/my-trips")}>
-                    <span className="pp-nav-item-icon">△</span>
-                    My Trips
+          <div className="st-wrap">
+
+            <div className="st-megacard">
+              <div className="st-header">
+                <div className="st-header-left">
+                  <div className="st-header-icon">{meta.icon}</div>
+                  <div>
+                    <p className="st-title">{meta.title}</p>
+                    <p className="st-subtitle">{meta.subtitle}</p>
+                  </div>
+                </div>
+                {subTab === "account" && (
+                <button className="st-save-btn" disabled={saving} onClick={handleSave}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+                )}
+              </div>
+
+              <div className="st-body">
+              {/* SUB-NAVIGATION */}
+              <div className="st-subnav">
+                {([
+                  { id: "account",       label: "Account",            icon: <User size={15} strokeWidth={1.8} /> },
+                  { id: "pass",          label: "Traveller Pass",     icon: <Award size={15} strokeWidth={1.8} /> },
+                  { id: "preferences",   label: "Preferences",        icon: <SettingsIcon size={15} strokeWidth={1.8} /> },
+                  { id: "notifications", label: "Notifications",      icon: <Bell size={15} strokeWidth={1.8} /> },
+                  { id: "privacy",       label: "Privacy & Security", icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
+                  { id: "support",       label: "Support & Feedback", icon: <LifeBuoy size={15} strokeWidth={1.8} /> },
+                  { id: "about",         label: "About",              icon: <Info size={15} strokeWidth={1.8} /> },
+                ] as const).map(({ id, label, icon }) => (
+                  <button
+                    key={id}
+                    className={`st-subnav-item ${subTab === id ? "active" : ""}`}
+                    onClick={() => setSubTab(id)}
+                  >
+                    {icon} {label}
                   </button>
-                </div>
+                ))}
+
+                <div className="st-subnav-divider" />
+
+                <button className="st-subnav-item" onClick={() => router.push("/my-trips")}>
+                  <Map size={15} strokeWidth={1.8} /> My Trips
+                </button>
+                <button className="st-subnav-logout" onClick={handleLogout}>
+                  <LogOut size={15} strokeWidth={1.8} /> Sign Out
+                </button>
               </div>
-            </div>
-            <button className="pp-logout" onClick={handleLogout}>
-              <span className="pp-nav-item-icon">→</span>
-              Sign Out
-            </button>
-          </aside>
 
-          <main className="pp-main">
-
-            {/* PROFILE */}
-            {activeSection === "profile" && (
-              <div className="pp-card">
-                <div className="pp-card-inner">
-                  <div className="pp-avatar-header">
-                    <div className="pp-avatar-wrap">
-                      {avatarPreview
-                        ? <img src={avatarPreview} className="pp-avatar" alt="avatar" />
-                        : <div className="pp-avatar-placeholder">{initials}</div>
-                      }
-                      <label className="pp-avatar-edit" title="Change photo">
-                        ✎
-                        <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
-                      </label>
+              {/* CONTENT */}
+              {subTab === "account" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <div className="st-profile-head">
+                      <div className="st-avatar-wrap">
+                        {avatarPreview
+                          ? <img src={avatarPreview} className="st-avatar-lg" alt="avatar" />
+                          : <div className="st-avatar-lg-placeholder">{initials}</div>
+                        }
+                        <label className="st-avatar-edit" title="Change photo">
+                          ✎
+                          <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
+                        </label>
+                      </div>
+                      <div>
+                        <p className="st-profile-name">{username || user?.email?.split("@")[0]}</p>
+                        <p className="st-profile-email">{user?.email}</p>
+                        <p className="st-profile-role">Scenic Route Explorer</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="pp-user-name">{username || user?.email?.split("@")[0]}</p>
-                      <p className="pp-user-email">{user?.email}</p>
-                      <p className="pp-user-role">Scenic Route Explorer</p>
+
+                    <p className="st-card-title">Profile Information</p>
+                    <div className="st-field">
+                      <label className="st-field-label">Username</label>
+                      <input className="st-input" type="text" placeholder="Your username" value={username} onChange={e => setUsername(e.target.value)} />
+                    </div>
+                    <div className="st-field">
+                      <label className="st-field-label">Email</label>
+                      <input className="st-input" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    </div>
+
+                    <div className="st-divider" />
+
+                    <p className="st-card-title">Change Password</p>
+                    <div className="st-field">
+                      <label className="st-field-label">New Password</label>
+                      <input className="st-input" type="password" placeholder="Leave blank to keep current" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    </div>
+                    <div className="st-field">
+                      <label className="st-field-label">Confirm New Password</label>
+                      <input className="st-input" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    </div>
+
+                    {error   && <p className="st-error">{error}</p>}
+                    {success && <p className="st-success">{success}</p>}
+
+                    <div className="st-divider" />
+
+                    <div className="st-row st-row-clickable st-row-danger">
+                      <div>
+                        <p className="st-row-label">Delete Account</p>
+                        <p className="st-row-sub">Permanently delete your account and data.</p>
+                      </div>
+                      <ChevronRight size={15} color="#e08080" />
                     </div>
                   </div>
-                  
-                  <div className="pp-form">
-                    <p className="pp-section-label">Profile Settings</p>
-                    <div className="pp-field">
-                      <label className="pp-field-label">Username</label>
-                      <input className="pp-input" type="text" placeholder="Your username" value={username} onChange={e => setUsername(e.target.value)} />
+                </div>
+              )}
+
+              {subTab === "pass" && (
+                <div className="st-content wide">
+                  <TravellerPass
+                    username={username}
+                    email={user?.email || ""}
+                    avatarPreview={avatarPreview}
+                    initials={initials}
+                    stamps={stamps}
+                  />
+                </div>
+              )}
+
+              {subTab === "preferences" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Preferences</p>
+                    <div className="st-row">
+                      <span className="st-row-label">Distance Unit</span>
+                      <select className="st-select" defaultValue="km"><option value="km">Kilometers</option><option value="mi">Miles</option></select>
                     </div>
-                    <div className="pp-field">
-                      <label className="pp-field-label">Email</label>
-                      <input className="pp-input" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    <div className="st-row">
+                      <span className="st-row-label">Temperature</span>
+                      <select className="st-select" defaultValue="c"><option value="c">°C</option><option value="f">°F</option></select>
                     </div>
-                    <div className="pp-divider" />
-                    <p className="pp-section-label">Change Password</p>
-                    <div className="pp-field">
-                      <label className="pp-field-label">New Password</label>
-                      <input className="pp-input" type="password" placeholder="Leave blank to keep current" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <div className="st-row">
+                      <span className="st-row-label">Language</span>
+                      <select className="st-select" defaultValue="en"><option value="en">English</option><option value="de">Deutsch</option></select>
                     </div>
-                    <div className="pp-field">
-                      <label className="pp-field-label">Confirm New Password</label>
-                      <input className="pp-input" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    <div className="st-row">
+                      <span className="st-row-label">Start Page</span>
+                      <select className="st-select" defaultValue="explore"><option value="explore">Explore</option><option value="trips">My Trips</option></select>
                     </div>
-                    {error   && <p className="pp-error">{error}</p>}
-                    {success && <p className="pp-success">{success}</p>}
-                    <button className="pp-submit" type="button" disabled={saving} onClick={handleSave}>
-                      {saving ? "Saving..." : "Save Changes"}
-                    </button>
+                    <div className="st-row">
+                      <span className="st-row-label">Default Map Style</span>
+                      <select className="st-select" defaultValue="scenic"><option value="scenic">Scenic</option><option value="satellite">Satellite</option></select>
+                    </div>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">Route Recommendations</p>
+                        <p className="st-row-sub">Choose how routes are recommended to you.</p>
+                      </div>
+                      <select className="st-select" defaultValue="balanced"><option value="balanced">Balanced</option><option value="scenic">Scenic First</option><option value="fast">Fastest</option></select>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* TRAVELLER PASS */}
-            {activeSection === "pass" && (
-              <TravellerPass
-                username={username}
-                email={user?.email || ""}
-                avatarPreview={avatarPreview}
-                initials={initials}
-                stamps={stamps}
-              />
-            )}
+              {subTab === "notifications" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Notifications</p>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">New Routes Nearby</p>
+                        <p className="st-row-sub">Get notified about newly recommended routes near you.</p>
+                      </div>
+                      <button className={`st-toggle ${toggles.nearbyRoutes ? "on" : ""}`} onClick={() => toggleSwitch("nearbyRoutes")}><span className="st-toggle-knob" /></button>
+                    </div>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">Trip Reminders</p>
+                        <p className="st-row-sub">Get reminders for upcoming planned trips.</p>
+                      </div>
+                      <button className={`st-toggle ${toggles.tripReminders ? "on" : ""}`} onClick={() => toggleSwitch("tripReminders")}><span className="st-toggle-knob" /></button>
+                    </div>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">Community Updates</p>
+                        <p className="st-row-sub">News and updates from Scenic Routes.</p>
+                      </div>
+                      <button className={`st-toggle ${toggles.communityUpdates ? "on" : ""}`} onClick={() => toggleSwitch("communityUpdates")}><span className="st-toggle-knob" /></button>
+                    </div>
+                    <div className="st-row st-row-clickable">
+                      <span className="st-row-label">Email Settings</span>
+                      <ChevronRight size={15} color="var(--dim)" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* FAVORITES placeholder */}
-            {activeSection === "favorites" && (
-              <div className="pp-card">
-                <div className="pp-card-inner" style={{padding:40,textAlign:"center"}}>
-                  <div style={{fontSize:32,marginBottom:16,color:"var(--gold)"}}>♡</div>
-                  <p style={{fontFamily:"var(--serif)",fontSize:24,fontWeight:300,color:"var(--cream)",marginBottom:8}}>Favorites</p>
-                  <p style={{fontSize:13,color:"var(--dim)",lineHeight:1.7}}>Your saved routes will appear here.</p>
-                  <Link href="/explore" style={{display:"inline-flex",marginTop:24,padding:"12px 24px",border:"1px solid var(--gold)",borderRadius:999,fontSize:9,fontWeight:800,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--gold)",transition:"all .25s"}}>Explore Routes →</Link>
+              {subTab === "privacy" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Privacy & Security</p>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">Make Profile Visible</p>
+                        <p className="st-row-sub">Your profile is visible to other users.</p>
+                      </div>
+                      <button className={`st-toggle ${toggles.profileVisible ? "on" : ""}`} onClick={() => toggleSwitch("profileVisible")}><span className="st-toggle-knob" /></button>
+                    </div>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">Track Activity</p>
+                        <p className="st-row-sub">Save your activity for personal statistics.</p>
+                      </div>
+                      <button className={`st-toggle ${toggles.activityTracking ? "on" : ""}`} onClick={() => toggleSwitch("activityTracking")}><span className="st-toggle-knob" /></button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* SETTINGS placeholder */}
-            {activeSection === "settings" && (
-              <div className="pp-card">
-                <div className="pp-card-inner" style={{padding:40,textAlign:"center"}}>
-                  <div style={{fontSize:32,marginBottom:16,color:"var(--gold)"}}>⬡</div>
-                  <p style={{fontFamily:"var(--serif)",fontSize:24,fontWeight:300,color:"var(--cream)",marginBottom:8}}>Settings</p>
-                  <p style={{fontSize:13,color:"var(--dim)",lineHeight:1.7}}>Account settings coming soon.</p>
+              {subTab === "support" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Support & Feedback</p>
+                    <div className="st-row st-row-clickable">
+                      <span className="st-row-label">FAQ</span>
+                      <ChevronRight size={15} color="var(--dim)" />
+                    </div>
+                    <div className="st-row st-row-clickable">
+                      <span className="st-row-label">Contact Us</span>
+                      <ChevronRight size={15} color="var(--dim)" />
+                    </div>
+                    <div className="st-row st-row-clickable">
+                      <span className="st-row-label">Tutorials & Help Articles</span>
+                      <ChevronRight size={15} color="var(--dim)" />
+                    </div>
+                    <div className="st-row st-row-clickable">
+                      <span className="st-row-label">Send Feedback</span>
+                      <ChevronRight size={15} color="var(--dim)" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* RIGHT PANEL */}
-            <div className="pp-info">
-              <div className="pp-info-card">
-                <p className="pp-info-title">Your Journey</p>
-                <div className="pp-info-item">
-                  <div className="pp-info-icon">◎</div>
-                  <div className="pp-info-text"><h4>Saved Routes</h4><p>Access all your bookmarked routes anytime.</p></div>
+              {subTab === "about" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">About</p>
+                    <div className="st-row"><span className="st-row-label">Version</span><span className="st-row-value">1.0.0</span></div>
+                    <div className="st-row st-row-clickable"><span className="st-row-label">Terms of Use</span><ChevronRight size={15} color="var(--dim)" /></div>
+                    <div className="st-row st-row-clickable"><span className="st-row-label">Privacy Policy</span><ChevronRight size={15} color="var(--dim)" /></div>
+                    <div className="st-row st-row-clickable"><span className="st-row-label">Impressum</span><ChevronRight size={15} color="var(--dim)" /></div>
+                  </div>
                 </div>
-                <div className="pp-info-item">
-                  <div className="pp-info-icon">△</div>
-                  <div className="pp-info-text"><h4>Trip History</h4><p>Review your completed road trips and memories.</p></div>
-                </div>
-                <div className="pp-info-item" style={{ marginBottom: 0 }}>
-                  <div className="pp-info-icon">✦</div>
-                  <div className="pp-info-text"><h4>Traveller Pass</h4><p>Collect stamps for every route you complete.</p></div>
-                </div>
-              </div>
-              <div className="pp-info-card">
-                <p className="pp-info-title">Discover More</p>
-                <p style={{ fontSize: 13, color: "var(--dim)", fontWeight: 300, lineHeight: 1.7, marginBottom: 16 }}>
-                  150+ curated routes across 40+ countries are waiting for you.
-                </p>
-                <Link href="/explore" className="pp-explore-btn">Explore Routes →</Link>
+              )}
               </div>
             </div>
 
-          </main>
+          </div>
         </div>
       </div>
     </>
