@@ -606,8 +606,10 @@ export default function HomePage() {
         .footer-inner { max-width:1200px; margin:0 auto; }
         .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
-        .footer-logo-img { height:150px; width:auto; display:block; margin:-20px 0 4px -8px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
-        .light .footer-logo-img { filter:drop-shadow(0 2px 8px rgba(0,0,0,0.12)); }
+        .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
+        .footer-logo-img { height:auto; display:block; }
+        .footer-logo-light { width:180px; }
+        .footer-logo-dark  { width:220px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
         .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
         .footer-col a { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
@@ -937,7 +939,13 @@ export default function HomePage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <img src="/Logo.png" alt="Scenic Routes" className="footer-logo-img" />
+                <div className="footer-logo-container">
+                  <img
+                    src={mounted && theme === "light" ? "/logodark.png" : "/Logo.png"}
+                    alt="Scenic Routes"
+                    className={`footer-logo-img ${mounted && theme === "light" ? "footer-logo-light" : "footer-logo-dark"}`}
+                  />
+                </div>
 
                 <p className="footer-tagline">
                   Thoughtfully curated road trips for people who value the

@@ -242,7 +242,10 @@ export default function AboutPage() {
         .footer-inner  { max-width:1380px; margin:0 auto; }
         .footer-top    { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1.5fr; gap:40px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand  { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.1; margin-bottom:12px; }
-        .footer-logo-img { height:150px; width:auto; display:block; margin:-20px 0 4px -8px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
+        .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
+        .footer-logo-img { height:auto; display:block; }
+        .footer-logo-light { width:180px; }
+        .footer-logo-dark  { width:220px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
         .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:20px; max-width:200px; }
         .footer-socials{ display:flex; gap:8px; }
         .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
@@ -464,7 +467,13 @@ export default function AboutPage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <img src="/Logo.png" alt="Scenic Routes" className="footer-logo-img" />
+                <div className="footer-logo-container">
+                  <img
+                    src={mounted && theme === "light" ? "/logodark.png" : "/Logo.png"}
+                    alt="Scenic Routes"
+                    className={`footer-logo-img ${mounted && theme === "light" ? "footer-logo-light" : "footer-logo-dark"}`}
+                  />
+                </div>
                 <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey.</p>
                 <div className="footer-socials">
                   {["IG","FB","YT"].map(s=><a key={s} href="#" className="footer-social">{s[0]}</a>)}

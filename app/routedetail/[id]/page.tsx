@@ -706,7 +706,6 @@ export default function RouteDetailPage() {
                     </div>
 
                     <div className={`bg-[color-mix(in_srgb,var(--bg2)_80%,transparent)] rounded-[3rem] overflow-hidden backdrop-blur-md ${isLight ? 'shadow-[0_20px_60px_rgba(43,38,32,0.12)] border border-[var(--border)]' : 'shadow-[0_30px_100px_rgba(0,0,0,0.8)]'}`}>
-                        {/* ── Map Card (full width) — Night-Mode im Dark Theme, klassisches Google-Look im Light Theme ── */}
                         <div className={`relative h-[600px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
                             {route?.['google_maps'] && (
                                 <iframe
@@ -726,7 +725,6 @@ export default function RouteDetailPage() {
                                 />
                             )}
 
-                            {/* Vignette für mehr Tiefe — nur im Dark Mode, im Light Mode soll die Karte klassisch/klar wirken */}
                             {!isLight && (
                                 <>
                                     <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
@@ -735,7 +733,6 @@ export default function RouteDetailPage() {
                             )}
                         </div>
 
-                        {/* ── Info-Leiste unterhalb der Map ── */}
                         <div className={`flex items-center justify-between gap-6 px-8 py-7 ${isLight ? 'bg-[#ffffff]' : 'bg-[#0d1626]'}`}>
                             <div className="space-y-1.5 min-w-0">
                                 <p className={`font-bold text-lg md:text-xl truncate ${isLight ? 'text-[#1a1a1a]' : 'text-white'}`}>
@@ -773,9 +770,23 @@ export default function RouteDetailPage() {
                     <div className="relative max-w-7xl mx-auto px-12 pt-32 pb-16">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-20 border-b border-[var(--border)]">
                             <div className="lg:col-span-4 space-y-8">
-                                <Link href="/" className="flex items-center w-fit -ml-2">
-                                    <img src="/Logo.png" alt="Scenic Routes" className="h-[120px] w-auto -my-5 drop-shadow-[0_4px_14px_rgba(0,0,0,0.35)]" />
+
+                                {/* ── Logo: Gold im Dark Mode, Schwarz im Light Mode ── */}
+                                <Link href="/" className="flex items-center w-fit">
+                                    <div style={{ width: '220px', height: '147px', display: 'flex', alignItems: 'center' }}>
+                                        <img
+                                            src={isLight ? "/logodark.png" : "/Logo.png"}
+                                            alt="Scenic Routes"
+                                            style={{
+                                                width: isLight ? '180px' : '220px',
+                                                height: 'auto',
+                                                display: 'block',
+                                                filter: isLight ? 'none' : 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
+                                            }}
+                                        />
+                                    </div>
                                 </Link>
+
                                 <p className="text-[var(--dim)] text-sm leading-relaxed max-w-xs font-light">
                                     Curating the world's most breathtaking driving routes for those who seek the road less travelled.
                                 </p>
