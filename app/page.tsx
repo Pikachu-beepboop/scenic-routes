@@ -8,6 +8,10 @@ import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { useTheme } from "next-themes";
+import {
+  User as UserIcon, Map as MapIcon, Compass, LogOut,
+  ArrowLeft, ArrowRight, Wind, BookOpen,
+} from "lucide-react";
 
 const WorldMap = dynamic(() => import("./components/WorldMap"), {
   ssr: false,
@@ -110,22 +114,22 @@ const TESTIMONIALS = [
 
 const FEATURES = [
   {
-    icon: "◎",
+    icon: Compass,
     title: "Curated with care",
     text: "Handpicked routes and places researched by real travelers.",
   },
   {
-    icon: "△",
+    icon: MapIcon,
     title: "Driven by detail",
     text: "Maps, tips, and insights that make every mile smoother.",
   },
   {
-    icon: "⬡",
+    icon: Wind,
     title: "Built for freedom",
     text: "Flexible plans that adapt to the way you travel.",
   },
   {
-    icon: "◈",
+    icon: BookOpen,
     title: "Stories that inspire",
     text: "Journeys, guides, and journals to fuel your next adventure.",
   },
@@ -184,7 +188,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           </div>
 
           <Link href="/explore" className="popular-view-all">
-            View all destinations →
+            View all destinations <ArrowRight size={14} strokeWidth={2.5} />
           </Link>
         </div>
 
@@ -194,7 +198,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             onClick={prev}
             aria-label="Previous route"
           >
-            ←
+            <ArrowLeft size={18} strokeWidth={2} />
           </button>
 
           <button
@@ -202,7 +206,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             onClick={next}
             aria-label="Next route"
           >
-            →
+            <ArrowRight size={18} strokeWidth={2} />
           </button>
 
           <Link
@@ -464,7 +468,7 @@ export default function HomePage() {
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
-        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-link-icon { width:18px; display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
         .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
         .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
         .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
@@ -593,7 +597,7 @@ export default function HomePage() {
         .features-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
         .feature-card { padding:28px 22px 32px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--border) 25%, transparent); transition:border-color .3s,transform .3s,background .3s; }
         .feature-card:hover { border-color:rgba(201,168,106,0.28); transform:translateY(-3px); background:color-mix(in srgb, var(--border) 45%, transparent); }
-        .feature-icon { font-size:22px; color:var(--gold); margin-bottom:18px; }
+        .feature-icon { color:var(--gold); margin-bottom:18px; display:flex; }
         .feature-title { font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--cream); margin-bottom:10px; }
         .feature-text { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; }
 
@@ -603,9 +607,6 @@ export default function HomePage() {
         .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
         .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
-        .footer-socials { display:flex; gap:8px; }
-        .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
-        .footer-social:hover { border-color:var(--gold); color:var(--gold); }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
         .footer-col a { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
         .footer-col a:hover { color:var(--cream); }
@@ -613,7 +614,7 @@ export default function HomePage() {
         .footer-nl-form { display:flex; }
         .footer-nl-input { flex:1; padding:11px 14px; border:1px solid var(--border); border-right:none; border-radius:999px 0 0 999px; background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); font-size:12px; outline:none; }
         .footer-nl-input::placeholder { color:var(--dim); }
-        .footer-nl-btn { width:44px; background:var(--gold); border:1px solid var(--gold); border-radius:0 999px 999px 0; color:var(--bg); font-size:15px; font-weight:800; transition:background .2s; }
+        .footer-nl-btn { width:44px; background:var(--gold); border:1px solid var(--gold); border-radius:0 999px 999px 0; color:var(--bg); font-size:15px; font-weight:800; transition:background .2s; display:flex; align-items:center; justify-content:center; }
         .footer-nl-btn:hover { background:#d8b978; }
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
         .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
@@ -715,7 +716,7 @@ export default function HomePage() {
                         className="ud-link"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <span className="ud-link-icon">◎</span> Profile
+                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile
                       </Link>
 
                       <Link
@@ -723,7 +724,7 @@ export default function HomePage() {
                         className="ud-link"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <span className="ud-link-icon">△</span> My Trips
+                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips
                       </Link>
 
                       <Link
@@ -731,7 +732,7 @@ export default function HomePage() {
                         className="ud-link"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <span className="ud-link-icon">⬡</span> Explore Routes
+                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes
                       </Link>
 
                       <div className="ud-divider" />
@@ -741,7 +742,7 @@ export default function HomePage() {
                           className="ud-link-icon"
                           style={{ color: "#e08080" }}
                         >
-                          →
+                          <LogOut size={14} strokeWidth={1.8} />
                         </span>{" "}
                         Sign Out
                       </button>
@@ -788,7 +789,7 @@ export default function HomePage() {
               </p>
 
               <Link href="/explore" className="btn-gold-filled">
-                Explore Routes →
+                Explore Routes <ArrowRight size={13} strokeWidth={2.5} />
               </Link>
             </div>
           </div>
@@ -826,7 +827,7 @@ export default function HomePage() {
 
               <div className="builder-find-card">
                 <Link href="/explore" className="builder-find-button">
-                  Find Route →
+                  Find Route <ArrowRight size={14} strokeWidth={2.5} />
                 </Link>
               </div>
             </div>
@@ -877,7 +878,7 @@ export default function HomePage() {
                 gap: "8px",
               }}
             >
-              View all destinations →
+              View all destinations <ArrowRight size={13} strokeWidth={2.5} />
             </Link>
           </div>
         </section>
@@ -918,9 +919,9 @@ export default function HomePage() {
             </h2>
 
             <div className="features-grid">
-              {FEATURES.map(({ icon, title, text }) => (
+              {FEATURES.map(({ icon: Icon, title, text }) => (
                 <div className="feature-card" key={title}>
-                  <div className="feature-icon">{icon}</div>
+                  <div className="feature-icon"><Icon size={22} strokeWidth={1.7} /></div>
                   <div className="feature-title">{title}</div>
                   <p className="feature-text">{text}</p>
                 </div>
@@ -944,14 +945,6 @@ export default function HomePage() {
                   Thoughtfully curated road trips for people who value the
                   journey as much as the destination
                 </p>
-
-                <div className="footer-socials">
-                  {["IG", "FB", "YT"].map((social) => (
-                    <a key={social} href="#" className="footer-social">
-                      {social[0]}
-                    </a>
-                  ))}
-                </div>
               </div>
 
               {[
@@ -997,7 +990,7 @@ export default function HomePage() {
                   />
 
                   <button type="submit" className="footer-nl-btn">
-                    →
+                    <ArrowRight size={16} strokeWidth={2.5} />
                   </button>
                 </form>
               </div>

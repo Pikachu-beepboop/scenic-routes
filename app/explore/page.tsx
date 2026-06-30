@@ -6,6 +6,10 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+import {
+  SlidersHorizontal, ChevronDown, Star, X, CornerDownRight,
+  User as UserIcon, Map as MapIcon, Compass, LogOut, Clock, Navigation, Heart, ArrowRight,
+} from "lucide-react";
 
 type Route = {
   id: string;
@@ -88,10 +92,6 @@ function ExplorePageInner() {
   const searchBarRef = useRef<HTMLDivElement | null>(null);
   const displayName = username || user?.email?.split("@")[0] || "";
 
-  // FIX: isLight ist jetzt unabhängig von "mounted" für die Klassen-Berechnung
-  // nutzbar; wir geben aber erst nach mount ein definitives Theme aus, um SSR-
-  // Hydration-Mismatches zu vermeiden. Default = "dark" (entspricht dem Server-
-  // Render), bis der Client das echte Theme kennt.
   const isLight = mounted && theme === "light";
   const themeClass = isLight ? "light" : "dark";
 
@@ -234,7 +234,6 @@ function ExplorePageInner() {
 
         *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
-        /* DARK THEME (Standard) */
         .dark {
           --bg:#0c0b09; --bg2:#131109; --bg3:#1a1710;
           --gold:#C9A86A; --cream:#EDE5D4;
@@ -244,7 +243,6 @@ function ExplorePageInner() {
           --sans:'Inter',system-ui,sans-serif;
         }
 
-        /* LIGHT THEME */
         .light {
           --bg:#F4F0E8; --bg2:#EDE8DC; --bg3:#E5DFD0;
           --gold:#C9A86A; --cream:#2B2620;
@@ -262,7 +260,6 @@ function ExplorePageInner() {
         img { display:block; }
         .page { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); transition:background .35s, color .35s; }
 
-        /* NAV */
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
@@ -280,7 +277,6 @@ function ExplorePageInner() {
         .user-avatar:hover { border-color:var(--gold); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
-        /* THEME SWITCH */
         .theme-switch { position:relative; display:flex; align-items:center; width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
         .theme-switch:hover { border-color:var(--gold); }
         .theme-switch-knob { position:absolute; top:3px; left:3px; width:30px; height:30px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
@@ -288,7 +284,6 @@ function ExplorePageInner() {
         .theme-switch-icon { width:14px; height:14px; }
         .theme-switch-placeholder { width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
 
-        /* USER DROPDOWN */
         .ep-user-menu-wrap { position:relative; }
         .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
         @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
@@ -301,12 +296,11 @@ function ExplorePageInner() {
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
-        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-link-icon { width:18px; display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
         .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
         .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
         .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
-        /* HERO */
         .hero { position:relative; height:100vh; min-height:640px; display:flex; align-items:center; overflow:visible; z-index:20; }
         .hero-bg { position:absolute; inset:0; overflow:hidden; z-index:0; }
         .hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.48) saturate(0.85); }
@@ -322,7 +316,6 @@ function ExplorePageInner() {
         .light .hero-sub { color:rgba(255,255,255,0.82); text-shadow:0 2px 8px rgba(0,0,0,0.4); }
         .light .hero-eyebrow { text-shadow:0 2px 8px rgba(0,0,0,0.3); }
 
-        /* SEARCH BAR */
         .search-bar { display:inline-flex; align-items:stretch; background:color-mix(in srgb, var(--border) 50%, transparent); backdrop-filter:blur(24px); border:1px solid var(--border); border-radius:20px; overflow:visible; width:100%; max-width:1020px; margin-top:36px; }
         .search-field { position:relative; padding:18px 24px; flex:1; cursor:pointer; transition:background .2s; border-radius:18px; min-width:0; }
         .search-field:hover { background:color-mix(in srgb, var(--border) 50%, transparent); }
@@ -330,18 +323,12 @@ function ExplorePageInner() {
         .search-field-label { font-size:8px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; opacity:0.85; }
         .search-field-value { font-size:16px; font-weight:300; font-family:var(--serif); letter-spacing:0.01em; color:var(--cream); display:flex; align-items:center; gap:8px; justify-content:space-between; }
         .search-field-value .placeholder { color:var(--muted); font-style:italic; }
-        .search-field-value .arrow { font-size:7px; font-family:var(--sans); font-style:normal; color:rgba(201,168,106,0.55); transition:transform .25s,color .2s; flex-shrink:0; }
+        .search-field-value .arrow { display:flex; color:rgba(201,168,106,0.55); transition:transform .25s,color .2s; flex-shrink:0; }
         .search-field.open .arrow { transform:rotate(180deg); color:var(--gold); }
         .search-divider { width:1px; background:var(--border); margin:14px 0; flex-shrink:0; }
-        .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); }
+        .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); display:inline-flex; align-items:center; gap:8px; }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
 
-        /* LIGHT THEME OVERRIDE FOR SEARCH BAR
-           Die Search-Bar liegt immer auf dem dunklen Hero-Foto, unabhängig
-           vom gewählten Theme. Die .light-Variablen (--border, --muted,
-           --cream) sind für HELLE Seitenhintergründe gedacht und werden auf
-           dem Foto unsichtbar. Daher hier feste, helle Werte erzwingen –
-           analog zu .light .hero-h1 / .hero-sub weiter oben. */
         .light .search-bar { background:rgba(12,11,9,0.42); border-color:rgba(237,229,212,0.18); }
         .light .search-field:hover { background:rgba(237,229,212,0.08); }
         .light .search-field.open { background:rgba(237,229,212,0.14); }
@@ -349,7 +336,6 @@ function ExplorePageInner() {
         .light .search-field-value .placeholder { color:rgba(237,229,212,0.6); }
         .light .search-divider { background:rgba(237,229,212,0.22); }
 
-        /* DROPDOWN */
         @keyframes ddOpen { from{opacity:0;transform:translateY(-6px) scale(0.99)} to{opacity:1;transform:translateY(0) scale(1)} }
         .search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; min-width:320px; z-index:9999; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.8); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
         .search-dropdown-header { padding:12px 18px 8px; border-bottom:1px solid var(--border); }
@@ -365,10 +351,8 @@ function ExplorePageInner() {
         .search-dropdown-item:hover .item-dot { background:var(--gold); }
         .search-dropdown-footer { padding:8px 18px 12px; border-top:1px solid var(--border); font-size:10px; color:var(--dim); text-align:center; letter-spacing:0.06em; }
 
-        /* CONTENT */
         .content { padding:0 clamp(20px,4vw,60px) clamp(60px,8vw,100px); max-width:1440px; margin:0 auto; }
 
-        /* TOOLBAR */
         .toolbar { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0 16px; border-bottom:1px solid var(--border); margin-bottom:32px; }
         .results-count { font-size:12px; color:var(--dim); font-weight:500; letter-spacing:0.06em; }
         .results-count strong { color:var(--cream); font-weight:700; }
@@ -376,18 +360,15 @@ function ExplorePageInner() {
         .filter-btn:hover { border-color:rgba(201,168,106,0.4); color:var(--cream); background:rgba(201,168,106,0.06); }
         .filter-count { width:18px; height:18px; border-radius:50%; background:var(--gold); color:var(--bg); font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; }
 
-        /* ACTIVE TAGS */
         .active-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px; }
         .active-tag { display:flex; align-items:center; gap:8px; padding:7px 12px; border-radius:999px; background:rgba(201,168,106,0.12); border:1px solid rgba(201,168,106,0.28); font-size:9px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--cream); }
-        .active-tag button { color:var(--dim); font-size:14px; line-height:1; transition:color .15s; padding:0; background:none; }
+        .active-tag button { display:flex; align-items:center; color:var(--dim); transition:color .15s; padding:0; background:none; }
         .active-tag button:hover { color:#E08080; }
         .clear-all-btn { padding:7px 12px; border-radius:999px; border:1px solid var(--border); font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); background:none; transition:all .2s; }
         .clear-all-btn:hover { color:#E08080; border-color:rgba(224,128,128,0.3); }
 
-        /* ROUTE GRID */
         .route-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
 
-        /* ROUTE CARD */
         .route-card { position:relative; border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); transition:transform .4s cubic-bezier(.25,.46,.45,.94),box-shadow .4s,border-color .4s; cursor:pointer; }
         .route-card:hover { transform:translateY(-6px); box-shadow:0 32px 80px rgba(0,0,0,0.3); border-color:rgba(201,168,106,0.22); }
         .route-card-img { position:relative; height:240px; overflow:hidden; }
@@ -397,21 +378,19 @@ function ExplorePageInner() {
         .save-btn { position:absolute; top:12px; right:12px; z-index:5; width:36px; height:36px; border-radius:50%; background:rgba(12,11,9,0.55); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.18); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .25s,background .25s; }
         .route-card:hover .save-btn { opacity:1; }
         .save-btn:hover { background:rgba(12,11,9,0.85); }
-        .save-btn svg { width:16px; height:16px; }
         .route-card-type { position:absolute; bottom:12px; left:12px; z-index:5; padding:5px 10px; border-radius:999px; background:rgba(12,11,9,0.65); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.16); font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(237,229,212,0.8); }
         .route-card-body { padding:18px 18px 20px; }
         .route-card-country { font-size:9px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
         .route-card-title { font-family:var(--serif); font-size:22px; font-weight:400; color:var(--cream); line-height:1.05; letter-spacing:-0.02em; margin-bottom:8px; }
         .route-card-desc { font-size:12px; color:var(--dim); line-height:1.65; font-weight:300; margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .route-card-meta { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+        .route-card-meta { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
         .route-card-meta-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--dim); font-weight:500; }
-        .route-card-meta-item svg { opacity:0.55; flex-shrink:0; }
+        .route-card-meta-item svg { opacity:0.65; flex-shrink:0; }
         .route-card-footer { display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid var(--border); }
         .route-card-rating { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gold); font-weight:700; }
         .view-route-btn { font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); transition:color .2s; display:flex; align-items:center; gap:6px; }
         .view-route-btn:hover { color:var(--cream); }
 
-        /* LOADING SKELETONS */
         .loading-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
         .skeleton { border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); }
         .skeleton-img { height:240px; background:linear-gradient(90deg,color-mix(in srgb, var(--border) 40%, transparent) 0%,color-mix(in srgb, var(--border) 80%, transparent) 50%,color-mix(in srgb, var(--border) 40%, transparent) 100%); background-size:200% 100%; animation:shimmer 1.6s infinite; }
@@ -419,7 +398,6 @@ function ExplorePageInner() {
         .skeleton-line { height:10px; border-radius:6px; background:linear-gradient(90deg,color-mix(in srgb, var(--border) 40%, transparent) 0%,color-mix(in srgb, var(--border) 80%, transparent) 50%,color-mix(in srgb, var(--border) 40%, transparent) 100%); background-size:200% 100%; animation:shimmer 1.6s infinite; }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-        /* FILTER PANEL */
         .filter-overlay { position:fixed; inset:0; z-index:299; }
         .filter-panel { position:absolute; right:0; top:calc(100% + 10px); width:320px; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid var(--border); border-radius:20px; padding:24px; box-shadow:0 28px 80px rgba(0,0,0,0.4); z-index:300; backdrop-filter:blur(20px); }
         .filter-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
@@ -437,7 +415,7 @@ function ExplorePageInner() {
         .filter-radio-item input { accent-color:var(--gold); }
         .filter-radio-item span { font-size:13px; color:var(--muted); }
         .filter-stars { display:flex; gap:4px; }
-        .filter-star { font-size:22px; color:var(--border); transition:color .15s; background:none; }
+        .filter-star { display:flex; color:var(--border); transition:color .15s; background:none; }
         .filter-star.active { color:var(--gold); }
         .filter-country-list { display:flex; flex-direction:column; gap:8px; max-height:160px; overflow-y:auto; }
         .filter-country-list::-webkit-scrollbar { width:3px; }
@@ -448,12 +426,10 @@ function ExplorePageInner() {
         .filter-apply-btn { width:100%; padding:14px; background:var(--gold); color:var(--bg); border-radius:12px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:background .2s; margin-top:4px; }
         .filter-apply-btn:hover { background:#d8b978; }
 
-        /* EMPTY STATE */
         .empty-state { text-align:center; padding:80px 20px; }
         .empty-state h3 { font-family:var(--serif); font-size:40px; font-weight:300; font-style:italic; color:var(--cream); margin-bottom:12px; }
         .empty-state p { font-size:14px; color:var(--dim); font-weight:300; margin-bottom:28px; }
 
-        /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:52px clamp(20px,4vw,60px) 28px; }
         .footer-inner { max-width:1380px; margin:0 auto; }
         .footer-top { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1.5fr; gap:40px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
@@ -470,7 +446,7 @@ function ExplorePageInner() {
         .footer-nl-form { display:flex; }
         .footer-nl-input { flex:1; padding:11px 15px; border:1px solid var(--border); border-right:none; border-radius:999px 0 0 999px; background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); font-size:13px; outline:none; }
         .footer-nl-input::placeholder { color:var(--dim); }
-        .footer-nl-btn { width:46px; background:var(--gold); border:1px solid var(--gold); border-radius:0 999px 999px 0; color:var(--bg); font-size:15px; font-weight:800; transition:background .2s; }
+        .footer-nl-btn { width:46px; background:var(--gold); border:1px solid var(--gold); border-radius:0 999px 999px 0; color:var(--bg); font-size:15px; font-weight:800; transition:background .2s; display:flex; align-items:center; justify-content:center; }
         .footer-nl-btn:hover { background:#d8b978; }
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
         .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; }
@@ -499,12 +475,6 @@ function ExplorePageInner() {
         }
       `}</style>
 
-      {/* FIX: themeClass ("dark" oder "light") wird hier auf das Root-Element
-          angewendet. Vorher fehlte diese Klasse komplett, wodurch sämtliche
-          CSS-Variablen (--bg, --border, --gold, --cream, --muted, --dim ...)
-          nie aufgelöst wurden. Das erklärte den fehlenden Divider, den
-          fehlenden Placeholder-Stil und den helleren/transparenten
-          Hintergrund der Search-Bar. */}
       <div className={`page ${themeClass}`}>
         {/* NAV */}
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
@@ -546,11 +516,11 @@ function ExplorePageInner() {
                       </div>
                     </div>
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon">◎</span> Profile</Link>
-                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon">△</span> My Trips</Link>
-                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon">⬡</span> Explore Routes</Link>
+                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile</Link>
+                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips</Link>
+                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes</Link>
                       <div className="ud-divider" />
-                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{ color: "#e08080" }}>→</span> Sign Out</button>
+                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span> Sign Out</button>
                     </div>
                   </div>
                 )}
@@ -572,19 +542,18 @@ function ExplorePageInner() {
               <h1 className="hero-h1">Find your<br />perfect route.</h1>
               <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration, terrain and mood.</p>
 
-              {/* SEARCH BAR */}
               <div className="search-bar" ref={searchBarRef}>
                 <div className={`search-field ${isOpen ? "open" : ""}`} style={{ position: "relative" }} onClick={() => { setIsOpen((p) => !p); setIsOpenDate(false); }}>
                   <div className="search-field-label">Country</div>
                   <div className="search-field-value">
                     {selected ? <span>{selected}</span> : <span className="placeholder">Choose destination</span>}
-                    <span className="arrow">▼</span>
+                    <span className="arrow"><ChevronDown size={12} strokeWidth={2.5} /></span>
                   </div>
                   {isOpen && (
                     <div className="search-dropdown">
                       <div className="search-dropdown-header"><span className="search-dropdown-header-label">Destination</span></div>
                       <div className="search-dropdown-scroll">
-                        <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelected(""); setIsOpen(false); }}>↳ All countries</div>
+                        <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelected(""); setIsOpen(false); }}><CornerDownRight size={12} strokeWidth={2} /> All countries</div>
                         {countries.map((c) => (
                           <div key={c} className="search-dropdown-item" onClick={(e) => { e.stopPropagation(); setSelected(c); setIsOpen(false); }}>
                             <span className="item-dot" />{c}
@@ -602,13 +571,13 @@ function ExplorePageInner() {
                   <div className="search-field-label">Duration</div>
                   <div className="search-field-value">
                     {selectedDate ? <span>{selectedDate}</span> : <span className="placeholder">Choose duration</span>}
-                    <span className="arrow">▼</span>
+                    <span className="arrow"><ChevronDown size={12} strokeWidth={2.5} /></span>
                   </div>
                   {isOpenDate && (
                     <div className="search-dropdown">
                       <div className="search-dropdown-header"><span className="search-dropdown-header-label">Duration</span></div>
                       <div className="search-dropdown-scroll">
-                        <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelectedDate(""); setIsOpenDate(false); }}>↳ Any duration</div>
+                        <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelectedDate(""); setIsOpenDate(false); }}><CornerDownRight size={12} strokeWidth={2} /> Any duration</div>
                         {durations.map((d) => (
                           <div key={d} className="search-dropdown-item" onClick={(e) => { e.stopPropagation(); setSelectedDate(d); setIsOpenDate(false); }}>
                             <span className="item-dot" />{d}
@@ -620,7 +589,7 @@ function ExplorePageInner() {
                   )}
                 </div>
 
-                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route →</button>
+                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route <ArrowRight size={13} strokeWidth={2.5} /></button>
               </div>
             </div>
           </div>
@@ -634,9 +603,7 @@ function ExplorePageInner() {
             </p>
             <div style={{ position: "relative" }}>
               <button className="filter-btn" onClick={() => setShowFilters((p) => !p)}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="16" y2="12" /><line x1="4" y1="18" x2="12" y2="18" />
-                </svg>
+                <SlidersHorizontal size={14} strokeWidth={2} />
                 Filters
                 {activeFilterCount > 0 && <span className="filter-count">{activeFilterCount}</span>}
               </button>
@@ -672,7 +639,9 @@ function ExplorePageInner() {
                       <p className="filter-section-title">Minimum Rating</p>
                       <div className="filter-stars">
                         {[1,2,3,4,5].map((s) => (
-                          <button key={s} className={`filter-star ${s <= filters.minRating ? "active" : ""}`} onClick={() => setFilters((p) => ({...p, minRating: p.minRating === s ? 0 : s}))}>★</button>
+                          <button key={s} className={`filter-star ${s <= filters.minRating ? "active" : ""}`} onClick={() => setFilters((p) => ({...p, minRating: p.minRating === s ? 0 : s}))}>
+                            <Star size={20} strokeWidth={1.8} fill={s <= filters.minRating ? "currentColor" : "none"} />
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -696,10 +665,10 @@ function ExplorePageInner() {
 
           {(activeFilterCount > 0 || appliedSelected || appliedSelectedDate) && (
             <div className="active-tags">
-              {filters.difficulty.map((t) => (<span key={t} className="active-tag">{t}<button onClick={() => toggleFilter("difficulty", t)}>×</button></span>))}
-              {filters.countries.map((c) => (<span key={c} className="active-tag">{c}<button onClick={() => toggleFilter("countries", c)}>×</button></span>))}
-              {appliedSelected && (<span className="active-tag">{appliedSelected}<button onClick={() => { setSelected(""); setAppliedSelected(""); }}>×</button></span>)}
-              {appliedSelectedDate && (<span className="active-tag">{appliedSelectedDate}<button onClick={() => { setSelectedDate(""); setAppliedSelectedDate(""); }}>×</button></span>)}
+              {filters.difficulty.map((t) => (<span key={t} className="active-tag">{t}<button onClick={() => toggleFilter("difficulty", t)}><X size={11} strokeWidth={2.5} /></button></span>))}
+              {filters.countries.map((c) => (<span key={c} className="active-tag">{c}<button onClick={() => toggleFilter("countries", c)}><X size={11} strokeWidth={2.5} /></button></span>))}
+              {appliedSelected && (<span className="active-tag">{appliedSelected}<button onClick={() => { setSelected(""); setAppliedSelected(""); }}><X size={11} strokeWidth={2.5} /></button></span>)}
+              {appliedSelectedDate && (<span className="active-tag">{appliedSelectedDate}<button onClick={() => { setSelectedDate(""); setAppliedSelectedDate(""); }}><X size={11} strokeWidth={2.5} /></button></span>)}
               <button className="clear-all-btn" onClick={clearAllFilters}>Clear all</button>
             </div>
           )}
@@ -732,9 +701,7 @@ function ExplorePageInner() {
                       <img src={route.image_url || "/iceland.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
                     </Link>
                     <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
-                      <svg viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ fill: savedRoutes.includes(route.id) ? "#ef4444" : "transparent", stroke: savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)" }}>
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
+                      <Heart size={16} strokeWidth={2} fill={savedRoutes.includes(route.id) ? "#ef4444" : "transparent"} stroke={savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)"} />
                     </button>
                     {(route.terrain || route.type) && <div className="route-card-type">{route.terrain || route.type}</div>}
                   </div>
@@ -743,12 +710,12 @@ function ExplorePageInner() {
                     <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{route.title}</div></Link>
                     {route.description && <p className="route-card-desc">{route.description}</p>}
                     <div className="route-card-meta">
-                      {route.duration && <div className="route-card-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{route.duration}</div>}
-                      {route.distance_km && <div className="route-card-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12h18M3 6h18M3 18h18"/></svg>{fmtKm(route.distance_km)}</div>}
+                      {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
+                      {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{fmtKm(route.distance_km)}</div>}
                     </div>
                     <div className="route-card-footer">
-                      <div className="route-card-rating">★ {route.rating ? route.rating.toFixed(1) : "—"}</div>
-                      <Link href={`/routedetail/${route.id}`} className="view-route-btn">View Route →</Link>
+                      <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating ? route.rating.toFixed(1) : "—"}</div>
+                      <Link href={`/routedetail/${route.id}`} className="view-route-btn">View Route <ArrowRight size={12} strokeWidth={2.5} /></Link>
                     </div>
                   </div>
                 </div>
@@ -779,7 +746,7 @@ function ExplorePageInner() {
                 <p className="footer-nl-sub">Get the best scenic routes and travel stories in your inbox.</p>
                 <div className="footer-nl-form">
                   <input type="email" className="footer-nl-input" placeholder="your@email.com" />
-                  <button className="footer-nl-btn">→</button>
+                  <button className="footer-nl-btn"><ArrowRight size={16} strokeWidth={2.5} /></button>
                 </div>
               </div>
             </div>

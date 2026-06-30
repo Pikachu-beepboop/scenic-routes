@@ -7,6 +7,10 @@ import { supabase } from "../../lib/supabase";
 import AuthModal from "../AuthModal";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+import {
+  Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
+  User as UserIcon, Map as MapIcon, Compass, LogOut,
+} from "lucide-react";
 
 const fmtKm = (km?: number) =>
   km != null ? `${km.toLocaleString("en-US")} km` : "—";
@@ -161,7 +165,7 @@ export default function MyTripsPage() {
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
-        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-link-icon { width:18px; display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
         .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
         .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
         .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
@@ -185,7 +189,7 @@ export default function MyTripsPage() {
         .page-sub { margin-top:30px; font-size:18px; color:var(--muted); font-weight:500; line-height:1.8; max-width:470px; }
         .collection-stats { display:flex; gap:14px; margin-top:46px; }
         .collection-stat { min-width:180px; padding:22px 24px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); box-shadow:0 18px 60px rgba(0,0,0,0.12); transition:background .35s, border-color .35s; }
-        .collection-stat-icon { font-size:19px; color:var(--gold); margin-bottom:10px; }
+        .collection-stat-icon { color:var(--gold); margin-bottom:10px; display:flex; align-items:center; }
         .collection-stat-main { display:flex; align-items:flex-end; gap:8px; }
         .collection-stat-number { font-family:var(--serif); font-size:42px; font-weight:300; line-height:0.8; color:var(--cream); }
         .collection-stat-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); padding-bottom:3px; }
@@ -211,16 +215,17 @@ export default function MyTripsPage() {
         .saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
         .saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
         .saved-preview-name { font-family:var(--serif); font-size:32px; font-weight:400; line-height:1; color:var(--cream); margin-bottom:12px; }
-        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px;  color:rgba(255, 255, 255, 0.62); font-weight:500; }
-        .light .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px;  color:rgba(0, 0, 0, 0.84); font-weight:500; }
+        .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:14px; font-size:12px;  color:rgba(255, 255, 255, 0.62); font-weight:500; }
+        .light .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:14px; font-size:12px;  color:rgba(0, 0, 0, 0.84); font-weight:500; }
         .saved-preview-meta span { display:inline-flex; align-items:center; gap:6px; }
+        .saved-preview-meta svg { flex-shrink:0; opacity:0.85; }
         .saved-preview-action-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
-        .saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; font-size:23px; line-height:1; padding-bottom:3px; }
+        .saved-preview-action { width:42px; height:42px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; transition:all .25s; flex-shrink:0; }
         .saved-preview-action:hover { background:var(--gold); color:var(--bg); transform:translateX(2px); }
-        .saved-preview-remove { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); color:var(--dim); display:flex; align-items:center; justify-content:center; transition:all .2s; font-size:15px; }
+        .saved-preview-remove { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); color:var(--dim); display:flex; align-items:center; justify-content:center; transition:all .2s; }
         .saved-preview-remove:hover { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
         .saved-preview-empty { min-height:360px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1px dashed var(--border); border-radius:20px; background:color-mix(in srgb, var(--border) 30%, transparent); padding:34px; }
-        .saved-preview-empty-icon { width:62px; height:62px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:24px; margin-bottom:18px; }
+        .saved-preview-empty-icon { width:62px; height:62px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); display:flex; align-items:center; justify-content:center; color:var(--gold); margin-bottom:18px; }
         .saved-preview-empty h3 { font-family:var(--serif); font-size:32px; font-weight:300; color:var(--cream); margin-bottom:10px; }
         .saved-preview-empty p { color:var(--dim); font-size:14px; line-height:1.7; max-width:340px; margin-bottom:24px; }
         .btn-gold-filled { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:#0c0b09; transition:all .25s; }
@@ -301,11 +306,11 @@ export default function MyTripsPage() {
                       </div>
                     </div>
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon">◎</span> Profile</Link>
-                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon">△</span> My Trips</Link>
-                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon">⬡</span> Explore Routes</Link>
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile</Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips</Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes</Link>
                       <div className="ud-divider"/>
-                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out</button>
+                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> Sign Out</button>
                     </div>
                   </div>
                 )}
@@ -332,14 +337,14 @@ export default function MyTripsPage() {
               <p className="page-sub">The journeys you've chosen to remember. Revisit your favorite scenic routes and plan your next adventure.</p>
               <div className="collection-stats">
                 <div className="collection-stat">
-                  <div className="collection-stat-icon">▱</div>
+                  <div className="collection-stat-icon"><Bookmark size={19} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
                     <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
                     <span className="collection-stat-label">Saved Routes</span>
                   </div>
                 </div>
                 <div className="collection-stat">
-                  <div className="collection-stat-icon">◎</div>
+                  <div className="collection-stat-icon"><Globe2 size={19} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
                     <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
                     <span className="collection-stat-label">Countries</span>
@@ -358,7 +363,7 @@ export default function MyTripsPage() {
 
               {!user ? (
                 <div className="saved-preview-empty">
-                  <div className="saved-preview-empty-icon">♡</div>
+                  <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
                   <h3>Sign in to build your collection.</h3>
                   <p>Create an account and save the scenic routes you want to drive later.</p>
                   <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>Login →</button>
@@ -369,7 +374,7 @@ export default function MyTripsPage() {
                 </div>
               ) : savedRoutes.length === 0 ? (
                 <div className="saved-preview-empty">
-                  <div className="saved-preview-empty-icon">♡</div>
+                  <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
                   <h3>No saved routes yet.</h3>
                   <p>Explore the collection and save the routes that speak to you.</p>
                   <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
@@ -387,14 +392,14 @@ export default function MyTripsPage() {
                           <h3 className="saved-preview-name">{route.title}</h3>
                         </Link>
                         <div className="saved-preview-meta">
-                          {route.distance_km && <span>⌁ {fmtKm(route.distance_km)}</span>}
-                          {route.duration && <span>◷ {route.duration}</span>}
+                          {route.distance_km && <span><Navigation size={13} strokeWidth={1.8} /> {fmtKm(route.distance_km)}</span>}
+                          {route.duration && <span><Clock size={13} strokeWidth={1.8} /> {route.duration}</span>}
                           {(route.terrain || route.type) && <span>• {route.terrain || route.type}</span>}
                         </div>
                       </div>
                       <div className="saved-preview-action-wrap">
-                        <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title="Open route">›</Link>
-                        <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title="Remove from saved">×</button>
+                        <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title="Open route"><ChevronRight size={19} strokeWidth={2} /></Link>
+                        <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title="Remove from saved"><X size={15} strokeWidth={2} /></button>
                       </div>
                     </div>
                   ))}

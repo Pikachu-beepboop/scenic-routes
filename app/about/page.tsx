@@ -6,6 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
+import {
+  User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight,
+} from 'lucide-react';
 
 const TEAM = [
   { initials: "LA", name: "Lavr",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
@@ -154,7 +157,7 @@ export default function AboutPage() {
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
-        .ud-link-icon { font-size:14px; width:18px; text-align:center; color:var(--gold); flex-shrink:0; }
+        .ud-link-icon { width:18px; display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
         .ud-divider { height:1px; background:var(--border); margin:4px 8px; }
         .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
         .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
@@ -224,7 +227,7 @@ export default function AboutPage() {
         .team-role { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:14px; }
         .team-bio  { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; }
         .team-footer-bar { margin-top:16px; background:var(--bg3); border:1px solid var(--border); border-radius:16px; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; }
-        .team-footer-link { font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); transition:color .2s; }
+        .team-footer-link { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); transition:color .2s; }
         .team-footer-link:hover { color:var(--cream); }
 
         /* CTA */
@@ -303,17 +306,17 @@ export default function AboutPage() {
                     </div>
                     <div className="ud-links">
                       <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon">◎</span> Profile
+                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile
                       </Link>
                       <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon">△</span> My Trips
+                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips
                       </Link>
                       <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon">⬡</span> Explore Routes
+                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes
                       </Link>
                       <div className="ud-divider"/>
                       <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{color:'#e08080'}}>→</span> Sign Out
+                        <span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> Sign Out
                       </button>
                     </div>
                   </div>
@@ -341,8 +344,8 @@ export default function AboutPage() {
               Every trip should feel like an adventure — we map the roads that make you pull over and stare.
             </p>
             <div className="about-hero-actions">
-              <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
-              <a href="mailto:hello@scenicroutes.app" className="btn-outline">Say Hello →</a>
+              <Link href="/explore" className="btn-gold-filled">Explore Routes <ArrowRight size={13} strokeWidth={2.5} /></Link>
+              <a href="mailto:hello@scenicroutes.app" className="btn-outline">Say Hello <ArrowRight size={13} strokeWidth={2.5} /></a>
             </div>
           </div>
         </section>
@@ -433,7 +436,7 @@ export default function AboutPage() {
                 </div>
                 <span style={{fontSize:"12px",color:"var(--dim)",fontWeight:300}}>A small team, big passion for the road.</span>
               </div>
-              <a href="mailto:jobs@scenicroutes.app" className="team-footer-link">Join the team →</a>
+              <a href="mailto:jobs@scenicroutes.app" className="team-footer-link">Join the team <ArrowRight size={11} strokeWidth={2.5} /></a>
             </div>
           </div>
         </section>
@@ -446,16 +449,16 @@ export default function AboutPage() {
               <h2 className="cta-h2">Your next great<br/>road trip starts here.</h2>
               <p className="cta-sub">Hundreds of handpicked routes. Endless open road.</p>
               <div className="cta-actions">
-                <Link href="/explore" className="btn-gold-filled">Browse Routes →</Link>
+                <Link href="/explore" className="btn-gold-filled">Browse Routes <ArrowRight size={13} strokeWidth={2.5} /></Link>
                 {!user && (
-                  <Link href={loginHref} className="btn-outline">Create Account →</Link>
+                  <Link href={loginHref} className="btn-outline">Create Account <ArrowRight size={13} strokeWidth={2.5} /></Link>
                 )}
               </div>
             </div>
           </div>
         </section>
 
-        {/* FOOTER */}
+        {/* FOOTER — unverändert, wie gewünscht */}
         <footer className="footer">
           <div className="footer-inner">
             <div className="footer-top">
