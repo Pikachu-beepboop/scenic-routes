@@ -773,14 +773,8 @@ export default function RouteDetailPage() {
                     <div className="relative max-w-7xl mx-auto px-12 pt-32 pb-16">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-20 border-b border-[var(--border)]">
                             <div className="lg:col-span-4 space-y-8">
-                                <Link href="/" className="flex items-center gap-4 group w-fit">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                                        <img src="/mountains.png" alt="Logo" className="w-8 h-8 object-contain invert brightness-0 invert" />
-                                    </div>
-                                    <div className="flex flex-col leading-tight">
-                                        <span className="text-2xl font-black italic tracking-tight text-[var(--cream)]">Scenic Routes</span>
-                                        <span className="text-xs uppercase tracking-[0.3em] text-[var(--dim)]">Since 2026</span>
-                                    </div>
+                                <Link href="/" className="flex items-center w-fit -ml-2">
+                                    <img src="/Logo.png" alt="Scenic Routes" className="h-[120px] w-auto -my-5 drop-shadow-[0_4px_14px_rgba(0,0,0,0.35)]" />
                                 </Link>
                                 <p className="text-[var(--dim)] text-sm leading-relaxed max-w-xs font-light">
                                     Curating the world's most breathtaking driving routes for those who seek the road less travelled.

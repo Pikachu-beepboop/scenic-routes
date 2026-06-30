@@ -238,6 +238,7 @@ export default function MyTripsPage() {
         .footer-inner { max-width:1380px; margin:0 auto; }
         .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
+        .footer-logo-img { height:150px; width:auto; display:block; margin:-20px 0 4px -8px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
         .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
         .footer-socials { display:flex; gap:8px; }
         .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
@@ -414,7 +415,7 @@ export default function MyTripsPage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">SCENIC<br/>ROUTES</div>
+                <img src="/Logo.png" alt="Scenic Routes" className="footer-logo-img" />
                 <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey.</p>
                 <div className="footer-socials">
                   {["IG","FB","YT"].map((s) => <a key={s} href="#" className="footer-social">{s[0]}</a>)}

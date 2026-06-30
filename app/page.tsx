@@ -606,6 +606,8 @@ export default function HomePage() {
         .footer-inner { max-width:1200px; margin:0 auto; }
         .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
+        .footer-logo-img { height:150px; width:auto; display:block; margin:-20px 0 4px -8px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
+        .light .footer-logo-img { filter:drop-shadow(0 2px 8px rgba(0,0,0,0.12)); }
         .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
         .footer-col a { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
@@ -935,11 +937,7 @@ export default function HomePage() {
           <div className="footer-inner">
             <div className="footer-top">
               <div>
-                <div className="footer-brand">
-                  SCENIC
-                  <br />
-                  ROUTES
-                </div>
+                <img src="/Logo.png" alt="Scenic Routes" className="footer-logo-img" />
 
                 <p className="footer-tagline">
                   Thoughtfully curated road trips for people who value the
