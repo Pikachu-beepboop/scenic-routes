@@ -775,13 +775,13 @@ export default function RouteDetailPage() {
                                 <Link href="/" className="flex items-center w-fit">
                                     <div style={{ width: '220px', height: '147px', display: 'flex', alignItems: 'center' }}>
                                         <img
-                                            src={isLight ? "/logodark.png" : "/Logo.png"}
+                                            src="/logodark.png"
                                             alt="Scenic Routes"
                                             style={{
-                                                width: isLight ? '180px' : '220px',
+                                                width: '220px',
                                                 height: 'auto',
                                                 display: 'block',
-                                                filter: isLight ? 'none' : 'drop-shadow(0 4px 16px rgba(0,0,0,0.5))',
+                                                filter: isLight ? 'none' : 'invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6))',
                                             }}
                                         />
                                     </div>

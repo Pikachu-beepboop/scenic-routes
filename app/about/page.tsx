@@ -245,7 +245,7 @@ export default function AboutPage() {
         .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
         .footer-logo-img { height:auto; display:block; }
         .footer-logo-light { width:180px; }
-        .footer-logo-dark  { width:220px; filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25)); }
+        .footer-logo-dark  { width:220px; filter:invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
         .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:20px; max-width:200px; }
         .footer-socials{ display:flex; gap:8px; }
         .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
@@ -469,7 +469,7 @@ export default function AboutPage() {
               <div>
                 <div className="footer-logo-container">
                   <img
-                    src={mounted && theme === "light" ? "/logodark.png" : "/Logo.png"}
+                    src="/logodark.png"
                     alt="Scenic Routes"
                     className={`footer-logo-img ${mounted && theme === "light" ? "footer-logo-light" : "footer-logo-dark"}`}
                   />
