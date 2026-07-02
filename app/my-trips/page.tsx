@@ -9,11 +9,17 @@ import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import {
   Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
-  User as UserIcon, Map as MapIcon, Compass, LogOut,
+  User as UserIcon, Map as MapIcon, Compass, LogOut, Globe,
 } from "lucide-react";
 
 const fmtKm = (km?: number) =>
   km != null ? `${km.toLocaleString("en-US")} km` : "—";
+
+const LANGUAGES = [
+  { code: "DE", label: "Deutsch" },
+  { code: "EN", label: "English" },
+  { code: "RU", label: "Русский" },
+];
 
 export default function MyTripsPage() {
   const [user, setUser] = useState<any>(null);
@@ -24,6 +30,8 @@ export default function MyTripsPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [language, setLanguage] = useState("DE");
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -67,6 +75,15 @@ export default function MyTripsPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
+
+  useEffect(() => {
+    if (!showLangMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".footer-lang-wrap")) setShowLangMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showLangMenu]);
 
   async function fetchSavedRoutes(userId: string) {
     setLoading(true);
@@ -140,28 +157,30 @@ export default function MyTripsPage() {
         .nav-right { display:flex; align-items:center; gap:16px; }
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
-        .user-avatar { width:38px; height:38px; border-radius:50%; border:1px solid rgba(201,168,106,0.35); background:rgba(201,168,106,0.1); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; font-weight:300; color:var(--gold); cursor:pointer; transition:border-color .2s; }
-        .user-avatar:hover { border-color:var(--gold); }
+        button.user-avatar { width:48px; height:48px; border-radius:50%; border:1.5px solid var(--border); background:var(--bg2); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; font-weight:700; color:var(--cream); cursor:pointer; transition:border-color .2s, transform .2s; box-shadow:0 6px 18px rgba(0,0,0,0.35); }
+        button.user-avatar:hover { border-color:var(--gold); transform:translateY(-1px); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
         /* THEME SWITCH */
-        .theme-switch { position:relative; display:flex; align-items:center; width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
-        .theme-switch:hover { border-color:var(--gold); }
-        .theme-switch-knob { position:absolute; top:3px; left:3px; width:30px; height:30px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
-        .theme-switch-knob.is-light { transform:translateX(50px); }
+        .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent) !important; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border) !important; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
+        .theme-switch:hover { border-color:var(--gold) !important; }
+        .theme-switch-knob { position:absolute; top:4.5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
+        .theme-switch-knob.is-light { transform:translateX(36px); }
         .theme-switch-icon { width:14px; height:14px; }
-        .theme-switch-placeholder { width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
+        .theme-switch-placeholder { width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
 
         /* USER DROPDOWN */
         .user-menu-wrap { position:relative; }
         .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
         @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
         .ud-header { padding:20px 20px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
-        .ud-avatar { width:46px; height:46px; border-radius:11px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.1); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:300; color:var(--gold); flex-shrink:0; overflow:hidden; }
+        .ud-avatar { width:46px; height:46px; border-radius:11px; border:1.5px solid var(--border); background:var(--bg2); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:22px; font-weight:700; color:var(--cream); flex-shrink:0; overflow:hidden; }
         .ud-avatar img { width:100%; height:100%; object-fit:cover; }
         .ud-name { font-family:var(--serif); font-size:18px; font-weight:300; color:var(--cream); letter-spacing:-0.01em; line-height:1.2; }
         .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
         .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
+        .ud-theme-row { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border); }
+        .ud-theme-label { font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
         .ud-links { padding:8px; }
         .ud-link { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:var(--muted); background:none; border:none; cursor:pointer; transition:all .18s; text-decoration:none; }
         .ud-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
@@ -235,25 +254,32 @@ export default function MyTripsPage() {
 
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; transition:background .35s; }
-        .footer-inner { max-width:1380px; margin:0 auto; }
-        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-inner { max-width:1200px; margin:0 auto; }
+        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
         .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
         .footer-logo-img { height:auto; display:block; }
         .footer-logo-light { width:180px; }
         .footer-logo-dark  { width:220px; filter:invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
         .footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
-        .footer-socials { display:flex; gap:8px; }
-        .footer-social { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); transition:all .2s; }
-        .footer-social:hover { border-color:var(--gold); color:var(--gold); }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
         .footer-col a { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
         .footer-col a:hover { color:var(--cream); }
-        .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+        .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
         .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+        .footer-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
         .footer-legal { display:flex; gap:22px; }
         .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
         .footer-legal a:hover { color:var(--cream); }
+
+        /* FOOTER — Sprachauswahl */
+        .footer-lang-wrap { position:relative; }
+        .footer-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 30%, transparent); font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); transition:color .2s, border-color .2s; }
+        .footer-lang-btn:hover { color:var(--cream); border-color:var(--gold); }
+        .footer-lang-menu { position:absolute; bottom:calc(100% + 10px); right:0; min-width:150px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.55); backdrop-filter:blur(24px); z-index:50; animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); }
+        .footer-lang-option { display:block; width:100%; text-align:left; padding:10px 14px; font-size:12px; font-weight:500; color:var(--muted); background:none; transition:background .15s,color .15s; }
+        .footer-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
+        .footer-lang-option.active { color:var(--gold); font-weight:700; }
 
         @media (max-width:1100px) {
           .page-header { min-height:auto; padding-top:140px; }
@@ -291,7 +317,7 @@ export default function MyTripsPage() {
             {user && <Link href="/my-trips" className="nav-link nav-link-active">My Trips</Link>}
           </div>
           <div className="nav-right">
-            <ThemeSwitch />
+            {!user && <ThemeSwitch />}
             {user ? (
               <div className="user-menu-wrap">
                 <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
@@ -309,6 +335,12 @@ export default function MyTripsPage() {
                         <p className="ud-role">Scenic Route Explorer</p>
                       </div>
                     </div>
+
+                    <div className="ud-theme-row">
+                      <span className="ud-theme-label">Theme</span>
+                      <ThemeSwitch />
+                    </div>
+
                     <div className="ud-links">
                       <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile</Link>
                       <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips</Link>
@@ -425,29 +457,66 @@ export default function MyTripsPage() {
                     className={`footer-logo-img ${mounted && theme === "light" ? "footer-logo-light" : "footer-logo-dark"}`}
                   />
                 </div>
-                <p className="footer-tagline">Thoughtfully curated road trips for people who value the journey.</p>
-                <div className="footer-socials">
-                  {["IG","FB","YT"].map((s) => <a key={s} href="#" className="footer-social">{s[0]}</a>)}
-                </div>
+
+                <p className="footer-tagline">
+                  Thoughtfully curated road trips for people who value the
+                  journey as much as the destination
+                </p>
               </div>
-              {[["Explore",["All Routes","Destinations","Experiences","Journal"]],["Company",["About Us","Membership","Gift Cards","Careers"]],["Support",["FAQ","Travel Policies","Contact Us","Privacy Policy"]]].map(([heading,links]) => (
-                <div key={heading as string}>
+
+              {[
+                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
+                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
+                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
+              ].map(([heading, links]) => (
+                <div className="footer-col" key={heading as string}>
                   <p className="footer-col-title">{heading as string}</p>
-                  <div className="footer-col">
-                    {(links as string[]).map((l) => <a href="#" key={l}>{l}</a>)}
-                  </div>
+
+                  {(links as string[]).map((link) => (
+                    <a href="#" key={link}>{link}</a>
+                  ))}
                 </div>
               ))}
-              <div>
-                <p className="footer-col-title">Stay Inspired</p>
-                <p style={{fontSize:"12px",color:"var(--dim)",lineHeight:1.6,marginBottom:"14px",fontWeight:300}}>Subscribe for new routes, stories, and exclusive guides.</p>
-              </div>
             </div>
+
             <div className="footer-bottom">
-              <p className="footer-copy">© {new Date().getFullYear()} Scenic Routes. All Rights Reserved.</p>
-              <div className="footer-legal">
-                <a href="#">Terms & Conditions</a>
-                <a href="#">Privacy</a>
+              <p className="footer-copy">
+                © {new Date().getFullYear()} Explore Scenic Routes. All Rights Reserved.
+              </p>
+
+              <div className="footer-controls">
+                <div className="footer-lang-wrap">
+                  <button
+                    className="footer-lang-btn"
+                    onClick={() => setShowLangMenu((p) => !p)}
+                  >
+                    <Globe size={12} strokeWidth={2} /> {language}
+                  </button>
+
+                  {showLangMenu && (
+                    <div className="footer-lang-menu">
+                      {LANGUAGES.map((lang) => (
+                        <button
+                          key={lang.code}
+                          className={`footer-lang-option ${lang.code === language ? "active" : ""}`}
+                          onClick={() => {
+                            setLanguage(lang.code);
+                            setShowLangMenu(false);
+                          }}
+                        >
+                          {lang.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <ThemeSwitch />
+
+                <div className="footer-legal">
+                  <a href="#">Terms & Conditions</a>
+                  <a href="#">Privacy</a>
+                </div>
               </div>
             </div>
           </div>
