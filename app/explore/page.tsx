@@ -328,26 +328,26 @@ function ExplorePageInner() {
         .light .hero-bg::after { display:none; }
         .hero-inner { position:relative; z-index:10; width:100%; max-width:1440px; margin:0 auto; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; }
         .hero-content { max-width:1580px; width:100%; }
-        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:var(--gold); margin-bottom:22px; }
-        .hero-h1 { font-family:var(--serif); font-size:clamp(72px,7vw,132px); font-weight:300; font-style:italic; line-height:0.87; letter-spacing:-0.04em; color:var(--cream); text-shadow:0 20px 60px rgba(0,0,0,0.5); }
+        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:black; margin-bottom:22px; }
+        .hero-h1 { font-family:var(--serif); font-size:clamp(72px,7vw,132px); font-weight:300; line-height:0.87; letter-spacing:-0.04em; color:var(--cream); text-shadow:0 20px 60px rgba(0,0,0,0.5); }
         .light .hero-h1 { color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.55), 0 8px 32px rgba(0,0,0,0.35); }
-        .hero-sub { font-size:20px; font-weight:300; color:var(--muted); max-width:780px; line-height:1.6; margin-top:45px; }
+        .hero-sub { font-size:20px; font-weight:300; color:var(--muted); font-style:italic; max-width:780px; line-height:1.6; margin-top:45px; }
         .light .hero-sub { color:rgba(255,255,255,0.82); text-shadow:0 2px 8px rgba(0,0,0,0.4); }
         .light .hero-eyebrow { text-shadow:0 2px 8px rgba(0,0,0,0.3); }
 
-        .search-bar { display:inline-flex; align-items:stretch; background:color-mix(in srgb, var(--border) 50%, transparent); backdrop-filter:blur(24px); border:1px solid var(--border); border-radius:20px; overflow:visible; width:100%; max-width:1020px; margin-top:36px; }
+        .search-bar { display:inline-flex; align-items:stretch; background:color-mix(in srgb, var(--border) 50%, transparent); backdrop-filter:blur(24px); border:1px solid var(--border); border-radius:20px; overflow:visible; width:100%; max-width:1020px; margin-top:75px; }
         .search-field { position:relative; padding:18px 24px; flex:1; cursor:pointer; transition:background .2s; border-radius:18px; min-width:0; }
         .search-field:hover { background:color-mix(in srgb, var(--border) 50%, transparent); }
         .search-field.open { background:color-mix(in srgb, var(--border) 80%, transparent); }
-        .search-field-label { font-size:8px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; opacity:0.85; }
+        .search-field-label { font-size:12px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; opacity:0.85; }
         .search-field-value { font-size:16px; font-weight:300; font-family:var(--serif); letter-spacing:0.01em; color:var(--cream); display:flex; align-items:center; gap:8px; justify-content:space-between; }
-        .search-field-value .placeholder { color:var(--muted); font-style:italic; }
+        .search-field-value .placeholder {font-size:18px; color:var(--muted); font-style:italic; }
         .search-field-value .arrow { display:flex; color:rgba(201,168,106,0.55); transition:transform .25s,color .2s; flex-shrink:0; }
         .search-field.open .arrow { transform:rotate(180deg); color:var(--gold); }
         .search-divider { width:1px; background:var(--border); margin:14px 0; flex-shrink:0; }
         .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); display:inline-flex; align-items:center; gap:8px; }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
-
+        
         .light .search-bar { background:rgba(12,11,9,0.42); border-color:rgba(237,229,212,0.18); }
         .light .search-field:hover { background:rgba(237,229,212,0.08); }
         .light .search-field.open { background:rgba(237,229,212,0.14); }
@@ -569,8 +569,7 @@ function ExplorePageInner() {
           <div className="hero-inner">
             <div className="hero-content">
               <p className="hero-eyebrow">Discover · Explore · Drive</p>
-              <h1 className="hero-h1">Find your<br />perfect route.</h1>
-              <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration, terrain and mood.</p>
+              <h1 className="hero-h1">Find your<br />perfect route</h1>
 
               <div className="search-bar" ref={searchBarRef}>
                 <div className={`search-field ${isOpen ? "open" : ""}`} style={{ position: "relative" }} onClick={() => { setIsOpen((p) => !p); setIsOpenDate(false); }}>
@@ -619,8 +618,10 @@ function ExplorePageInner() {
                   )}
                 </div>
 
-                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route <ArrowRight size={13} strokeWidth={2.5} /></button>
+                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route <ArrowRight size={30} strokeWidth={2.5} /></button>
               </div>
+
+              <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration, terrain and mood.</p>
             </div>
           </div>
         </section>
