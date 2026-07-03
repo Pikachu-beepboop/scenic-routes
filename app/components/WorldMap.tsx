@@ -28,6 +28,16 @@ const FALLBACK_MARKERS = [
   { id: "8", title: "Transfagarasan", country: "Romania", latitude: 45.6, longitude: 24.6 },
   { id: "9", title: "Col de la Bonette", country: "France", latitude: 44.3, longitude: 6.8 },
   { id: "10", title: "Milford Road", country: "New Zealand", latitude: -44.7, longitude: 168.0 },
+  { id: "11", title: "D915 Road", country: "Turkey", latitude: 40, longitude: 39.7 },
+  { id: "12", title: "Icefields Parkway", country: "Canada", latitude: 51.5, longitude: -116.2 },
+  { id: "13", title: "Great Ocean Road", country: "Australia", latitude: -38.6, longitude: 143.1 },
+  { id: "14", title: "Denali Highway", country: "USA", latitude: 63.7, longitude: -148.9 },
+  { id: "15", title: "Tianmen Mountain Road", country: "China", latitude: 29.4, longitude: 110.5 },
+  { id: "16", title: "Leh Manali Highway", country: "India", latitude: 32.2, longitude: 77.1 },
+  { id: "17", title: "Sa Calora Road", country: "Spain", latitude: 39.1, longitude: 2.9 },
+  { id: "18", title: "Ruta 40", country: "Argentina", latitude: -41.1, longitude: -71.3 },
+  { id: "19", title: "Sea to Sky Highway", country: "Canada", latitude: 50.0, longitude: -122.9 },
+  { id: "20", title: "Irohazaka Road", country: "Japan", latitude: 36.7, longitude: 139.5 },
 ];
 
 export default function WorldMap() {
