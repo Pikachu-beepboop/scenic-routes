@@ -5,6 +5,15 @@ import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
 import * as XLSX from 'xlsx';
 
+// Normalisiert Strings fürs Matching: trimmt, senkt Groß/Klein, kollabiert Mehrfach-Leerzeichen.
+// Damit sind "Chile/ Argentina", "Chile / Argentina", "chile/argentina " etc. alle die gleiche Route.
+function normalize(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
 export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ added: number; updated: number; errors: string[] } | null>(null);
@@ -18,65 +27,86 @@ export default function AdminPage() {
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
-  const data = evt.target?.result;
-  const workbook = XLSX.read(data, { type: 'binary' });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet) as any[];
+      const data = evt.target?.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet) as any[];
 
-  let added = 0;
-  let updated = 0;
-  const errors: string[] = [];
+      let added = 0;
+      let updated = 0;
+      const errors: string[] = [];
 
-  for (const row of rows) {
-    if (!row.title || !row.country) continue;
+      // 1x alle bestehenden Routen holen, statt pro Zeile eine eigene DB-Abfrage zu machen.
+      // Das ist schneller UND ist die Basis für robustes Matching per normalisiertem Titel.
+      const { data: existingRoutes, error: fetchError } = await supabase
+        .from('routes')
+        .select('id, title');
 
-    const route = {
-  title: row.title,
-  country: row.country,
-  description: row.description || null,
-  long_description: row.long_description || null,
-  duration: row.duration || null,
-  distance_km: row.distance_km ? parseInt(row.distance_km) : null,
-  image_url: row.image_url || null,
-  season: row.season || null,
-  start_point: row.start_point || null,
-  end_point: row.end_point || null,
-  route_highlights: row.route_highlights || null,
-  maps_URL: row.maps_URL || null,
-  chapter1: row.chapter1 || null,
-  chapter2: row.chapter2 || null,
-  chapter3: row.chapter3 || null,
-  chapter4: row.chapter4 || null,
-  chapter5: row.chapter5 || null,
-  google_maps: row.google_maps || null,
-  image1: row.image1 || null,
-  image2: row.image2 || null,
-  image3: row.image3 || null,
-  image4: row.image4 || null,
-  image5: row.image5 || null,
-};
+      if (fetchError) {
+        setResult({ added: 0, updated: 0, errors: [`Konnte bestehende Routen nicht laden: ${fetchError.message}`] });
+        setLoading(false);
+        return;
+      }
 
-    const { data: existing } = await supabase
-      .from('routes')
-      .select('id')
-      .eq('title', route.title)
-      .eq('country', route.country)
-      .single();
+      // Lookup-Map: normalisierter Titel -> Route-ID
+      const existingByTitle = new Map<string, string>();
+      for (const r of existingRoutes ?? []) {
+        existingByTitle.set(normalize(r.title), r.id);
+      }
 
-    if (existing) {
-      const { error } = await supabase.from('routes').update(route).eq('id', existing.id);
-      if (error) errors.push(`${route.title}: ${error.message}`);
-      else updated++;
-    } else {
-      const { error } = await supabase.from('routes').insert(route);
-      if (error) errors.push(`${route.title}: ${error.message}`);
-      else added++;
-    }
-  }
+      for (const row of rows) {
+        if (!row.title) continue;
 
-  setResult({ added, updated, errors });
-  setLoading(false);
-};
+        // Werte werden normalisiert (getrimmt) gespeichert, damit sich in Zukunft keine
+        // Leerzeichen-/Schreibvarianten mehr in der DB anhäufen.
+        const route = {
+          title: String(row.title).trim(),
+          country: row.country  || null,
+          description: row.description || null,
+          long_description: row.long_description || null,
+          duration: row.duration || null,
+          distance_km: row.distance_km ? parseInt(row.distance_km) : null,
+          image_url: row.image_url || null,
+          season: row.season || null,
+          start_point: row.start_point || null,
+          end_point: row.end_point || null,
+          route_highlights: row.route_highlights || null,
+          maps_URL: row.maps_URL || null,
+          chapter1: row.chapter1 || null,
+          chapter2: row.chapter2 || null,
+          chapter3: row.chapter3 || null,
+          chapter4: row.chapter4 || null,
+          chapter5: row.chapter5 || null,
+          google_maps: row.google_maps || null,
+          image1: row.image1 || null,
+          image2: row.image2 || null,
+          image3: row.image3 || null,
+          image4: row.image4 || null,
+          image5: row.image5 || null,
+        };
+
+        const existingId = existingByTitle.get(normalize(route.title));
+
+        if (existingId) {
+          const { error } = await supabase.from('routes').update(route).eq('id', existingId);
+          if (error) errors.push(`${route.title}: ${error.message}`);
+          else updated++;
+        } else {
+          const { data: inserted, error } = await supabase.from('routes').insert(route).select('id').single();
+          if (error) {
+            errors.push(`${route.title}: ${error.message}`);
+          } else {
+            added++;
+            // Neu eingefügte Route direkt in die Map aufnehmen, falls sie im selben
+            // Excel-Import mehrfach vorkommt (verhindert Duplikate innerhalb eines Uploads).
+            if (inserted) existingByTitle.set(normalize(route.title), inserted.id);
+          }
+        }
+      }
+
+      setResult({ added, updated, errors });
+      setLoading(false);
+    };
     reader.readAsBinaryString(file);
   }
 
@@ -111,7 +141,7 @@ export default function AdminPage() {
         <div className="mt-6 p-5 bg-gray-50 rounded-xl">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Excel columns (first row = headers):</p>
           <div className="grid grid-cols-2 gap-2">
-            {['title *', 'country *', 'description', 'long_description', 'duration', 'distance_km', 'image_url', 'season', 'start_point', 'end_poi', 'route_highlights', 'maps_URL', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5', 'google_maps', 'image1', 'image2', 'image3', 'image4', 'image5'].map(col => (
+            {['title *', 'country', 'description', 'long_description', 'duration', 'distance_km', 'image_url', 'season', 'start_point', 'end_poi', 'route_highlights', 'maps_URL', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5', 'google_maps', 'image1', 'image2', 'image3', 'image4', 'image5'].map(col => (
               <div key={col} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${col.includes('*') ? 'bg-emerald-500' : 'bg-gray-300'}`}/>
                 <span className="text-sm text-gray-600 font-mono">{col}</span>
