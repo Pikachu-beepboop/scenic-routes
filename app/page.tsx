@@ -94,19 +94,19 @@ const FALLBACK_ROUTES = [
 const TESTIMONIALS = [
   {
     quote:
-      "Every curve led to something unforgettable. Scenic Routes turned a trip into a story.",
+      "“ Every curve led to something unforgettable. Scenic Routes turned a trip into a story. ”",
     name: "Sarah G.",
     role: "Traveler",
   },
   {
     quote:
-      "I've driven roads all over the world. Scenic Routes showed me places I never would have found alone.",
+      "“ I've driven roads all over the world. Scenic Routes showed me places I never would have found alone. ”",
     name: "Marcus K.",
     role: "Automotive Journalist",
   },
   {
     quote:
-      "The routes, the timing, the hidden gems along the way — absolutely flawless.",
+      "“ The routes, the timing, the hidden gems along the way — absolutely flawless. ”",
     name: "Alex M.",
     role: "World Traveler",
   },
@@ -612,7 +612,7 @@ export default function HomePage() {
 
         /* TESTIMONIAL */
         .testimonial-section { padding:clamp(70px,9vw,110px) clamp(24px,5vw,80px); background:var(--bg2); border-top:1px solid var(--border); text-align:center; }
-        .testimonial-qq { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; }
+        .testimonial-qq { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; display:none; }
         .testimonial-text { font-family:var(--serif); font-size:clamp(22px,3vw,38px); font-weight:300; font-style:italic; color:var(--cream); line-height:1.4; max-width:820px; margin:0 auto 28px; }
         .testimonial-name { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
         .testimonial-dots { display:flex; justify-content:center; gap:8px; margin-top:24px; }

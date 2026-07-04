@@ -621,7 +621,7 @@ function ExplorePageInner() {
                 <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route <ArrowRight size={30} strokeWidth={2.5} /></button>
               </div>
 
-              <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration, terrain and mood.</p>
+              <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration.</p>
             </div>
           </div>
         </section>
