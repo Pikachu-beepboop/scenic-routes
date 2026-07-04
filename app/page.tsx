@@ -280,7 +280,7 @@ export default function HomePage() {
     setMounted(true);
   }, []);
 
-  const heroImage = mounted && theme === "light" ? "/herolight.png" : "/hero.png";
+  const heroImage = mounted && theme === "light" ? "/hero.jpg" : "/hero.jpg";
 
   const displayRoutes = useMemo<Route[]>(
     () => (routes.length ? routes : FALLBACK_ROUTES),
@@ -505,7 +505,7 @@ export default function HomePage() {
 
         /* HERO */
         .hero { position:relative; height:100vh; min-height:680px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
-        .hero-bg { position:absolute; inset:0; }
+        .hero-bg { position:absolute; inset:9; }
         .hero-bg::after { content:""; position:absolute; inset:0; z-index:3; background: linear-gradient(to bottom, rgba(12,11,9,0.1) 0%, rgba(12,11,9,0.05) 30%, rgba(12,11,9,0.65) 70%, rgba(12,11,9,0.95) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%); }
         .light .hero-bg::after { background: linear-gradient(to top, rgba(244,240,232,0.4) 0%, transparent 35%), linear-gradient(to right, rgba(244,240,232,0.45) 0%, transparent 38%); }
         .hero-content { position:relative; z-index:10; padding:0 clamp(24px,5vw,80px) clamp(50px,7vh,90px); max-width:1280px; }
