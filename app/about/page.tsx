@@ -225,7 +225,7 @@ export default function AboutPage() {
         .values-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-top:56px; border-radius:24px; overflow:hidden; }
         .value-card { background:var(--bg2); padding:44px 36px; transition:background .3s; }
         .value-card:hover { background:var(--bg3); }
-        .value-num  { font-family:var(--serif); font-size:48px; font-weight:300; color:rgba(201,168,106,0.25); line-height:1; margin-bottom:24px; }
+        .value-num  { font-family:var(--serif); font-size:48px; font-weight:300; color:var(--gold); line-height:1; margin-bottom:24px; }
         .value-title{ font-size:12px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--cream); margin-bottom:14px; }
         .value-text { font-size:14px; color:var(--dim); line-height:1.8; font-weight:300; }
 
