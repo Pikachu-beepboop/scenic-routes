@@ -131,7 +131,7 @@ export default function MyTripsPage() {
         .light {
           --bg:#F4F0E8; --bg2:#EDE8DC; --bg3:#E5DFD0;
           --gold:#C9A86A; --cream:#2B2620;
-          --muted:rgba(0, 0, 0, 0.62); --dim:rgba(43,38,32,0.38);
+          --muted:rgb(0, 0, 0); --dim:rgba(43,38,32,0.38);
           --border:rgba(43,38,32,0.12);
           --serif:'Cormorant Garamond',Georgia,serif;
           --sans:'Inter',system-ui,sans-serif;
@@ -360,7 +360,7 @@ export default function MyTripsPage() {
         {/* HERO */}
         <section className="page-header">
           <div className="page-header-bg">
-            <img src="/5.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
+            <img src="/road and mountains.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
           </div>
 
           <div className="page-header-inner">

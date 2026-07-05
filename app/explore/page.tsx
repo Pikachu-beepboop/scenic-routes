@@ -97,7 +97,9 @@ function ExplorePageInner() {
   const [username, setUsername] = useState("");
   const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
   const searchBarRef = useRef<HTMLDivElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
   const displayName = username || user?.email?.split("@")[0] || "";
 
   const isLight = mounted && theme === "light";
@@ -120,6 +122,10 @@ function ExplorePageInner() {
   const activeFilterCount =
     filters.difficulty.length + filters.countries.length +
     (filters.duration !== "any" ? 1 : 0) + (filters.minRating > 0 ? 1 : 0);
+
+  const filteredCountries = countrySearch.trim()
+    ? countries.filter((c) => c.toLowerCase().includes(countrySearch.trim().toLowerCase()))
+    : countries;
 
   useEffect(() => {
     if (!isOpen && !isOpenDate) return;
@@ -145,6 +151,8 @@ function ExplorePageInner() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => { if (!isOpen) setCountrySearch(""); }, [isOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
@@ -293,8 +301,9 @@ function ExplorePageInner() {
         .user-avatar { width:48px; height:48px; border-radius:50%; border:1.5px solid var(--border); background:var(--bg2); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; font-weight:700; color:var(--cream); cursor:pointer; transition:border-color .2s, transform .2s; box-shadow:0 6px 18px rgba(0,0,0,0.35); }
         .user-avatar:hover { border-color:var(--gold); transform:translateY(-1px); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
-        /* Avatar-Initiale immer schwarz, unabhängig von Theme/Scroll (Kreis-Hintergrund ist immer hell/creme) */
-        .user-avatar { color:#000 !important; }
+        /* Avatar-Initiale: im Dark-Theme hell (cream), im Light-Theme schwarz — unabhängig vom Scroll-Zustand */
+        .dark .user-avatar { color:var(--cream); }
+        .light .user-avatar { color:#000; }
 
         /* Light-Theme: solange die Nav transparent über dem Hero-Bild liegt (nicht gescrollt),
            Text auf Weiß setzen, damit er auf dem dunklen Foto lesbar bleibt.
@@ -372,6 +381,8 @@ function ExplorePageInner() {
         .search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; min-width:320px; z-index:9999; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.8); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
         .search-dropdown-header { padding:12px 18px 8px; border-bottom:1px solid var(--border); }
         .search-dropdown-header-label { font-size:8px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:rgba(201,168,106,0.5); }
+        .search-dropdown-input { width:100%; background:none; border:none; outline:none; font-family:var(--sans); font-size:13px; font-weight:500; color:var(--cream); padding:4px 2px; }
+        .search-dropdown-input::placeholder { color:var(--dim); font-weight:400; }
         .search-dropdown-scroll { max-height:190px; overflow-y:auto; padding:6px; }
         .search-dropdown-scroll::-webkit-scrollbar { width:3px; }
         .search-dropdown-scroll::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.2); border-radius:2px; }
@@ -383,7 +394,7 @@ function ExplorePageInner() {
         .search-dropdown-item:hover .item-dot { background:var(--gold); }
         .search-dropdown-footer { padding:8px 18px 12px; border-top:1px solid var(--border); font-size:10px; color:var(--dim); text-align:center; letter-spacing:0.06em; }
 
-        .content { padding:0 clamp(20px,4vw,60px) clamp(60px,8vw,100px); max-width:1440px; margin:0 auto; }
+        .content { padding:0 clamp(20px,4vw,60px) clamp(60px,8vw,100px); max-width:1440px; margin:0 auto; scroll-margin-top:92px; }
 
         .toolbar { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0 16px; border-bottom:1px solid var(--border); margin-bottom:32px; }
         .results-count { font-size:12px; color:var(--dim); font-weight:500; letter-spacing:0.06em; }
@@ -592,17 +603,42 @@ function ExplorePageInner() {
                     <span className="arrow"><ChevronDown size={12} strokeWidth={2.5} /></span>
                   </div>
                   {isOpen && (
-                    <div className="search-dropdown">
-                      <div className="search-dropdown-header"><span className="search-dropdown-header-label">Destination</span></div>
+                    <div className="search-dropdown" onClick={(e) => e.stopPropagation()}>
+                      <div className="search-dropdown-header">
+                        <input
+                          type="text"
+                          className="search-dropdown-input"
+                          placeholder="Select a country…"
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && countrySearch.trim()) {
+                              const exactMatch = countries.find(
+                                (c) => c.toLowerCase() === countrySearch.trim().toLowerCase()
+                              );
+                              setSelected(exactMatch || countrySearch.trim());
+                              setIsOpen(false);
+                            } else if (e.key === "Escape") {
+                              setIsOpen(false);
+                            }
+                          }}
+                          autoFocus
+                        />
+                      </div>
                       <div className="search-dropdown-scroll">
-                        <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelected(""); setIsOpen(false); }}><CornerDownRight size={12} strokeWidth={2} /> All countries</div>
-                        {countries.map((c) => (
-                          <div key={c} className="search-dropdown-item" onClick={(e) => { e.stopPropagation(); setSelected(c); setIsOpen(false); }}>
+                        <div className="search-dropdown-item all-item" onClick={() => { setSelected(""); setIsOpen(false); }}><CornerDownRight size={12} strokeWidth={2} /> All countries</div>
+                        {filteredCountries.map((c) => (
+                          <div key={c} className="search-dropdown-item" onClick={() => { setSelected(c); setIsOpen(false); }}>
                             <span className="item-dot" />{c}
                           </div>
                         ))}
+                        {countrySearch.trim() && filteredCountries.length === 0 && (
+                          <div className="search-dropdown-item" onClick={() => { setSelected(countrySearch.trim()); setIsOpen(false); }}>
+                            <CornerDownRight size={12} strokeWidth={2} /> „{countrySearch.trim()}" verwenden
+                          </div>
+                        )}
                       </div>
-                      <div className="search-dropdown-footer">{countries.length} destinations available</div>
+                      <div className="search-dropdown-footer">{filteredCountries.length} destinations available</div>
                     </div>
                   )}
                 </div>
@@ -631,7 +667,7 @@ function ExplorePageInner() {
                   )}
                 </div>
 
-                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route <ArrowRight size={30} strokeWidth={2.5} /></button>
+                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Find Route <ArrowRight size={30} strokeWidth={2.5} /></button>
               </div>
 
               <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration.</p>
@@ -640,7 +676,7 @@ function ExplorePageInner() {
         </section>
 
         {/* CONTENT */}
-        <div className="content">
+        <div className="content" ref={resultsRef}>
           <div className="toolbar">
             <p className="results-count">
               {loading ? "Loading routes…" : <><strong>{routes.length}</strong> routes found</>}
