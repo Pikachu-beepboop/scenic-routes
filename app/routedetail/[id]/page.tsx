@@ -427,7 +427,7 @@ export default function RouteDetailPage() {
                         </div>
 
                         <div className="flex items-center gap-5">
-                            <ThemeSwitch />
+                            {!user && <ThemeSwitch />}
 
                             {/* ── User Menu ── */}
                             <div className="relative route-user-menu-wrap">
@@ -477,6 +477,11 @@ export default function RouteDetailPage() {
                                                     Scenic Route Explorer
                                                 </p>
                                             </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+                                            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">Theme</span>
+                                            <ThemeSwitch />
                                         </div>
 
                                         <div className="p-2">
