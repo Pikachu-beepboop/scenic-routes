@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import {
     Clock, MapPin, Navigation, Star, ChevronDown,
-    Heart, ArrowLeft, User, ArrowRight, Send, Globe
+    Heart, ArrowLeft, User, ArrowRight, Send, Globe,
+    Map as MapIcon, Compass, LogOut
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
@@ -364,7 +365,7 @@ export default function RouteDetailPage() {
                 /* THEME SWITCH — glasmorpher Apple-Stil (identisch zur Homepage) */
                 .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
                 .theme-switch:hover { border-color: var(--gold); }
-                .theme-switch-knob { position:absolute; top:4.5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
+                .theme-switch-knob { position:absolute; top:4.5px; left:2.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
                 .theme-switch-knob.is-light { transform:translateX(37px); }
                 .theme-switch-icon { width:14px; height:14px; }
                 .theme-switch-placeholder { width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
@@ -440,14 +441,17 @@ export default function RouteDetailPage() {
                                         }
                                     }}
                                     aria-label="Account"
-                                    className="w-12 h-12 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--cream)_5%,transparent)] flex items-center justify-center hover:bg-[var(--gold)] hover:text-black hover:scale-110 transition-all duration-700 shadow-2xl overflow-hidden"
+                                    className="w-12 h-12 rounded-full border-[1.5px] border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center hover:border-[var(--gold)] hover:-translate-y-0.5 transition-all duration-300 shadow-2xl overflow-hidden"
                                 >
                                     {user ? (
                                         avatarUrl ? (
                                             <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                                         ) : (
-                                            <span className="text-sm font-bold uppercase">
-                                                {user.email?.charAt(0)}
+                                            <span
+                                                style={{ fontFamily: 'var(--serif)' }}
+                                                className={`text-xl font-bold ${isLight ? 'text-black' : 'text-[var(--cream)]'}`}
+                                            >
+                                                {username?.[0]?.toUpperCase() || user.email?.charAt(0)?.toUpperCase()}
                                             </span>
                                         )
                                     ) : (
@@ -458,7 +462,7 @@ export default function RouteDetailPage() {
                                 {showUserMenu && user && (
                                     <div className="absolute right-0 top-16 w-[290px] bg-[color-mix(in_srgb,var(--bg)_97%,transparent)] border border-[var(--border)] rounded-[20px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65)] backdrop-blur-[28px] z-50">
                                         <div className="p-5 border-b border-[var(--border)] flex items-center gap-4">
-                                            <div className="w-[46px] h-[46px] rounded-[11px] border border-[rgba(201,168,106,0.3)] bg-[rgba(201,168,106,0.1)] flex items-center justify-center font-serif text-[22px] font-light text-[var(--gold)] overflow-hidden shrink-0">
+                                            <div className="w-[46px] h-[46px] rounded-[11px] border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center font-serif text-[22px] font-light text-[var(--cream)] overflow-hidden shrink-0">
                                                 {avatarUrl ? (
                                                     <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                                                 ) : (
@@ -490,7 +494,7 @@ export default function RouteDetailPage() {
                                                 onClick={() => setShowUserMenu(false)}
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
                                             >
-                                                <span className="text-[var(--gold)] w-[18px] text-center">◎</span>
+                                                <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><User size={14} strokeWidth={1.8} /></span>
                                                 Profile
                                             </Link>
 
@@ -499,7 +503,7 @@ export default function RouteDetailPage() {
                                                 onClick={() => setShowUserMenu(false)}
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
                                             >
-                                                <span className="text-[var(--gold)] w-[18px] text-center">△</span>
+                                                <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><MapIcon size={14} strokeWidth={1.8} /></span>
                                                 My Trips
                                             </Link>
 
@@ -508,7 +512,7 @@ export default function RouteDetailPage() {
                                                 onClick={() => setShowUserMenu(false)}
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
                                             >
-                                                <span className="text-[var(--gold)] w-[18px] text-center">⬡</span>
+                                                <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
                                                 Explore Routes
                                             </Link>
 
@@ -522,7 +526,7 @@ export default function RouteDetailPage() {
                                                 }}
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(224,128,128,0.55)] hover:bg-[rgba(224,128,128,0.07)] hover:text-[#e08080] transition-all"
                                             >
-                                                <span className="text-[#e08080] w-[18px] text-center">→</span>
+                                                <span className="text-[#e08080] w-[18px] flex items-center justify-center shrink-0"><LogOut size={14} strokeWidth={1.8} /></span>
                                                 Sign Out
                                             </button>
                                         </div>
