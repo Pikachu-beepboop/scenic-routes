@@ -279,10 +279,10 @@ function ExplorePageInner() {
 
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
-        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); transition:color .3s, text-shadow .3s; }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s, text-shadow .3s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
         .nav-link:hover { color:var(--cream); }
         .nav-link:hover::after { width:100%; }
@@ -293,6 +293,19 @@ function ExplorePageInner() {
         .user-avatar { width:48px; height:48px; border-radius:50%; border:1.5px solid var(--border); background:var(--bg2); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; font-weight:700; color:var(--cream); cursor:pointer; transition:border-color .2s, transform .2s; box-shadow:0 6px 18px rgba(0,0,0,0.35); }
         .user-avatar:hover { border-color:var(--gold); transform:translateY(-1px); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
+        /* Avatar-Initiale immer schwarz, unabhängig von Theme/Scroll (Kreis-Hintergrund ist immer hell/creme) */
+        .user-avatar { color:#000 !important; }
+
+        /* Light-Theme: solange die Nav transparent über dem Hero-Bild liegt (nicht gescrollt),
+           Text auf Weiß setzen, damit er auf dem dunklen Foto lesbar bleibt.
+           Sobald .scrolled aktiv ist, greifen wieder die normalen --cream/--muted Variablen. */
+        .light .nav:not(.scrolled) .nav-logo span { color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.45); }
+        .light .nav:not(.scrolled) .nav-link { color:rgba(255,255,255,0.78); text-shadow:0 2px 6px rgba(0,0,0,0.4); }
+        .light .nav:not(.scrolled) .nav-link:hover { color:#fff; }
+        .light .nav:not(.scrolled) .nav-link-active { color:#fff !important; }
+        .light .nav:not(.scrolled) .login-btn { color:#fff; border-color:rgba(255,255,255,0.35); background:rgba(0,0,0,0.22); }
+        .light .nav:not(.scrolled) .login-btn:hover { background:#fff; color:#2B2620; }
+        .light .nav:not(.scrolled) .user-avatar { border-color:rgba(255,255,255,0.35); }
 
         .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
         .theme-switch:hover { border-color: var(--gold); }
@@ -328,7 +341,7 @@ function ExplorePageInner() {
         .light .hero-bg::after { display:none; }
         .hero-inner { position:relative; z-index:10; width:100%; max-width:1440px; margin:0 auto; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; }
         .hero-content { max-width:1580px; width:100%; }
-        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:black; margin-bottom:22px; }
+        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:var(--gold); margin-bottom:22px; }
         .hero-h1 { font-family:var(--serif); font-size:clamp(72px,7vw,132px); font-weight:300; line-height:0.87; letter-spacing:-0.04em; color:var(--cream); text-shadow:0 20px 60px rgba(0,0,0,0.5); }
         .light .hero-h1 { color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.55), 0 8px 32px rgba(0,0,0,0.35); }
         .hero-sub { font-size:20px; font-weight:300; color:var(--muted); font-style:italic; max-width:780px; line-height:1.6; margin-top:45px; }
@@ -347,7 +360,7 @@ function ExplorePageInner() {
         .search-divider { width:1px; background:var(--border); margin:14px 0; flex-shrink:0; }
         .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); display:inline-flex; align-items:center; gap:8px; }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
-        
+
         .light .search-bar { background:rgba(12,11,9,0.42); border-color:rgba(237,229,212,0.18); }
         .light .search-field:hover { background:rgba(237,229,212,0.08); }
         .light .search-field.open { background:rgba(237,229,212,0.14); }
@@ -564,7 +577,7 @@ function ExplorePageInner() {
         {/* HERO */}
         <section className="hero">
           <div className="hero-bg">
-            <img src="/iceland.jpg" alt="Scenic roads" onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
+            <img src="/forest.jpg" alt="Scenic roads" onError={(e) => { e.currentTarget.src = "/forest.jpg"; }} />
           </div>
           <div className="hero-inner">
             <div className="hero-content">

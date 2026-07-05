@@ -192,7 +192,7 @@ export default function MyTripsPage() {
         /* HERO */
         .page-header { position:relative; min-height:100vh; padding:120px clamp(24px,5vw,80px) 58px; overflow:hidden; display:flex; align-items:center; }
         .page-header-bg { position:absolute; inset:0; z-index:0; }
-        .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(0.56) contrast(1.08) saturate(0.9); transition:filter .35s; }
+        .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center 55%; filter:brightness(0.56) contrast(1.08) saturate(0.9); transition:filter .35s; }
         .light .page-header-bg img { filter:brightness(0.85) contrast(1) saturate(1); }
         .page-header-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 65% 42%,rgba(201,168,106,0.13) 0%,transparent 28%),linear-gradient(to right,rgba(12,11,9,0.96) 0%,rgba(12,11,9,0.75) 42%,rgba(12,11,9,0.48) 100%),linear-gradient(to bottom,rgba(12,11,9,0.20) 0%,rgba(12,11,9,0.42) 55%,rgba(12,11,9,0.94) 100%); }
         .light .page-header-bg::after { background:linear-gradient(to right,rgba(244,240,232,0.35) 0%,rgba(244,240,232,0.15) 40%,rgba(244,240,232,0.05) 70%,transparent 100%); }
@@ -360,7 +360,7 @@ export default function MyTripsPage() {
         {/* HERO */}
         <section className="page-header">
           <div className="page-header-bg">
-            <img src="/Misty mountain road to the valley.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
+            <img src="/5.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
           </div>
 
           <div className="page-header-inner">
