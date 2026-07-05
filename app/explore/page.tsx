@@ -290,11 +290,11 @@ function ExplorePageInner() {
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); transition:color .3s, text-shadow .3s; }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s, text-shadow .3s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, text-shadow .3s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
-        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover { color:var(--cream); opacity:1; }
         .nav-link:hover::after { width:100%; }
-        .nav-link-active { color:var(--cream) !important; font-weight:700; }
+        .nav-link-active { color:var(--cream) !important; font-weight:700; opacity:1; }
         .nav-right { display:flex; align-items:center; gap:16px; }
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
@@ -309,9 +309,9 @@ function ExplorePageInner() {
            Text auf Weiß setzen, damit er auf dem dunklen Foto lesbar bleibt.
            Sobald .scrolled aktiv ist, greifen wieder die normalen --cream/--muted Variablen. */
         .light .nav:not(.scrolled) .nav-logo span { color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.45); }
-        .light .nav:not(.scrolled) .nav-link { color:rgba(255,255,255,0.78); text-shadow:0 2px 6px rgba(0,0,0,0.4); }
-        .light .nav:not(.scrolled) .nav-link:hover { color:#fff; }
-        .light .nav:not(.scrolled) .nav-link-active { color:#fff !important; }
+        .light .nav:not(.scrolled) .nav-link { color:rgba(255,255,255,0.78); text-shadow:0 2px 6px rgba(0,0,0,0.4); opacity:0.55; }
+        .light .nav:not(.scrolled) .nav-link:hover { color:#fff; opacity:1; }
+        .light .nav:not(.scrolled) .nav-link-active { color:#fff !important; opacity:1; }
         .light .nav:not(.scrolled) .login-btn { color:#fff; border-color:rgba(255,255,255,0.35); background:rgba(0,0,0,0.22); }
         .light .nav:not(.scrolled) .login-btn:hover { background:#fff; color:#2B2620; }
         .light .nav:not(.scrolled) .user-avatar { border-color:rgba(255,255,255,0.35); }
@@ -533,10 +533,10 @@ function ExplorePageInner() {
 
           <div className="nav-links">
             {[["Explore Routes", "/explore"], ["About", "/about"]].map(([l, h]) => (
-              <Link key={l} href={h} className="nav-link">{l}</Link>
+              <Link key={l} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{l}</Link>
             ))}
             {user && (
-              <Link href="/my-trips" className="nav-link nav-link-active">
+              <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>
                 My Trips
               </Link>
             )}
@@ -608,7 +608,7 @@ function ExplorePageInner() {
                         <input
                           type="text"
                           className="search-dropdown-input"
-                          placeholder="Select a country…"
+                          placeholder="Land eingeben…"
                           value={countrySearch}
                           onChange={(e) => setCountrySearch(e.target.value)}
                           onKeyDown={(e) => {

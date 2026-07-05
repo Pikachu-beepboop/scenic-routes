@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import {
     Clock, MapPin, Navigation, Star, ChevronDown,
-    Heart, ArrowLeft, User, ArrowRight, Send
+    Heart, ArrowLeft, User, ArrowRight, Send, Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
@@ -27,6 +27,12 @@ interface Route {
     'google_maps'?: string;
     [key: string]: unknown;
 }
+
+const LANGUAGES = [
+    { code: "DE", label: "Deutsch" },
+    { code: "EN", label: "English" },
+    { code: "RU", label: "Русский" },
+];
 
 function HighlightedTitle({ title }: { title: string }) {
     if (!title) return null;
@@ -138,6 +144,8 @@ export default function RouteDetailPage() {
     const [avatarUrl, setAvatarUrl] = useState('');
     const [username, setUsername] = useState('');
     const [activeChapter, setActiveChapter] = useState(0);
+    const [language, setLanguage] = useState("DE");
+    const [showLangMenu, setShowLangMenu] = useState(false);
 
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -203,6 +211,24 @@ export default function RouteDetailPage() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showUserMenu]);
+
+    useEffect(() => {
+        if (!showLangMenu) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+
+            if (!target.closest('.route-lang-wrap')) {
+                setShowLangMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showLangMenu]);
 
     async function fetchProfile(userId: string) {
         const { data } = await supabase.from('profiles').select('avatar_url, username').eq('id', userId).single();
@@ -336,12 +362,12 @@ export default function RouteDetailPage() {
                 }
 
                 /* THEME SWITCH — glasmorpher Apple-Stil (identisch zur Homepage) */
-                .theme-switch { position:relative; display:flex; align-items:center; width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
+                .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
                 .theme-switch:hover { border-color: var(--gold); }
-                .theme-switch-knob { position:absolute; top:3px; left:3px; width:30px; height:30px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
+                .theme-switch-knob { position:absolute; top:4.5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
                 .theme-switch-knob.is-light { transform:translateX(50px); }
                 .theme-switch-icon { width:14px; height:14px; }
-                .theme-switch-placeholder { width:88px; height:38px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
+                .theme-switch-placeholder { width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
 
                 /* NAV LINKS — identisch zur Homepage */
                 .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
@@ -818,30 +844,51 @@ export default function RouteDetailPage() {
                                 ))}
                             </div>
 
-                            <div className="lg:col-span-3 space-y-6">
-                                <div className="space-y-3">
-                                    <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">Stay Inspired</h4>
-                                    <p className="text-xs text-[var(--dim)] leading-relaxed">Get the best routes delivered to your inbox every week.</p>
-                                </div>
-                                <div className="relative">
-                                    <input type="email" placeholder="your@email.com"
-                                        className="w-full bg-[var(--bg2)] border border-[var(--border)] rounded-2xl px-5 py-4 text-sm text-[var(--cream)] placeholder-[var(--dim)] outline-none focus:border-emerald-500/50 transition-all duration-500" />
-                                    <button className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-emerald-500 hover:bg-emerald-400 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95" aria-label="Newsletter abonnieren">
-                                        <Send size={16} className="text-black" />
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-[var(--dim)] leading-relaxed">
-                                    By subscribing, you agree to our Privacy Policy and consent to receive updates.
-                                </p>
-                            </div>
+                            
                         </div>
 
                         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-[var(--dim)]">
                             <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
-                            <div className="flex gap-8">
-                                {['Privacy Policy', 'Terms of Use', 'Cookie Settings', 'Impressum'].map(link => (
-                                    <a key={link} href="#" className="hover:text-[var(--cream)] transition-colors duration-300">{link}</a>
-                                ))}
+
+                            <div className="flex items-center gap-6 flex-wrap justify-center">
+                                {/* ── Sprachauswahl ── */}
+                                <div className="relative route-lang-wrap">
+                                    <button
+                                        onClick={() => setShowLangMenu((p) => !p)}
+                                        className="flex items-center gap-1.5 px-6.5 py-2 rounded-full border-none bg-transparent text-base font-normal uppercase tracking-[0.12em] text-[var(--muted)] hover:text-[var(--cream)] transition-colors duration-200"
+                                    >
+                                        <Globe size={12} strokeWidth={2} /> {language}
+                                    </button>
+
+                                    {showLangMenu && (
+                                        <div className="absolute bottom-[calc(100%+10px)] right-0 min-w-[150px] bg-[color-mix(in_srgb,var(--bg)_97%,transparent)] border border-[var(--border)] rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl z-50">
+                                            {LANGUAGES.map((lang) => (
+                                                <button
+                                                    key={lang.code}
+                                                    onClick={() => {
+                                                        setLanguage(lang.code);
+                                                        setShowLangMenu(false);
+                                                    }}
+                                                    className={`block w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 ${
+                                                        lang.code === language
+                                                            ? 'text-emerald-500 font-bold'
+                                                            : 'text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)]'
+                                                    }`}
+                                                >
+                                                    {lang.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <ThemeSwitch />
+
+                                <div className="flex gap-8">
+                                    {['Privacy Policy', 'Terms of Use', 'Cookie Settings', 'Impressum'].map(link => (
+                                        <a key={link} href="#" className="hover:text-[var(--cream)] transition-colors duration-300">{link}</a>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                         <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
