@@ -1,66 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
 import * as XLSX from 'xlsx';
 
 type ExistingRoute = { id: string; title: string; country: string };
+
 type UpdateResultItem = { title: string; country: string };
+
 type NewRouteItem = { row: any; include: boolean };
 
-// Список email, которым разрешён доступ к админке (через запятую в .env.local).
-// Это ТОЛЬКО удобство UI — реальная защита данных обеспечивается RLS-политикой в Supabase.
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(e => e.trim().toLowerCase())
-  .filter(Boolean);
-
 export default function AdminPage() {
-  const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [result, setResult] = useState<{ updated: UpdateResultItem[]; added: number; errors: string[] } | null>(null);
   const [newRoutes, setNewRoutes] = useState<NewRouteItem[] | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!active) return;
-
-      const email = session?.user?.email?.toLowerCase();
-      const allowed = !!email && ADMIN_EMAILS.includes(email);
-
-      setIsAuthorized(allowed);
-      setAuthChecked(true);
-
-      if (!allowed) {
-        router.push('/login?redirect=/admin');
-      }
-    }
-
-    checkAuth();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const email = session?.user?.email?.toLowerCase();
-      const allowed = !!email && ADMIN_EMAILS.includes(email);
-      setIsAuthorized(allowed);
-      if (!allowed) {
-        router.push('/login?redirect=/admin');
-      }
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [router]);
 
   function normalizeTitle(title: string): string {
     return title.trim().toLowerCase();
@@ -97,7 +52,7 @@ export default function AdminPage() {
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = '';
+    e.target.value = ''; // позволяет повторно выбрать тот же файл
 
     setLoading(true);
     setLoadingMessage('Читаем файл...');
@@ -114,6 +69,7 @@ export default function AdminPage() {
 
         setLoadingMessage('Сверяем с базой...');
 
+        // Один запрос вместо запроса на каждую строку
         const { data: existingRoutes, error: fetchError } = await supabase
           .from('routes')
           .select('id, title, country') as { data: ExistingRoute[] | null; error: any };
@@ -142,6 +98,7 @@ export default function AdminPage() {
           }
         }
 
+        // Автоматически обновляем совпавшие по названию
         setLoadingMessage('Обновляем существующие маршруты...');
         const updated: UpdateResultItem[] = [];
         const errors: string[] = [];
@@ -210,22 +167,6 @@ export default function AdminPage() {
     setLoading(false);
   }
 
-  if (!authChecked) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-400">
-          <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"/>
-          <span className="text-sm">Checking access...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    // Пока роутер редиректит на /login, ничего не показываем
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-white">
       <nav className="flex justify-between items-center px-12 py-5 border-b border-gray-100">
@@ -235,15 +176,7 @@ export default function AdminPage() {
           </div>
         </Link>
         <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Admin Panel</span>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
-            className="text-sm text-gray-500 hover:text-black transition"
-          >
-            Sign out
-          </button>
-          <Link href="/" className="text-sm text-gray-500 hover:text-black transition">← Back to site</Link>
-        </div>
+        <Link href="/" className="text-sm text-gray-500 hover:text-black transition">← Back to site</Link>
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-12">
@@ -273,6 +206,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* НОВЫЕ МАРШРУТЫ — ТРЕБУЮТ ПОДТВЕРЖДЕНИЯ */}
         {newRoutes && newRoutes.length > 0 && !loading && (
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-8 mb-8">
             <div className="flex items-center gap-2 mb-4">

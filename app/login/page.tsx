@@ -53,14 +53,10 @@ function LoginPageInner() {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     supabase.auth.getSession().then(({ data }) => {
-  const email = data.session?.user?.email?.toLowerCase();
-  const cameFromAdminBounce = redirectPath === "/admin";
-
-  // Если это не бесконечный отскок от /admin (когда уже понятно, что доступа нет) — редиректим как раньше
-  if (data.session?.user && searchParams.get("redirect") && !cameFromAdminBounce) {
-    router.replace(redirectPath);
-  }
-});
+      if (data.session?.user && searchParams.get("redirect")) {
+        router.replace(redirectPath);
+      }
+    });
 
     return () => window.removeEventListener("scroll", onScroll);
   }, [redirectPath, router, searchParams]);
