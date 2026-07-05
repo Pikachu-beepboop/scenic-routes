@@ -364,7 +364,7 @@ export default function RouteDetailPage() {
                 /* THEME SWITCH — glasmorpher Apple-Stil (identisch zur Homepage) */
                 .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
                 .theme-switch:hover { border-color: var(--gold); }
-                .theme-switch-knob { position:absolute; top:4.5px; left:2.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
+                .theme-switch-knob { position:absolute; top:4.5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
                 .theme-switch-knob.is-light { transform:translateX(37px); }
                 .theme-switch-icon { width:14px; height:14px; }
                 .theme-switch-placeholder { width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
@@ -387,12 +387,12 @@ export default function RouteDetailPage() {
                         className="group relative flex items-center justify-center w-16 h-16 transition-all duration-500"
                         aria-label="Back to Explore"
                     >
-                        <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--cream)_10%,transparent)] backdrop-blur-3xl rounded-full border border-[var(--border)] shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-700 group-hover:bg-[color-mix(in_srgb,var(--cream)_20%,transparent)] group-hover:scale-110 group-hover:border-emerald-500/40" />
+                        <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl rounded-full border border-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-700 group-hover:bg-white/20 group-hover:scale-110 group-hover:border-emerald-400/50" />
                         <ArrowLeft
                             size={24}
-                            className="relative text-[var(--cream)] group-hover:text-emerald-400 group-hover:-translate-x-1.5 transition-all duration-500 ease-out"
+                            className="relative text-white group-hover:text-emerald-400 group-hover:-translate-x-1.5 transition-all duration-500 ease-out"
                         />
-                        <span className="absolute left-20 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-700 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none whitespace-nowrap bg-[var(--bg)]/40 backdrop-blur-md px-4 py-2 rounded-full border border-[var(--border)]">
+                        <span className="absolute left-20 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-700 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none whitespace-nowrap bg-black/40 text-white backdrop-blur-md px-4 py-2 rounded-full border border-white/25">
                             Back to Explore
                         </span>
                     </button>
