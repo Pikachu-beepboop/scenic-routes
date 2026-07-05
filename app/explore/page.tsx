@@ -97,7 +97,9 @@ function ExplorePageInner() {
   const [username, setUsername] = useState("");
   const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
   const searchBarRef = useRef<HTMLDivElement | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
   const displayName = username || user?.email?.split("@")[0] || "";
 
   const isLight = mounted && theme === "light";
@@ -120,6 +122,10 @@ function ExplorePageInner() {
   const activeFilterCount =
     filters.difficulty.length + filters.countries.length +
     (filters.duration !== "any" ? 1 : 0) + (filters.minRating > 0 ? 1 : 0);
+
+  const filteredCountries = countrySearch.trim()
+    ? countries.filter((c) => c.toLowerCase().includes(countrySearch.trim().toLowerCase()))
+    : countries;
 
   useEffect(() => {
     if (!isOpen && !isOpenDate) return;
@@ -145,6 +151,8 @@ function ExplorePageInner() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => { if (!isOpen) setCountrySearch(""); }, [isOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
@@ -279,20 +287,34 @@ function ExplorePageInner() {
 
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
-        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); transition:color .3s, text-shadow .3s; }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, text-shadow .3s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
-        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover { color:var(--cream); opacity:1; }
         .nav-link:hover::after { width:100%; }
-        .nav-link-active { color:var(--cream) !important; font-weight:700; }
+        .nav-link-active { color:var(--cream) !important; font-weight:700; opacity:1; }
         .nav-right { display:flex; align-items:center; gap:16px; }
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
         .user-avatar { width:48px; height:48px; border-radius:50%; border:1.5px solid var(--border); background:var(--bg2); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; font-weight:700; color:var(--cream); cursor:pointer; transition:border-color .2s, transform .2s; box-shadow:0 6px 18px rgba(0,0,0,0.35); }
         .user-avatar:hover { border-color:var(--gold); transform:translateY(-1px); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
+        /* Avatar-Initiale: im Dark-Theme hell (cream), im Light-Theme schwarz — unabhängig vom Scroll-Zustand */
+        .dark .user-avatar { color:var(--cream); }
+        .light .user-avatar { color:#000; }
+
+        /* Light-Theme: solange die Nav transparent über dem Hero-Bild liegt (nicht gescrollt),
+           Text auf Weiß setzen, damit er auf dem dunklen Foto lesbar bleibt.
+           Sobald .scrolled aktiv ist, greifen wieder die normalen --cream/--muted Variablen. */
+        .light .nav:not(.scrolled) .nav-logo span { color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.45); }
+        .light .nav:not(.scrolled) .nav-link { color:rgba(255,255,255,0.78); text-shadow:0 2px 6px rgba(0,0,0,0.4); opacity:0.55; }
+        .light .nav:not(.scrolled) .nav-link:hover { color:#fff; opacity:1; }
+        .light .nav:not(.scrolled) .nav-link-active { color:#fff !important; opacity:1; }
+        .light .nav:not(.scrolled) .login-btn { color:#fff; border-color:rgba(255,255,255,0.35); background:rgba(0,0,0,0.22); }
+        .light .nav:not(.scrolled) .login-btn:hover { background:#fff; color:#2B2620; }
+        .light .nav:not(.scrolled) .user-avatar { border-color:rgba(255,255,255,0.35); }
 
         .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
         .theme-switch:hover { border-color: var(--gold); }
@@ -328,7 +350,7 @@ function ExplorePageInner() {
         .light .hero-bg::after { display:none; }
         .hero-inner { position:relative; z-index:10; width:100%; max-width:1440px; margin:0 auto; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; }
         .hero-content { max-width:1580px; width:100%; }
-        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:black; margin-bottom:22px; }
+        .hero-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.4em; text-transform:uppercase; color:var(--gold); margin-bottom:22px; }
         .hero-h1 { font-family:var(--serif); font-size:clamp(72px,7vw,132px); font-weight:300; line-height:0.87; letter-spacing:-0.04em; color:var(--cream); text-shadow:0 20px 60px rgba(0,0,0,0.5); }
         .light .hero-h1 { color:#fff; text-shadow:0 2px 12px rgba(0,0,0,0.55), 0 8px 32px rgba(0,0,0,0.35); }
         .hero-sub { font-size:20px; font-weight:300; color:var(--muted); font-style:italic; max-width:780px; line-height:1.6; margin-top:45px; }
@@ -347,7 +369,7 @@ function ExplorePageInner() {
         .search-divider { width:1px; background:var(--border); margin:14px 0; flex-shrink:0; }
         .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); display:inline-flex; align-items:center; gap:8px; }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
-        
+
         .light .search-bar { background:rgba(12,11,9,0.42); border-color:rgba(237,229,212,0.18); }
         .light .search-field:hover { background:rgba(237,229,212,0.08); }
         .light .search-field.open { background:rgba(237,229,212,0.14); }
@@ -359,6 +381,8 @@ function ExplorePageInner() {
         .search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; min-width:320px; z-index:9999; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.8); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
         .search-dropdown-header { padding:12px 18px 8px; border-bottom:1px solid var(--border); }
         .search-dropdown-header-label { font-size:8px; font-weight:800; letter-spacing:0.32em; text-transform:uppercase; color:rgba(201,168,106,0.5); }
+        .search-dropdown-input { width:100%; background:none; border:none; outline:none; font-family:var(--sans); font-size:13px; font-weight:500; color:var(--cream); padding:4px 2px; }
+        .search-dropdown-input::placeholder { color:var(--dim); font-weight:400; }
         .search-dropdown-scroll { max-height:190px; overflow-y:auto; padding:6px; }
         .search-dropdown-scroll::-webkit-scrollbar { width:3px; }
         .search-dropdown-scroll::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.2); border-radius:2px; }
@@ -370,7 +394,7 @@ function ExplorePageInner() {
         .search-dropdown-item:hover .item-dot { background:var(--gold); }
         .search-dropdown-footer { padding:8px 18px 12px; border-top:1px solid var(--border); font-size:10px; color:var(--dim); text-align:center; letter-spacing:0.06em; }
 
-        .content { padding:0 clamp(20px,4vw,60px) clamp(60px,8vw,100px); max-width:1440px; margin:0 auto; }
+        .content { padding:0 clamp(20px,4vw,60px) clamp(60px,8vw,100px); max-width:1440px; margin:0 auto; scroll-margin-top:92px; }
 
         .toolbar { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0 16px; border-bottom:1px solid var(--border); margin-bottom:32px; }
         .results-count { font-size:12px; color:var(--dim); font-weight:500; letter-spacing:0.06em; }
@@ -509,10 +533,10 @@ function ExplorePageInner() {
 
           <div className="nav-links">
             {[["Explore Routes", "/explore"], ["About", "/about"]].map(([l, h]) => (
-              <Link key={l} href={h} className="nav-link">{l}</Link>
+              <Link key={l} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{l}</Link>
             ))}
             {user && (
-              <Link href="/my-trips" className="nav-link nav-link-active">
+              <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>
                 My Trips
               </Link>
             )}
@@ -564,7 +588,7 @@ function ExplorePageInner() {
         {/* HERO */}
         <section className="hero">
           <div className="hero-bg">
-            <img src="/iceland.jpg" alt="Scenic roads" onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
+            <img src="/forest.jpg" alt="Scenic roads" onError={(e) => { e.currentTarget.src = "/forest.jpg"; }} />
           </div>
           <div className="hero-inner">
             <div className="hero-content">
@@ -579,17 +603,42 @@ function ExplorePageInner() {
                     <span className="arrow"><ChevronDown size={12} strokeWidth={2.5} /></span>
                   </div>
                   {isOpen && (
-                    <div className="search-dropdown">
-                      <div className="search-dropdown-header"><span className="search-dropdown-header-label">Destination</span></div>
+                    <div className="search-dropdown" onClick={(e) => e.stopPropagation()}>
+                      <div className="search-dropdown-header">
+                        <input
+                          type="text"
+                          className="search-dropdown-input"
+                          placeholder="Land eingeben…"
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && countrySearch.trim()) {
+                              const exactMatch = countries.find(
+                                (c) => c.toLowerCase() === countrySearch.trim().toLowerCase()
+                              );
+                              setSelected(exactMatch || countrySearch.trim());
+                              setIsOpen(false);
+                            } else if (e.key === "Escape") {
+                              setIsOpen(false);
+                            }
+                          }}
+                          autoFocus
+                        />
+                      </div>
                       <div className="search-dropdown-scroll">
-                        <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelected(""); setIsOpen(false); }}><CornerDownRight size={12} strokeWidth={2} /> All countries</div>
-                        {countries.map((c) => (
-                          <div key={c} className="search-dropdown-item" onClick={(e) => { e.stopPropagation(); setSelected(c); setIsOpen(false); }}>
+                        <div className="search-dropdown-item all-item" onClick={() => { setSelected(""); setIsOpen(false); }}><CornerDownRight size={12} strokeWidth={2} /> All countries</div>
+                        {filteredCountries.map((c) => (
+                          <div key={c} className="search-dropdown-item" onClick={() => { setSelected(c); setIsOpen(false); }}>
                             <span className="item-dot" />{c}
                           </div>
                         ))}
+                        {countrySearch.trim() && filteredCountries.length === 0 && (
+                          <div className="search-dropdown-item" onClick={() => { setSelected(countrySearch.trim()); setIsOpen(false); }}>
+                            <CornerDownRight size={12} strokeWidth={2} /> „{countrySearch.trim()}" verwenden
+                          </div>
+                        )}
                       </div>
-                      <div className="search-dropdown-footer">{countries.length} destinations available</div>
+                      <div className="search-dropdown-footer">{filteredCountries.length} destinations available</div>
                     </div>
                   )}
                 </div>
@@ -618,7 +667,7 @@ function ExplorePageInner() {
                   )}
                 </div>
 
-                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); }}>Find Route <ArrowRight size={30} strokeWidth={2.5} /></button>
+                <button className="search-btn" onClick={() => { setAppliedSelected(selected); setAppliedSelectedDate(selectedDate); resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Find Route <ArrowRight size={30} strokeWidth={2.5} /></button>
               </div>
 
               <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration.</p>
@@ -627,7 +676,7 @@ function ExplorePageInner() {
         </section>
 
         {/* CONTENT */}
-        <div className="content">
+        <div className="content" ref={resultsRef}>
           <div className="toolbar">
             <p className="results-count">
               {loading ? "Loading routes…" : <><strong>{routes.length}</strong> routes found</>}

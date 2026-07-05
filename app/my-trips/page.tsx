@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import AuthModal from "../AuthModal";
 import { useTheme } from "next-themes";
@@ -34,6 +34,7 @@ export default function MyTripsPage() {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
@@ -131,7 +132,7 @@ export default function MyTripsPage() {
         .light {
           --bg:#F4F0E8; --bg2:#EDE8DC; --bg3:#E5DFD0;
           --gold:#C9A86A; --cream:#2B2620;
-          --muted:rgba(0, 0, 0, 0.62); --dim:rgba(43,38,32,0.38);
+          --muted:rgb(0, 0, 0); --dim:rgba(43,38,32,0.38);
           --border:rgba(43,38,32,0.12);
           --serif:'Cormorant Garamond',Georgia,serif;
           --sans:'Inter',system-ui,sans-serif;
@@ -149,11 +150,11 @@ export default function MyTripsPage() {
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
-        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover { color:var(--cream); opacity:1; }
         .nav-link:hover::after { width:100%; }
-        .nav-link-active { color:var(--cream) !important; font-weight:700; }
+        .nav-link-active { color:var(--cream) !important; font-weight:700; opacity:1; }
         .nav-right { display:flex; align-items:center; gap:16px; }
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
@@ -192,7 +193,7 @@ export default function MyTripsPage() {
         /* HERO */
         .page-header { position:relative; min-height:100vh; padding:120px clamp(24px,5vw,80px) 58px; overflow:hidden; display:flex; align-items:center; }
         .page-header-bg { position:absolute; inset:0; z-index:0; }
-        .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(0.56) contrast(1.08) saturate(0.9); transition:filter .35s; }
+        .page-header-bg img { width:100%; height:100%; object-fit:cover; object-position:center 55%; filter:brightness(0.56) contrast(1.08) saturate(0.9); transition:filter .35s; }
         .light .page-header-bg img { filter:brightness(0.85) contrast(1) saturate(1); }
         .page-header-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 65% 42%,rgba(201,168,106,0.13) 0%,transparent 28%),linear-gradient(to right,rgba(12,11,9,0.96) 0%,rgba(12,11,9,0.75) 42%,rgba(12,11,9,0.48) 100%),linear-gradient(to bottom,rgba(12,11,9,0.20) 0%,rgba(12,11,9,0.42) 55%,rgba(12,11,9,0.94) 100%); }
         .light .page-header-bg::after { background:linear-gradient(to right,rgba(244,240,232,0.35) 0%,rgba(244,240,232,0.15) 40%,rgba(244,240,232,0.05) 70%,transparent 100%); }
@@ -312,9 +313,9 @@ export default function MyTripsPage() {
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
             {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
-              <Link key={l} href={h} className="nav-link">{l}</Link>
+              <Link key={l} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{l}</Link>
             ))}
-            {user && <Link href="/my-trips" className="nav-link nav-link-active">My Trips</Link>}
+            {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {!user && <ThemeSwitch />}
@@ -360,7 +361,7 @@ export default function MyTripsPage() {
         {/* HERO */}
         <section className="page-header">
           <div className="page-header-bg">
-            <img src="/Misty mountain road to the valley.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
+            <img src="/road and mountains.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
           </div>
 
           <div className="page-header-inner">

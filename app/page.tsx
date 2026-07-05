@@ -454,12 +454,12 @@ export default function HomePage() {
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
-        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover { color:var(--cream); opacity:1; }
         .nav-link:hover::after { width:100%; }
-        .nav-link-active { color:var(--cream) !important; font-weight:700; }
-        .light .nav-link-active { color:#2B2620 !important; text-shadow:0 1px 10px rgba(244,240,232,0.9); }
+        .nav-link-active { color:var(--cream) !important; font-weight:700; opacity:1; }
+        .light .nav-link-active { color:#2B2620 !important; text-shadow:0 1px 10px rgba(244,240,232,0.9); opacity:1; }
         .nav-right { display:flex; align-items:center; gap:16px; }
 
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
@@ -703,7 +703,7 @@ export default function HomePage() {
               ["Explore Routes", "/explore"],
               ["About", "/about"],
             ].map(([label, href]) => (
-              <Link key={label} href={href} className="nav-link">
+              <Link key={label} href={href} className={`nav-link ${pathname === href ? "nav-link-active" : ""}`}>
                 {label}
               </Link>
             ))}
@@ -711,7 +711,7 @@ export default function HomePage() {
             {user && (
               <Link
                 href="/my-trips"
-                className="nav-link nav-link-active"
+                className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}
               >
                 My Trips
               </Link>

@@ -141,11 +141,11 @@ export default function AboutPage() {
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
-        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
-        .nav-link:hover { color:var(--cream); }
+        .nav-link:hover { color:var(--cream); opacity:1; }
         .nav-link:hover::after { width:100%; }
-        .nav-link-active { color:var(--cream) !important; font-weight:700; }
+        .nav-link-active { color:var(--cream) !important; font-weight:700; opacity:1; }
         .nav-right { display:flex; align-items:center; gap:16px; }
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
@@ -187,18 +187,23 @@ export default function AboutPage() {
         .about-hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center 35%; filter:brightness(0.45) contrast(1.1) saturate(0.85); transition:filter .35s; }
         .light .about-hero-bg img { filter:brightness(0.78) contrast(1.05) saturate(0.9); }
         .about-hero-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(12,11,9,0.15) 0%, rgba(12,11,9,0.05) 35%, rgba(12,11,9,0.7) 70%, rgba(12,11,9,0.98) 100%), linear-gradient(to right, rgba(12,11,9,0.8) 0%, rgba(12,11,9,0.3) 50%, transparent 100%); }
-        .light .about-hero-bg::after { background:linear-gradient(to bottom, rgba(244,240,232,0.1) 0%, transparent 30%, rgba(244,240,232,0.55) 70%, rgba(244,240,232,0.95) 100%), linear-gradient(to right, rgba(244,240,232,0.7) 0%, rgba(244,240,232,0.2) 50%, transparent 100%); }
+        .light .about-hero-bg::after { display:none; }
         .about-hero-content { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; padding:0 clamp(24px,5vw,80px) clamp(60px,8vh,100px); }
-        .about-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
-        .about-h1 { font-family:var(--serif); font-size:clamp(56px,8vw,110px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:32px; text-shadow:0 20px 60px rgba(0,0,0,0.5); max-width:900px; }
-        .light .about-h1 { text-shadow:0 4px 20px rgba(0,0,0,0.18); }
+        .about-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
+        .light .about-eyebrow { text-shadow:0 2px 10px rgba(0,0,0,0.3); }
+        .about-h1 { font-family:var(--serif); font-size:clamp(56px,8vw,110px); font-weight:300; line-height:1; letter-spacing:-0.045em; color:var(--cream); margin-bottom:32px; text-shadow:0 20px 60px rgba(0,0,0,0.5); max-width:900px; }
+        .light .about-h1 { color:#fff; text-shadow:0 4px 24px rgba(0,0,0,0.45); }
         .about-h1 em { font-style:italic; color:var(--muted); }
+        .light .about-h1 em { color:rgba(255,255,255,0.78); }
         .about-hero-sub { font-size:16px; font-weight:300; color:var(--muted); line-height:1.8; max-width:520px; border-left:2px solid var(--gold); padding-left:20px; margin-bottom:40px; }
+        .light .about-hero-sub { color:rgba(255,255,255,0.9); text-shadow:0 2px 10px rgba(0,0,0,0.35); }
         .about-hero-actions { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
         .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:#0c0b09; transition:all .25s; }
         .btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
         .btn-outline { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:transparent; border:1px solid var(--border); border-radius:999px; font-size:9px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); transition:all .25s; }
         .btn-outline:hover { border-color:var(--cream); color:var(--cream); }
+        .light .about-hero-actions .btn-outline { color:#fff; border-color:rgba(255,255,255,0.5); }
+        .light .about-hero-actions .btn-outline:hover { border-color:#fff; color:#fff; }
 
         /* STATS */
         .stats-section { background:var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); transition:background .35s; }
@@ -311,9 +316,9 @@ export default function AboutPage() {
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
             {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
-              <Link key={l} href={h} className="nav-link">{l}</Link>
+              <Link key={l} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{l}</Link>
             ))}
-            {user && <Link href="/my-trips" className="nav-link nav-link-active">My Trips</Link>}
+            {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>My Trips</Link>}
           </div>
           <div className="nav-right">
             {!user && <ThemeSwitch />}
@@ -367,7 +372,7 @@ export default function AboutPage() {
         {/* HERO */}
         <section className="about-hero">
           <div className="about-hero-bg">
-            <img src="/Toscana.jpg" alt="Scenic road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
+            <img src="/3.jpg" alt="Scenic road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
           </div>
           <div className="about-hero-content">
             <p className="about-eyebrow">About Us</p>
