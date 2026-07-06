@@ -308,6 +308,8 @@ export default function HomePage() {
     supabase
       .from("routes")
       .select("*")
+      .eq("featured", true)
+      .order("featured_order", { ascending: true })
       .limit(6)
       .then(({ data }) => {
         if (!mounted) return;
@@ -543,10 +545,10 @@ export default function HomePage() {
           100% { opacity:1; transform:translateX(0); }
         }
 
-        .popular-card img { width:100%; height:100%; object-fit:cover; filter:brightness(0.82) contrast(1.06) saturate(0.98); transition:transform 1s ease,filter 1s ease; }
+        .popular-card img { width:100%; height:100%; object-fit:cover; object-position:center 78%; filter:brightness(0.82) contrast(1.06) saturate(0.98); transition:transform 1s ease,filter 1s ease; }
         .popular-card-wrap:hover .popular-card img { transform:scale(1.04); filter:brightness(0.94) contrast(1.1) saturate(1.08); }
 
-        .popular-card-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(to top,rgba(0,0,0,0.9),rgba(0,0,0,0.28) 48%,rgba(0,0,0,0.18)),linear-gradient(to right,rgba(0,0,0,0.5),transparent 58%); }
+        .popular-card-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(to top,rgba(0,0,0,0.78),rgba(0,0,0,0.24) 48%,rgba(0,0,0,0.15)),linear-gradient(to right,rgba(0,0,0,0.5),transparent 58%); }
         .popular-counter { position:absolute; top:28px; left:32px; z-index:2; font-family:var(--serif); font-size:clamp(26px,3vw,42px); font-weight:300; letter-spacing:-0.03em; color:rgba(255,255,255,0.76); }
         .popular-type { position:absolute; top:34px; right:34px; z-index:2; color:rgba(255,255,255,0.66); font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
         .popular-content { position:absolute; z-index:2; left:clamp(28px,5vw,90px); right:clamp(28px,5vw,70px); bottom:clamp(34px,6vw,74px); max-width:min(1120px,calc(100% - 80px)); }
