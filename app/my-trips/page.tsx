@@ -219,10 +219,11 @@ export default function MyTripsPage() {
         .light .collection-stat-label { color:rgba(43,38,32,0.55); }
 
         /* RIGHT PANEL */
-        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 60%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
+        .saved-preview-panel { width:100%; border:1px solid var(--border); border-radius:26px; background:color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter:blur(26px); box-shadow:0 34px 100px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06); padding:34px; overflow:hidden; transition:background .35s, border-color .35s; }
         .saved-preview-head { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
         .saved-preview-title { font-family:var(--serif); font-size:28px; font-weight:400; color:var(--cream); }
-        .saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); opacity:0.88; white-space:nowrap; }
+        .saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); white-space:nowrap; }
+        .light .saved-preview-count { color:#8A6A2E; }
         .saved-preview-list { display:flex; flex-direction:column; height:auto; max-height:520px; overflow-y:auto; padding-right:10px; }
         .saved-preview-list::-webkit-scrollbar { width:4px; }
         .saved-preview-list::-webkit-scrollbar-track { background:color-mix(in srgb, var(--border) 40%, transparent); border-radius:999px; }
@@ -234,6 +235,7 @@ export default function MyTripsPage() {
         .saved-preview-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88) saturate(0.9); transition:transform .7s ease; }
         .saved-preview-item:hover .saved-preview-thumb img { transform:scale(1.07); }
         .saved-preview-country { font-size:10px; font-weight:800; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+        .light .saved-preview-country { color:#8A6A2E; }
         .saved-preview-name { font-family:var(--serif); font-size:32px; font-weight:400; line-height:1; color:var(--cream); margin-bottom:12px; }
         .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:14px; font-size:12px;  color:rgba(255, 255, 255, 0.62); font-weight:500; }
         .light .saved-preview-meta { display:flex; align-items:center; flex-wrap:wrap; gap:14px; font-size:12px;  color:rgba(0, 0, 0, 0.84); font-weight:500; }

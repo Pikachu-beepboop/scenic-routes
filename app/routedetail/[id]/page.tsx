@@ -157,6 +157,18 @@ export default function RouteDetailPage() {
 
     const isLight = mounted && theme === 'light';
 
+    // Geht zur vorherigen Seite in der Browser-History zurück (egal ob das
+    // Explore, My Trips, die Homepage oder eine Such-URL mit Filtern war).
+    // Fällt nur auf /explore zurück, wenn es gar keine History gibt
+    // (z.B. Direktaufruf der URL oder Öffnen in neuem Tab).
+    const handleBack = () => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push('/explore');
+        }
+    };
+
     const { scrollY } = useScroll();
 
     const navOpacity = useTransform(scrollY, [250, 450], [0, 1]);
@@ -384,9 +396,9 @@ export default function RouteDetailPage() {
                 {/* ── Back Button ── */}
                 <div className="fixed top-6 left-10 z-[60]">
                     <button
-                        onClick={() => router.push('/explore')}
+                        onClick={handleBack}
                         className="group relative flex items-center justify-center w-16 h-16 transition-all duration-500"
-                        aria-label="Back to Explore"
+                        aria-label="Go back"
                     >
                         <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl rounded-full border border-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-700 group-hover:bg-white/20 group-hover:scale-110 group-hover:border-emerald-400/50" />
                         <ArrowLeft
@@ -394,7 +406,7 @@ export default function RouteDetailPage() {
                             className="relative text-white group-hover:text-emerald-400 group-hover:-translate-x-1.5 transition-all duration-500 ease-out"
                         />
                         <span className="absolute left-20 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-700 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none whitespace-nowrap bg-black/40 text-white backdrop-blur-md px-4 py-2 rounded-full border border-white/25">
-                            Back to Explore
+                            Back
                         </span>
                     </button>
                 </div>
