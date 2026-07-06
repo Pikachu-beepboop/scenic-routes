@@ -121,7 +121,8 @@ function ExplorePageInner() {
 
   const activeFilterCount =
     filters.difficulty.length + filters.countries.length +
-    (filters.duration !== "any" ? 1 : 0) + (filters.minRating > 0 ? 1 : 0);
+    (filters.duration !== "any" ? 1 : 0) + (filters.minRating > 0 ? 1 : 0) +
+    (appliedSelected ? 1 : 0) + (appliedSelectedDate ? 1 : 0);
 
   const filteredCountries = countrySearch.trim()
     ? countries.filter((c) => c.toLowerCase().includes(countrySearch.trim().toLowerCase()))
@@ -257,7 +258,24 @@ function ExplorePageInner() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-        *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+        html { scroll-behavior:smooth; }
+        body { background:var(--bg); overflow-x:hidden; }
+        .page *, .page *::before, .page *::after { box-sizing:border-box; margin:0; padding:0; }
+        .page a { color:inherit; text-decoration:none; }
+        .page button { border:none; font:inherit; cursor:pointer; }
+        .page input, .page select { font:inherit; }
+        .page img { display:block; }
+
+        /* Compound-Selektoren, um explizite Button-Styles gegen den .page button Reset
+           (font:inherit, border:none) abzusichern — sonst erben diese Buttons Größe/Gewicht
+           vom Elternelement statt ihre eigenen Werte zu behalten. */
+        button.search-btn { font-size:10px; font-weight:800; letter-spacing:0.2em; }
+        button.filter-btn { font-size:10px; font-weight:700; letter-spacing:0.16em; border:1px solid var(--border); }
+        button.clear-all-btn { font-size:9px; font-weight:700; letter-spacing:0.14em; border:1px solid var(--border); }
+        button.filter-reset { font-size:10px; font-weight:600; letter-spacing:0.12em; }
+        button.filter-chip { font-size:9px; font-weight:800; letter-spacing:0.14em; border:1px solid var(--border); }
+        button.filter-apply-btn { font-size:10px; font-weight:800; letter-spacing:0.2em; }
+        button.footer-lang-btn { font-size:16px; font-weight:400; letter-spacing:0.12em; }
 
         .dark {
           --bg:#0c0b09; --bg2:#111009; --bg3:#181510;
@@ -276,13 +294,6 @@ function ExplorePageInner() {
           --serif:'Cormorant Garamond',Georgia,serif;
           --sans:'Inter',system-ui,sans-serif;
         }
-
-        html { scroll-behavior:smooth; }
-        body { background:var(--bg); overflow-x:hidden; }
-        a { color:inherit; text-decoration:none; }
-        button { border:none; font:inherit; cursor:pointer; }
-        input, select { font:inherit; }
-        img { display:block; }
         .page { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); transition:background .35s, color .35s; }
 
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
@@ -299,15 +310,12 @@ function ExplorePageInner() {
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
         .user-avatar { width:48px; height:48px; border-radius:50%; border:1.5px solid var(--border); background:var(--bg2); overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; font-weight:700; color:var(--cream); cursor:pointer; transition:border-color .2s, transform .2s; box-shadow:0 6px 18px rgba(0,0,0,0.35); }
+        button.user-avatar { font-family:var(--serif); font-size:20px; font-weight:700; }
         .user-avatar:hover { border-color:var(--gold); transform:translateY(-1px); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
-        /* Avatar-Initiale: im Dark-Theme hell (cream), im Light-Theme schwarz — unabhängig vom Scroll-Zustand */
         .dark .user-avatar { color:var(--cream); }
         .light .user-avatar { color:#000; }
 
-        /* Light-Theme: solange die Nav transparent über dem Hero-Bild liegt (nicht gescrollt),
-           Text auf Weiß setzen, damit er auf dem dunklen Foto lesbar bleibt.
-           Sobald .scrolled aktiv ist, greifen wieder die normalen --cream/--muted Variablen. */
         .light .nav:not(.scrolled) .nav-logo span { color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.45); }
         .light .nav:not(.scrolled) .nav-link { color:rgba(255,255,255,0.78); text-shadow:0 2px 6px rgba(0,0,0,0.4); opacity:0.55; }
         .light .nav:not(.scrolled) .nav-link:hover { color:#fff; opacity:1; }
@@ -316,8 +324,8 @@ function ExplorePageInner() {
         .light .nav:not(.scrolled) .login-btn:hover { background:#fff; color:#2B2620; }
         .light .nav:not(.scrolled) .user-avatar { border-color:rgba(255,255,255,0.35); }
 
-        .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
-        .theme-switch:hover { border-color: var(--gold); }
+        .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent) !important; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border) !important; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
+        .theme-switch:hover { border-color: var(--gold) !important; }
         .theme-switch-knob { position:absolute; top:4.5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
         .theme-switch-knob.is-light { transform:translateX(36px); }
         .theme-switch-icon { width:14px; height:14px; }
@@ -412,9 +420,9 @@ function ExplorePageInner() {
 
         .route-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
 
-        .route-card { position:relative; border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); transition:transform .4s cubic-bezier(.25,.46,.45,.94),box-shadow .4s,border-color .4s; cursor:pointer; }
+        .route-card { position:relative; border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); transition:transform .4s cubic-bezier(.25,.46,.45,.94),box-shadow .4s,border-color .4s; cursor:pointer; display:flex; flex-direction:column; height:100%; }
         .route-card:hover { transform:translateY(-6px); box-shadow:0 32px 80px rgba(0,0,0,0.3); border-color:rgba(201,168,106,0.22); }
-        .route-card-img { position:relative; height:240px; overflow:hidden; }
+        .route-card-img { position:relative; height:240px; flex-shrink:0; overflow:hidden; }
         .route-card-img img { width:100%; height:100%; object-fit:cover; transition:transform .7s ease; filter:brightness(0.88); }
         .route-card:hover .route-card-img img { transform:scale(1.07); }
         .route-card-img::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.6) 100%); pointer-events:none; }
@@ -422,14 +430,14 @@ function ExplorePageInner() {
         .route-card:hover .save-btn { opacity:1; }
         .save-btn:hover { background:rgba(12,11,9,0.85); }
         .route-card-type { position:absolute; bottom:12px; left:12px; z-index:5; padding:5px 10px; border-radius:999px; background:rgba(12,11,9,0.65); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.16); font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(237,229,212,0.8); }
-        .route-card-body { padding:18px 18px 20px; }
+        .route-card-body { padding:18px 18px 20px; display:flex; flex-direction:column; flex:1; }
         .route-card-country { font-size:9px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
-        .route-card-title { font-family:var(--serif); font-size:22px; font-weight:400; color:var(--cream); line-height:1.05; letter-spacing:-0.02em; margin-bottom:8px; }
-        .route-card-desc { font-size:12px; color:var(--dim); line-height:1.65; font-weight:300; margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .route-card-title { font-family:var(--serif); font-size:22px; font-weight:400; color:var(--cream); line-height:1.05; letter-spacing:-0.02em; margin-bottom:8px; min-height:46.2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .route-card-desc { font-size:12px; color:var(--dim); line-height:1.65; font-weight:300; margin-bottom:14px; min-height:39.6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
         .route-card-meta { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
         .route-card-meta-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--dim); font-weight:500; }
         .route-card-meta-item svg { opacity:0.65; flex-shrink:0; }
-        .route-card-footer { display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid var(--border); }
+        .route-card-footer { display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid var(--border); margin-top:auto; }
         .route-card-rating { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gold); font-weight:700; }
         .view-route-btn { font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); transition:color .2s; display:flex; align-items:center; gap:6px; }
         .view-route-btn:hover { color:var(--cream); }
@@ -460,7 +468,7 @@ function ExplorePageInner() {
         .filter-stars { display:flex; gap:4px; }
         .filter-star { display:flex; color:var(--border); transition:color .15s; background:none; }
         .filter-star.active { color:var(--gold); }
-        .filter-country-list { display:flex; flex-direction:column; gap:8px; max-height:160px; overflow-y:auto; }
+        .filter-country-list { display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto; }
         .filter-country-list::-webkit-scrollbar { width:3px; }
         .filter-country-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
         .filter-country-item { display:flex; align-items:center; gap:10px; cursor:pointer; }
@@ -694,7 +702,7 @@ function ExplorePageInner() {
                   <div className="filter-panel">
                     <div className="filter-panel-header">
                       <span className="filter-panel-title">Filters</span>
-                      <button className="filter-reset" onClick={() => setFilters({ difficulty: [], duration: "any", minRating: 0, countries: [] })}>Reset all</button>
+                      <button className="filter-reset" onClick={clearAllFilters}>Reset all</button>
                     </div>
                     <div className="filter-section">
                       <p className="filter-section-title">Terrain</p>
@@ -728,15 +736,28 @@ function ExplorePageInner() {
                     <div className="filter-section">
                       <p className="filter-section-title">Country</p>
                       <div className="filter-country-list">
-                        {countries.map((c) => (
-                          <label key={c} className="filter-country-item">
-                            <input type="checkbox" checked={filters.countries.includes(c)} onChange={() => toggleFilter("countries", c)} />
-                            <span>{c}</span>
-                          </label>
-                        ))}
+                        {countries.map((c) => {
+                          const checked = filters.countries.includes(c) || appliedSelected === c;
+                          return (
+                            <label key={c} className="filter-country-item">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  if (checked) {
+                                    if (filters.countries.includes(c)) toggleFilter("countries", c);
+                                    if (appliedSelected === c) { setSelected(""); setAppliedSelected(""); }
+                                  } else {
+                                    toggleFilter("countries", c);
+                                  }
+                                }}
+                              />
+                              <span>{c}</span>
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
-                    <button className="filter-apply-btn" onClick={() => setShowFilters(false)}>Apply Filters</button>
                   </div>
                 </>
               )}
@@ -788,13 +809,15 @@ function ExplorePageInner() {
                   <div className="route-card-body">
                     <div className="route-card-country">{route.country}</div>
                     <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{route.title}</div></Link>
-                    {route.description && <p className="route-card-desc">{route.description}</p>}
+                    <p className="route-card-desc">{route.description || ""}</p>
                     <div className="route-card-meta">
                       {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
                       {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{fmtKm(route.distance_km)}</div>}
                     </div>
-                    <div className="route-card-footer">
-                      <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating ? route.rating.toFixed(1) : "—"}</div>
+                    <div className="route-card-footer" style={!route.rating ? { justifyContent: "flex-end" } : undefined}>
+                      {route.rating && (
+                        <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating.toFixed(1)}</div>
+                      )}
                       <Link href={`/routedetail/${route.id}`} className="view-route-btn">View Route <ArrowRight size={12} strokeWidth={2.5} /></Link>
                     </div>
                   </div>
