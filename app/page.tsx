@@ -527,7 +527,7 @@ export default function HomePage() {
         .popular-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
         .popular-heading { font-family:var(--serif); font-size:clamp(42px,5vw,70px); font-weight:300; line-height:0.92; letter-spacing:-0.045em; color:var(--cream); }
         .popular-view-all { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:color .2s; }
-        .popular-view-all:hover { color:var(--cream); }
+        .popular-view-all:hover { color:var(--gold); }
 
         .popular-card-wrap { position:relative; }
         .popular-card { position:relative; display:block; height:clamp(520px,58vw,680px); overflow:hidden; border-radius:34px; border:1px solid var(--border); background:var(--bg3); box-shadow:0 36px 110px rgba(0,0,0,0.52); isolation:isolate; }
