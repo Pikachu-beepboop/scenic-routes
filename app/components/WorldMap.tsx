@@ -100,11 +100,37 @@ export default function WorldMap() {
       borderRadius: "15px",
       transition: "background .35s, border-color .35s",
     }}>
+      {/* NEU (Mobile): responsive Höhe für die Karte statt fixer 580px.
+          Auf PC bleibt exakt das bisherige Verhalten (580px), nur unterhalb
+          von 680px Breite wird die Höhe reduziert, damit die Karte nicht
+          riesige Leerflächen erzeugt. */}
+      <style>{`
+        .wm-composable-map {
+          width: 100%;
+          height: 580px;
+          display: block;
+          margin-top: -4%;
+        }
+
+        @media (max-width: 680px) {
+          .wm-composable-map {
+            height: 300px;
+            margin-top: 0;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .wm-composable-map {
+            height: 260px;
+          }
+        }
+      `}</style>
+
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{ scale: 170, center: [13, 30] }}
         viewBox="10 0 720 600"
-        style={{ width: "100%", height: "580px", display: "block", marginTop: "-4%" }}
+        className="wm-composable-map"
       >
         <Geographies geography={GEO_URL}>
           {({ geographies }) =>

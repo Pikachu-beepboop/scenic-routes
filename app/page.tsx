@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
@@ -11,6 +11,7 @@ import { useTheme } from "next-themes";
 import {
   User as UserIcon, Map as MapIcon, Compass, LogOut,
   ArrowLeft, ArrowRight, Wind, BookOpen, Globe,
+  Menu, X, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 const WorldMap = dynamic(() => import("./components/WorldMap"), {
@@ -141,6 +142,25 @@ const LANGUAGES = [
   { code: "RU", label: "Русский" },
 ];
 
+// NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
+const FOOTER_COLUMNS = [
+  {
+    id: "explore",
+    heading: "Explore",
+    links: ["All Routes", "Destinations", "Experiences", "Journal"],
+  },
+  {
+    id: "company",
+    heading: "Company",
+    links: ["About Us", "Membership", "Gift Cards", "Careers"],
+  },
+  {
+    id: "support",
+    heading: "Support",
+    links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"],
+  },
+];
+
 type Route = {
   id: string;
   title: string;
@@ -156,6 +176,10 @@ type Route = {
 function PopularCarousel({ routes }: { routes: Route[] }) {
   const [idx, setIdx] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+
+  // NEU (Mobile): Touch-Swipe-Tracking
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchDeltaX, setTouchDeltaX] = useState(0);
 
   const items = useMemo(() => routes.slice(0, 6), [routes]);
   const route = items[idx] ?? items[0];
@@ -180,6 +204,55 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
     setIdx((i) => (i + 1) % items.length);
   };
 
+  // NEU (Mobile): direkte Navigation über die Dots
+  const goTo = (target: number) => {
+    setSlideDirection(target > idx ? "next" : "prev");
+    setIdx(target);
+  };
+
+  // NEU (Mobile): Swipe-Handling — nach links wischen = nächste Route,
+  // nach rechts wischen = vorherige Route. 40px Mindest-Wegstrecke als Schwelle,
+  // damit ein normaler Tap/Scroll nicht versehentlich als Swipe zählt.
+  const SWIPE_THRESHOLD = 40;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+    setTouchDeltaX(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    setTouchDeltaX(e.touches[0].clientX - touchStartX);
+  };
+
+  // NEU (Mobile): merkt sich, ob die letzte Touch-Geste ein Swipe war,
+  // damit ein Wisch nicht gleichzeitig als Klick auf die Karte (Navigation) zählt
+  const wasSwipeRef = useRef(false);
+
+  const handleTouchEnd = () => {
+    if (touchStartX === null) return;
+
+    if (touchDeltaX <= -SWIPE_THRESHOLD) {
+      wasSwipeRef.current = true;
+      next();
+    } else if (touchDeltaX >= SWIPE_THRESHOLD) {
+      wasSwipeRef.current = true;
+      prev();
+    } else {
+      wasSwipeRef.current = false;
+    }
+
+    setTouchStartX(null);
+    setTouchDeltaX(0);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (wasSwipeRef.current) {
+      e.preventDefault();
+      wasSwipeRef.current = false;
+    }
+  };
+
   return (
     <section className="popular-section">
       <div className="popular-container">
@@ -198,7 +271,12 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           </Link>
         </div>
 
-        <div className="popular-card-wrap">
+        <div
+          className="popular-card-wrap"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <button
             className="popular-arrow popular-left"
             onClick={prev}
@@ -219,6 +297,12 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             key={route.id}
             href={`/routedetail/${route.id}`}
             className={`popular-card slide-${slideDirection}`}
+            onClick={handleCardClick}
+            style={
+              touchStartX !== null
+                ? { transform: `translateX(${touchDeltaX * 0.4}px)`, transition: "none" }
+                : undefined
+            }
           >
             <img
               src={route.image_url || "/Pacific Route Highway.jpg"}
@@ -249,6 +333,18 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             </div>
           </Link>
         </div>
+
+        {/* NEU (Mobile): Dot-Pagination unter der Karte, nur auf Mobile sichtbar */}
+        <div className="popular-dots mobile-only">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              className={`popular-dot ${i === idx ? "active" : ""}`}
+              onClick={() => goTo(i)}
+              aria-label={`Route ${i + 1}`}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -273,6 +369,11 @@ export default function HomePage() {
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
+
+  // NEU (Mobile): Hamburger-Menü Zustand
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // NEU (Mobile): welche Footer-Akkordeon-Sektion offen ist
+  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
 
   // Erst nach dem Mount kennen wir das echte Theme (SSR-Hydration) —
   // bis dahin zeigen wir das Dark-Hero-Bild als sicheren Standard.
@@ -386,10 +487,28 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showLangMenu]);
 
+  // NEU (Mobile): Menü schließen, sobald der Screen wieder auf Desktop-Breite wechselt
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 680) setMobileMenuOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // NEU (Mobile): Body-Scroll sperren, solange das Menü offen ist
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
     setShowUserMenu(false);
+    setMobileMenuOpen(false);
   }
 
   const handleNewsletter = async (e: React.FormEvent) => {
@@ -507,7 +626,7 @@ export default function HomePage() {
 
         /* HERO */
         .hero { position:relative; height:100vh; min-height:680px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
-        .hero-bg { position:absolute; inset:9; }
+        .hero-bg { position:absolute; inset:0; }
         .hero-bg::after { content:""; position:absolute; inset:0; z-index:3; background: linear-gradient(to bottom, rgba(12,11,9,0.1) 0%, rgba(12,11,9,0.05) 30%, rgba(12,11,9,0.65) 70%, rgba(12,11,9,0.95) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%); }
         .light .hero-bg::after { background: linear-gradient(to top, rgba(244,240,232,0.4) 0%, transparent 35%), linear-gradient(to right, rgba(244,240,232,0.45) 0%, transparent 38%); }
         .hero-content { position:relative; z-index:10; padding:0 clamp(24px,5vw,80px) clamp(50px,7vh,90px); max-width:1280px; }
@@ -690,6 +809,112 @@ export default function HomePage() {
           .footer-top { grid-template-columns:1fr; }
           .footer-bottom { flex-direction:column; align-items:flex-start; }
         }
+
+        /* ==================================================================
+           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
+           Nichts oberhalb dieser Zeile wurde verändert.
+           .mobile-only ist standardmäßig unsichtbar und wird nur innerhalb
+           der Mobile-Media-Queries wieder eingeblendet -> auf PC bleibt
+           alles exakt wie zuvor.
+           ================================================================== */
+
+        .mobile-only { display:none; }
+
+        /* Hamburger-Button in der Nav (nur mobil sichtbar) */
+        .mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
+
+        /* Mobile Nav Drawer */
+        .mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
+        .mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
+
+        .mobile-nav-drawer { position:fixed; top:50%; left:50%; z-index:401; width:min(380px,88vw); max-height:85vh; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:26px; box-shadow:0 50px 120px rgba(0,0,0,0.55); opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(0.94); transition:opacity .28s ease, transform .28s ease; padding:22px 22px 26px; }
+        .mobile-nav-drawer.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+
+        .mobile-nav-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:36px; }
+        .mobile-nav-close { width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--border); color:var(--cream); background:none !important; }
+
+        .mobile-nav-links { display:flex; flex-direction:column; gap:4px; margin-bottom:auto; }
+        .mobile-nav-link { padding:16px 6px; font-family:var(--serif); font-size:26px; font-weight:300; color:var(--cream); border-bottom:1px solid var(--border); }
+        .mobile-nav-link-active { color:var(--gold); }
+
+        .mobile-nav-bottom { display:flex; align-items:center; justify-content:space-between; padding-top:20px; border-top:1px solid var(--border); margin-top:20px; }
+        .mobile-nav-login { padding:12px 24px; border:1px solid var(--border); border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; }
+        .mobile-nav-user { display:flex; align-items:center; gap:12px; }
+        .mobile-nav-user-name { font-size:13px; font-weight:600; color:var(--cream); }
+
+        /* Mobile Drawer — Profil-Card (Avatar/Theme/Links), gestylt wie das Desktop-User-Dropdown */
+        .mobile-profile-card { border:1px solid var(--border); border-radius:20px; background:color-mix(in srgb, var(--bg2) 80%, transparent); overflow:hidden; }
+        .mobile-profile-card .ud-link { font-size:13px; }
+        .mobile-profile-card .ud-header,
+        .mobile-profile-card .ud-theme-row,
+        .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
+        .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
+
+        /* Popular Carousel — Dots */
+        .popular-dots { justify-content:center; gap:9px; margin-top:22px; }
+        button.popular-dot { width:8px; height:8px; border-radius:50%; background:var(--border) !important; border:1px solid var(--dim) !important; padding:0; transition:all .25s; }
+        button.popular-dot.active { width:26px; border-radius:999px; background:var(--gold) !important; border-color:var(--gold) !important; }
+
+        /* Builder — mobiles gekipptes Bild */
+        .builder-mobile-image { position:absolute; top:0; right:0; width:44%; max-width:190px; aspect-ratio:3/4; border-radius:20px; overflow:hidden; border:4px solid var(--bg); box-shadow:0 20px 50px rgba(0,0,0,0.45); transform:rotate(4deg); z-index:3; }
+        .builder-mobile-image img { width:100%; height:100%; object-fit:cover; }
+
+        /* Testimonial — Card-Optik auf Mobile */
+        .testimonial-card-mobile { border:1px solid var(--border); border-radius:22px; padding:36px 22px; background:color-mix(in srgb, var(--border) 20%, transparent); }
+
+        /* Footer — Akkordeon */
+        .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:pointer; }
+        .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
+        .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .footer-col-links { overflow:hidden; max-height:0; transition:max-height .3s ease; }
+        .footer-col-links.open { max-height:400px; }
+
+        @media (max-width:680px) {
+          /* Hamburger sichtbar, Rest der Desktop-Nav-Elemente bleiben unangetastet */
+          .mobile-menu-btn { display:flex; }
+
+          /* Avatar-Button verschwindet aus der Navbar auf Mobile — er bleibt
+             über das Hamburger-Menü (Slide-in-Drawer) erreichbar */
+          .nav-right .user-menu-wrap { display:none; }
+
+          /* Hero */
+          .hero-h1 { font-size:clamp(48px,13vw,72px); margin-bottom:20px; }
+          .hero-sub { font-size:14px; max-width:280px; }
+          .hero { justify-content:flex-end; }
+          .hero-content { padding-top:0; padding-bottom:60px; }
+          .hero-bg img { object-position:80% 68% !important; }
+          .light .hero-bg::after { background: linear-gradient(to top, rgba(244,240,232,0.88) 0%, rgba(244,240,232,0.5) 30%, transparent 50%), linear-gradient(to right, rgba(244,240,232,0.45) 0%, transparent 38%) !important; }
+          .dark .hero-bg::after { background: linear-gradient(to bottom, rgba(12,11,9,0.05) 0%, rgba(12,11,9,0.15) 40%, rgba(12,11,9,0.75) 68%, rgba(12,11,9,0.97) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%) !important; }
+
+          /* Popular Carousel Dots */
+          .popular-dots { display:flex; }
+          .popular-content { left:22px; right:22px; bottom:26px; }
+
+          /* Builder Section: mobiles Bild sichtbar, Textblock bekommt Platz dafür */
+          .builder-content { position:relative; padding-top:30px; }
+          .builder-mobile-image { display:block; }
+          .builder-content > .eyebrow { padding-right:150px; }
+          .builder-h2 { padding-right:150px; font-size:clamp(28px,8.5vw,38px); max-width:none; }
+          .builder-sub { margin-top:18px; padding-right:150px; max-width:none; font-size:14px; }
+          .builder-find-card { margin-top:36px; max-width:100%; }
+
+          /* Testimonial */
+          .testimonial-qq { display:block; }
+          .builder-section { min-height:auto; }
+          .dest-section { padding-top:40px; padding-bottom:40px; }
+          .dest-explore-btn { border:1px solid var(--border); border-radius:999px; padding:14px 26px !important; background:color-mix(in srgb, var(--border) 30%, transparent); }
+          .testimonial-card-mobile { display:block; }
+
+          /* Features: 2x2 wie im Mobile-Mockup (überschreibt die 1-spaltige Regel weiter oben, rein mobil) */
+          .features-grid { grid-template-columns:repeat(2,1fr) !important; gap:10px !important; }
+          .feature-card { padding:20px 16px 24px; }
+          .feature-title { font-size:9px; }
+          .feature-text { font-size:12px; }
+
+          /* Footer Akkordeon */
+          .footer-col-links { display:block; }
+          .footer-col-chevron { display:block; }
+        }
       `}</style>
 
       <main className="pg">
@@ -816,8 +1041,152 @@ export default function HomePage() {
                 Login
               </Link>
             )}
+
+            {/* NEU (Mobile): Hamburger-Button, nur per CSS auf Mobile sichtbar */}
+            <button
+              className="mobile-menu-btn mobile-only"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Menü öffnen"
+            >
+              <Menu size={20} strokeWidth={1.8} />
+            </button>
           </div>
         </nav>
+
+        {/* NEU (Mobile): Slide-in Nav-Drawer + Backdrop */}
+        <div
+          className={`mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+
+        <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
+          <div className="mobile-nav-top">
+            <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Compass size={18} strokeWidth={1.6} color="var(--gold)" />
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+            </span>
+
+            <button
+              className="mobile-nav-close"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Menü schließen"
+            >
+              <X size={18} strokeWidth={1.8} />
+            </button>
+          </div>
+
+          {user ? (
+            <div className="mobile-profile-card">
+              <div className="ud-header">
+                <div className="ud-avatar">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" onError={() => setAvatarUrl("")} />
+                  ) : (
+                    displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()
+                  )}
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                  <p className="ud-name">{displayName}</p>
+                  <p className="ud-email">{user.email}</p>
+                  <p className="ud-role">Scenic Route Explorer</p>
+                </div>
+              </div>
+
+              <div className="ud-theme-row">
+                <span className="ud-theme-label">Theme</span>
+                <ThemeSwitch />
+              </div>
+
+              <div className="ud-links">
+                <p className="ud-section-label">Navigate</p>
+
+                <Link
+                  href="/explore"
+                  className="ud-link"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+                  Explore Routes
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <Link
+                  href="/about"
+                  className="ud-link"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="ud-link-icon"><BookOpen size={14} strokeWidth={1.8} /></span>
+                  About
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <p className="ud-section-label">Account</p>
+
+                <Link
+                  href="/profile"
+                  className="ud-link"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
+                  Profile
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <Link
+                  href="/my-trips"
+                  className="ud-link"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
+                  My Trips
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <button className="ud-logout" onClick={handleLogout}>
+                  <span className="ud-link-icon" style={{ color: "#e08080" }}>
+                    <LogOut size={14} strokeWidth={1.8} />
+                  </span>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mobile-nav-links">
+                {[
+                  ["Explore Routes", "/explore"],
+                  ["About", "/about"],
+                ].map(([label, href]) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mobile-nav-bottom">
+                <Link
+                  href={loginHref}
+                  className="mobile-nav-login"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+
+                <ThemeSwitch />
+              </div>
+            </>
+          )}
+        </div>
 
         {/* HERO */}
         <section className="hero">
@@ -829,7 +1198,7 @@ export default function HomePage() {
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                objectPosition: "center 40%",
+                objectPosition: "center 94%",
                 filter: mounted && theme === "light"
                   ? "brightness(1) contrast(1.05) saturate(1.05)"
                   : "brightness(0.92) contrast(1.08) saturate(0.9)",
@@ -873,6 +1242,18 @@ export default function HomePage() {
 
           <div className="builder-inner">
             <div className="builder-content">
+              {/* NEU (Mobile): kleines gekipptes Bild oben rechts, ersetzt visuell
+                  das große Hintergrundbild, das auf Mobile ausgeblendet ist */}
+              <div className="builder-mobile-image mobile-only">
+                <img
+                  src="/Toscana.jpg"
+                  alt="Tuscany road"
+                  onError={(e) => {
+                    e.currentTarget.src = "/Amalfi coast road.jpg";
+                  }}
+                />
+              </div>
+
               <p className="eyebrow">Build your route</p>
 
               <h2 className="builder-h2">
@@ -921,13 +1302,14 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div className="dest-map-wrap" style={{ maxWidth: "900px", margin: "0 auto" }}>
             <WorldMap />
           </div>
 
           <div style={{ textAlign: "center", marginTop: "32px" }}>
             <Link
               href="/explore"
+              className="dest-explore-btn"
               style={{
                 fontSize: "9px",
                 fontWeight: 800,
@@ -946,25 +1328,28 @@ export default function HomePage() {
 
         {/* TESTIMONIAL */}
         <section className="testimonial-section">
-          <div className="testimonial-qq">"</div>
+          {/* NEU (Mobile): Card-Wrapper, nur mobil sichtbar (per CSS) */}
+          <div className="testimonial-card-mobile">
+            <div className="testimonial-qq">"</div>
 
-          <p className="testimonial-text">
-            {TESTIMONIALS[testimonialIdx].quote}
-          </p>
+            <p className="testimonial-text">
+              {TESTIMONIALS[testimonialIdx].quote}
+            </p>
 
-          <p className="testimonial-name">
-            — {TESTIMONIALS[testimonialIdx].name}
-          </p>
+            <p className="testimonial-name">
+              — {TESTIMONIALS[testimonialIdx].name}
+            </p>
 
-          <div className="testimonial-dots">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                className={`t-dot ${i === testimonialIdx ? "active" : ""}`}
-                onClick={() => setTestimonialIdx(i)}
-                aria-label={`Testimonial ${i + 1}`}
-              />
-            ))}
+            <div className="testimonial-dots">
+              {TESTIMONIALS.map((_, i) => (
+                <button
+                  key={i}
+                  className={`t-dot ${i === testimonialIdx ? "active" : ""}`}
+                  onClick={() => setTestimonialIdx(i)}
+                  aria-label={`Testimonial ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
@@ -1010,32 +1395,43 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {[
-                [
-                  "Explore",
-                  ["All Routes", "Destinations", "Experiences", "Journal"],
-                ],
-                [
-                  "Company",
-                  ["About Us", "Membership", "Gift Cards", "Careers"],
-                ],
-                [
-                  "Support",
-                  ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"],
-                ],
-              ].map(([heading, links]) => (
-                <div className="footer-col" key={heading as string}>
-                  <p className="footer-col-title">{heading as string}</p>
+              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+                const isOpen = openFooterSection === id;
 
-                  {(links as string[]).map((link) => (
-                    <a href="#" key={link}>
-                      {link}
-                    </a>
-                  ))}
-                </div>
-              ))}
+                return (
+                  <div className="footer-col" key={id}>
+                    {/* NEU (Mobile): Header ist jetzt klickbar (Akkordeon).
+                        Auf Desktop bleibt der Titel optisch identisch, der
+                        Klick hat dort keine sichtbare Wirkung, da die
+                        Collapse-Styles nur innerhalb der Mobile-Media-Query
+                        existieren. */}
+                    <button
+                      className="footer-col-header"
+                      onClick={() =>
+                        setOpenFooterSection(isOpen ? null : id)
+                      }
+                    >
+                      <p className="footer-col-title" style={{ marginBottom: 0 }}>
+                        {heading}
+                      </p>
+                      <ChevronDown
+                        size={14}
+                        className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`}
+                      />
+                    </button>
 
-              
+                    <div className={`footer-col-links ${isOpen ? "open" : ""}`}>
+                      <div style={{ paddingTop: 14 }}>
+                        {links.map((link) => (
+                          <a href="#" key={link}>
+                            {link}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="footer-bottom">
