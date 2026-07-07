@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,6 +58,13 @@ function LoginPageInner() {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     supabase.auth.getSession().then(({ data }) => {
+      const email = data.session?.user?.email?.toLowerCase();
+      const isAdmin = !!email && ADMIN_EMAILS.includes(email);
+
+      // Если редирект ведёт в /admin, а пользователь не админ — не отправляем его
+      // туда автоматически, иначе получится бесконечный цикл /admin <-> /login
+      if (redirectPath === "/admin" && !isAdmin) return;
+
       if (data.session?.user && searchParams.get("redirect")) {
         router.replace(redirectPath);
       }

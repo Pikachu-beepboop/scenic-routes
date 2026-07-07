@@ -11,7 +11,7 @@ import { useTheme } from "next-themes";
 import {
   User as UserIcon, Map as MapIcon, Compass, LogOut,
   ArrowLeft, ArrowRight, Wind, BookOpen, Globe,
-  Menu, X, ChevronDown, ChevronRight,
+  Menu, X, ChevronDown, ChevronRight, ShieldCheck,
 } from "lucide-react";
 
 const WorldMap = dynamic(() => import("./components/WorldMap"), {
@@ -141,6 +141,12 @@ const LANGUAGES = [
   { code: "EN", label: "English" },
   { code: "RU", label: "Русский" },
 ];
+
+// Admin_Page
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
@@ -528,6 +534,7 @@ export default function HomePage() {
   };
 
   const displayName = username || user?.email?.split("@")[0] || "";
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   return (
     <>
@@ -1021,7 +1028,15 @@ export default function HomePage() {
                       >
                         <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes
                       </Link>
-
+                        {isAdmin && (
+                              <Link
+                                href="/admin"
+                                className="ud-link"
+                                onClick={() => setShowUserMenu(false)}
+                              >
+                                <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> Admin Panel
+                              </Link>
+                            )}
                       <div className="ud-divider" />
 
                       <button className="ud-logout" onClick={handleLogout}>
@@ -1145,7 +1160,15 @@ export default function HomePage() {
                   My Trips
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
-
+                  {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="ud-link"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> Admin Panel
+                  </Link>
+                      )}
                 <div className="ud-divider" />
 
                 <button className="ud-logout" onClick={handleLogout}>

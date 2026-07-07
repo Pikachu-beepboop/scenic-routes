@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
 import * as XLSX from 'xlsx';
+
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 type ExistingRoute = { id: string; title: string; country: string };
 
@@ -12,10 +18,49 @@ type UpdateResultItem = { title: string; country: string };
 type NewRouteItem = { row: any; include: boolean };
 
 export default function AdminPage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [result, setResult] = useState<{ updated: UpdateResultItem[]; added: number; errors: string[] } | null>(null);
   const [newRoutes, setNewRoutes] = useState<NewRouteItem[] | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+
+      const email = session?.user?.email?.toLowerCase();
+      const allowed = !!email && ADMIN_EMAILS.includes(email);
+
+      setIsAuthorized(allowed);
+      setAuthChecked(true);
+
+      if (!allowed) {
+        router.push('/login?redirect=/admin');
+      }
+    }
+
+    checkAuth();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const email = session?.user?.email?.toLowerCase();
+      const allowed = !!email && ADMIN_EMAILS.includes(email);
+      setIsAuthorized(allowed);
+      if (!allowed) {
+        router.push('/login?redirect=/admin');
+      }
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [router]);
 
   function normalizeTitle(title: string): string {
     return title.trim().toLowerCase();
@@ -165,6 +210,21 @@ export default function AdminPage() {
     }));
     setNewRoutes(null);
     setLoading(false);
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400">
+          <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"/>
+          <span className="text-sm">Checking access...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
   }
 
   return (
