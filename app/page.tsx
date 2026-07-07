@@ -863,11 +863,10 @@ export default function HomePage() {
         .testimonial-card-mobile { border:1px solid var(--border); border-radius:22px; padding:36px 22px; background:color-mix(in srgb, var(--border) 20%, transparent); }
 
         /* Footer — Akkordeon */
-        .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:pointer; }
+        .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; }
         .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
         .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
-        .footer-col-links { overflow:hidden; max-height:0; transition:max-height .3s ease; }
-        .footer-col-links.open { max-height:400px; }
+        .footer-col-links { overflow:visible; max-height:none; }
 
         @media (max-width:680px) {
           /* Hamburger sichtbar, Rest der Desktop-Nav-Elemente bleiben unangetastet */
@@ -912,7 +911,9 @@ export default function HomePage() {
           .feature-text { font-size:12px; }
 
           /* Footer Akkordeon */
-          .footer-col-links { display:block; }
+          .footer-col-header { cursor:pointer; pointer-events:auto; }
+          .footer-col-links { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .footer-col-links.open { max-height:400px; }
           .footer-col-chevron { display:block; }
         }
       `}</style>
@@ -1198,7 +1199,7 @@ export default function HomePage() {
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                objectPosition: "center 94%",
+                objectPosition: "center 95%",
                 filter: mounted && theme === "light"
                   ? "brightness(1) contrast(1.05) saturate(1.05)"
                   : "brightness(0.92) contrast(1.08) saturate(0.9)",
