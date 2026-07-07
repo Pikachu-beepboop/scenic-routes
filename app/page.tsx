@@ -187,7 +187,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState(0);
 
-  const items = useMemo(() => routes.slice(0, 6), [routes]);
+  const items = useMemo(() => routes.slice(0, 10), [routes]);
   const route = items[idx] ?? items[0];
 
   useEffect(() => {
@@ -417,7 +417,7 @@ export default function HomePage() {
       .select("*")
       .eq("featured", true)
       .order("featured_order", { ascending: true })
-      .limit(6)
+      .limit(10)
       .then(({ data }) => {
         if (!mounted) return;
 
