@@ -127,6 +127,7 @@ export default function AdminPage() {
   const [usersList, setUsersList] = useState<ProfileRow[] | null>(null);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState('');
+  const [onlineAdmins, setOnlineAdmins] = useState<string[]>([]);
 
   // ---------- Auth guard ----------
   useEffect(() => {
@@ -163,6 +164,34 @@ export default function AdminPage() {
       listener.subscription.unsubscribe();
     };
   }, [router]);
+
+  useEffect(() => {
+  if (!isAuthorized) return;
+
+  const channel = supabase.channel('admin-presence', {
+    config: { presence: { key: crypto.randomUUID() } },
+  });
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState<{ email: string }>();
+      const emails = Object.values(state)
+        .flat()
+        .map(p => p.email)
+        .filter((v, i, arr) => arr.indexOf(v) === i);
+      setOnlineAdmins(emails);
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        const { data: { session } } = await supabase.auth.getSession();
+        await channel.track({ email: session?.user?.email || 'unknown' });
+      }
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [isAuthorized]);
 
   // ---------- Load routes list when Routes or Featured tab opens ----------
   async function loadRoutesList() {
@@ -600,6 +629,14 @@ export default function AdminPage() {
           </div>
         </Link>
         <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Admin Panel</span>
+        {onlineAdmins.length > 0 && (
+  <span className="flex items-center gap-2 text-xs text-gray-400">
+    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+    {onlineAdmins.length === 1
+      ? `Online: ${onlineAdmins[0]}`
+      : `Online (${onlineAdmins.length}): ${onlineAdmins.join(', ')}`}
+  </span>
+)}
         <div className="flex items-center gap-4">
           <button
             onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
