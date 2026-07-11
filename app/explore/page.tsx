@@ -9,6 +9,7 @@ import { ThemeSwitch } from "../components/ThemeSwitch";
 import {
   SlidersHorizontal, ChevronDown, Star, X, CornerDownRight,
   User as UserIcon, Map as MapIcon, Compass, LogOut, Clock, Navigation, Heart, ArrowRight, Globe,
+  Menu, ChevronRight, MapPin, Mail, BookOpen, Search,
 } from "lucide-react";
 
 type Route = {
@@ -32,6 +33,38 @@ const LANGUAGES = [
   { code: "EN", label: "English" },
   { code: "RU", label: "Русский" },
 ];
+
+// NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
+const FOOTER_COLUMNS = [
+  { id: "explore", heading: "Explore", links: ["All Routes", "Destinations", "Experiences", "Journal"] },
+  { id: "company", heading: "Company", links: ["About Us", "Membership", "Gift Cards", "Careers"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"] },
+];
+
+// NEU (Mobile): wie viele Route-Cards initial + pro "Load more"-Klick angezeigt werden
+const MOBILE_PAGE_SIZE = 6;
+
+// NEU (Mobile): eigene Instagram/YouTube-Icons im lucide-Stroke-Stil,
+// da diese Marken-Icons in der installierten lucide-react-Version nicht
+// mehr enthalten sind (Import-Fehler "Element type is invalid").
+function InstagramIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+    </svg>
+  );
+}
 
 function ExplorePageInner() {
   const searchParams = useSearchParams();
@@ -102,6 +135,34 @@ function ExplorePageInner() {
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const displayName = username || user?.email?.split("@")[0] || "";
 
+  // NEU (Mobile): Hamburger-Menü, Footer-Akkordeon, Pagination
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(MOBILE_PAGE_SIZE);
+
+  // NEU (Mobile): eigenständiges Such-Dropdown für die mobile Toolbar,
+  // bewusst getrennt vom Desktop-Such-State (isOpen/countrySearch), damit
+  // an der Desktop-Logik nichts verändert werden muss
+  const [mobileCountryOpen, setMobileCountryOpen] = useState(false);
+  const [mobileCountrySearch, setMobileCountrySearch] = useState("");
+  const mobileSearchRef = useRef<HTMLDivElement | null>(null);
+
+  const mobileFilteredCountries = mobileCountrySearch.trim()
+    ? countries.filter((c) => c.toLowerCase().includes(mobileCountrySearch.trim().toLowerCase()))
+    : countries;
+
+  useEffect(() => {
+    if (!mobileCountryOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+        setMobileCountryOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [mobileCountryOpen]);
+
   const isLight = mounted && theme === "light";
   const themeClass = isLight ? "light" : "dark";
 
@@ -163,6 +224,22 @@ function ExplorePageInner() {
 
   useEffect(() => { if (user) fetchSavedRoutes(); }, [user]);
 
+  // NEU (Mobile): erkennt, ob wir uns im Mobile-Breakpoint befinden (JS-seitig),
+  // damit die Pagination NUR auf Mobile greift — Desktop zeigt weiterhin,
+  // wie bisher, alle Routen ohne "Load more" auf einmal an.
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 760);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // NEU (Mobile): Pagination zurücksetzen, sobald sich die Ergebnisliste ändert
+  // (neue Filter, neue Suche, etc.)
+  useEffect(() => {
+    setVisibleCount(MOBILE_PAGE_SIZE);
+  }, [routes]);
+
   async function fetchSavedRoutes() {
     if (!user) return;
     const { data } = await supabase.from("saved_routes").select("route_id").eq("user_id", user.id);
@@ -189,6 +266,7 @@ function ExplorePageInner() {
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+    setMobileMenuOpen(false);
   }
 
   async function fetchCountries() {
@@ -252,6 +330,16 @@ function ExplorePageInner() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showLangMenu]);
+
+  // NEU (Mobile): Body-Scroll sperren, solange das Hamburger-Menü offen ist
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
+
+  // NEU (Mobile): auf Mobile nur die sichtbare Teilmenge rendern, Desktop unverändert alles
+  const displayedRoutes = isMobile ? routes.slice(0, visibleCount) : routes;
+  const hasMoreMobile = isMobile && visibleCount < routes.length;
 
   return (
     <>
@@ -431,7 +519,7 @@ function ExplorePageInner() {
         .save-btn:hover { background:rgba(12,11,9,0.85); }
         .route-card-type { position:absolute; bottom:12px; left:12px; z-index:5; padding:5px 10px; border-radius:999px; background:rgba(12,11,9,0.65); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.16); font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(237,229,212,0.8); }
         .route-card-body { padding:18px 18px 20px; display:flex; flex-direction:column; flex:1; }
-        .route-card-country { font-size:9px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
+        .route-card-country { font-size:9px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:5px; }
         .route-card-title { font-family:var(--serif); font-size:22px; font-weight:400; color:var(--cream); line-height:1.05; letter-spacing:-0.02em; margin-bottom:8px; min-height:46.2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
         .route-card-desc { font-size:12px; color:var(--dim); line-height:1.65; font-weight:300; margin-bottom:14px; min-height:39.6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
         .route-card-meta { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
@@ -529,6 +617,136 @@ function ExplorePageInner() {
         @media (max-width:480px) {
           .route-grid, .loading-grid { grid-template-columns:1fr; }
         }
+
+        /* ==================================================================
+           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
+           Nichts oberhalb dieser Zeile wurde verändert.
+           .mobile-only ist standardmäßig unsichtbar und wird nur innerhalb
+           der Mobile-Media-Queries wieder eingeblendet -> auf PC bleibt
+           alles exakt wie zuvor.
+           ================================================================== */
+
+        .mobile-only { display:none; }
+
+        /* Hamburger-Button in der Nav (nur mobil sichtbar) */
+        .mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
+        .light .nav:not(.scrolled) .mobile-menu-btn { border-color:rgba(255,255,255,0.35); color:#fff; }
+
+        /* Mobile Popup-Menü (zentriertes Fenster, wie auf der Homepage) */
+        .mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
+        .mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
+
+        .mobile-nav-drawer { position:fixed; top:50%; left:50%; z-index:401; width:min(380px,88vw); max-height:85vh; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:26px; box-shadow:0 50px 120px rgba(0,0,0,0.55); opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(0.94); transition:opacity .28s ease, transform .28s ease; padding:22px 22px 26px; }
+        .mobile-nav-drawer.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+
+        .mobile-nav-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+        .mobile-nav-close { width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--border); color:var(--cream); background:none !important; }
+
+        .mobile-nav-links { display:flex; flex-direction:column; gap:4px; margin-bottom:auto; }
+        .mobile-nav-link { padding:16px 6px; font-family:var(--serif); font-size:26px; font-weight:300; color:var(--cream); border-bottom:1px solid var(--border); }
+        .mobile-nav-link-active { color:var(--gold); }
+
+        .mobile-nav-bottom { display:flex; align-items:center; justify-content:space-between; padding-top:20px; border-top:1px solid var(--border); margin-top:20px; }
+        .mobile-nav-login { padding:12px 24px; border:1px solid var(--border); border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; }
+
+        .mobile-profile-card { border:1px solid var(--border); border-radius:20px; background:color-mix(in srgb, var(--bg2) 80%, transparent); overflow:hidden; }
+        .mobile-profile-card .ud-link { font-size:13px; }
+        .mobile-profile-card .ud-header,
+        .mobile-profile-card .ud-theme-row,
+        .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
+        .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
+
+        /* Hero — mobiler Explore-Routes-Button */
+        .hero-explore-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--bg); margin-top:26px; }
+
+        /* Route-Card — Pin-Icon vor dem Land, nur mobil */
+        .route-card-pin { display:none; color:var(--gold); flex-shrink:0; }
+
+        /* Pagination */
+        .load-more-row { display:none; margin-top:28px; }
+        button.load-more-btn { width:100%; padding:16px; background:var(--gold); color:var(--bg); border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; }
+
+        /* NEU (Mobile): obere Such- + Filter-Leiste */
+        .mobile-toolbar { display:none; gap:12px; margin:24px 0 22px; }
+        .mobile-search-pill { position:relative; flex:1; display:flex; align-items:center; gap:10px; padding:15px 18px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 35%, transparent); color:var(--muted); font-size:12px; }
+        .mobile-search-pill svg { flex-shrink:0; color:var(--gold); }
+        .mobile-search-pill input { flex:1; min-width:0; background:none; border:none; outline:none; font:inherit; color:var(--cream); }
+        .mobile-search-pill input::placeholder { color:var(--muted); }
+        button.mobile-filter-pill { position:relative; width:50px; height:50px; flex-shrink:0; border-radius:50%; border:1px solid var(--border); background:color-mix(in srgb, var(--border) 35%, transparent) !important; color:var(--cream); display:flex; align-items:center; justify-content:center; }
+        .mobile-filter-pill .filter-count { position:absolute; top:-4px; right:-4px; }
+        .mobile-search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; z-index:60; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.5); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
+
+        /* Footer — Social Icons */
+        .footer-social { display:flex; gap:10px; margin-top:16px; margin-bottom:6px; }
+        .footer-social a { width:34px; height:34px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); transition:all .2s; }
+        .footer-social a:hover { color:var(--gold); border-color:rgba(201,168,106,0.4); }
+
+        /* Footer — Akkordeon */
+        .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; }
+        .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
+        .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .footer-col-links { overflow:visible; max-height:none; }
+
+        @media (max-width:760px) {
+          .mobile-menu-btn { display:flex; }
+          .ep-user-menu-wrap { display:none; }
+
+          .hero { height:auto; min-height:0; padding:120px 0 60px; align-items:flex-start; }
+          .hero-inner { align-items:flex-start; }
+          .hero-sub { font-size:15px; margin-top:18px; }
+          .hero-explore-btn { display:inline-flex; }
+          .search-bar { display:none; }
+
+          .route-card-pin { display:inline-flex; }
+
+          .mobile-toolbar { display:flex; }
+          .toolbar { display:contents; }
+          .toolbar > .results-count:not(.mobile-only) { display:none; }
+          .toolbar button.filter-btn { display:none; }
+
+          .filter-overlay { z-index:399; }
+          .filter-panel {
+            position:fixed; top:50%; left:50%; right:auto;
+            transform:translate(-50%,-50%);
+            width:min(360px,88vw); max-height:78vh; overflow-y:auto;
+            border-radius:24px; z-index:400;
+            padding:20px;
+          }
+          .filter-panel-header { margin-bottom:16px; }
+          .filter-panel-close { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:none !important; color:var(--cream); }
+          .filter-panel-title { font-size:11px; }
+          .filter-section { margin-bottom:16px; }
+          .filter-section-title { font-size:8px; margin-bottom:8px; }
+          .filter-chips { gap:6px; }
+          .filter-chip { padding:6px 12px; font-size:8px; }
+          .filter-radio { display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; }
+          .filter-radio-item span { font-size:11px; }
+          .filter-stars { gap:2px; }
+          .filter-star svg { width:16px; height:16px; }
+          .filter-country-list { max-height:140px; }
+          .filter-country-item span { font-size:12px; }
+          .filter-apply-btn { padding:12px; font-size:9px; }
+
+          .load-more-row { display:flex; }
+          .results-count.mobile-only { display:block; }
+          .route-grid, .loading-grid { grid-template-columns:repeat(2,1fr) !important; gap:12px; }
+
+          .route-card-img { height:140px; }
+          .route-card-body { padding:12px 14px 14px; }
+          .route-card-country { font-size:8px; margin-bottom:4px; }
+          .route-card-title { font-size:16px; min-height:auto; -webkit-line-clamp:1; margin-bottom:5px; }
+          .route-card-desc { -webkit-line-clamp:1; min-height:auto; margin-bottom:9px; font-size:11px; }
+          .route-card-meta { gap:9px; margin-bottom:9px; }
+          .route-card-meta-item { font-size:9px; }
+          .route-card-footer { padding-top:9px; }
+          .view-route-btn { font-size:9px; }
+
+          .footer-social { display:flex; }
+          .footer-col-header { cursor:pointer; pointer-events:auto; }
+          .footer-col-links { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .footer-col-links.open { max-height:400px; }
+          .footer-col-chevron { display:block; }
+        }
       `}</style>
 
       <div className={`page ${themeClass}`}>
@@ -590,8 +808,125 @@ function ExplorePageInner() {
             ) : (
               <Link href={loginHref} className="login-btn">Login</Link>
             )}
+
+            {/* NEU (Mobile): Hamburger-Button, nur per CSS auf Mobile sichtbar */}
+            <button
+              className="mobile-menu-btn mobile-only"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Menü öffnen"
+            >
+              <Menu size={20} strokeWidth={1.8} />
+            </button>
           </div>
         </nav>
+
+        {/* NEU (Mobile): Popup-Menü + Backdrop */}
+        <div
+          className={`mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+
+        <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
+          <div className="mobile-nav-top">
+            <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8, display: "flex" }}>
+              <Compass size={18} strokeWidth={1.6} color="var(--gold)" />
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+            </span>
+
+            <button
+              className="mobile-nav-close"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Menü schließen"
+            >
+              <X size={18} strokeWidth={1.8} />
+            </button>
+          </div>
+
+          {user ? (
+            <div className="mobile-profile-card">
+              <div className="ud-header">
+                <div className="ud-avatar">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" onError={() => setAvatarUrl("")} />
+                  ) : (
+                    displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()
+                  )}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p className="ud-name">{displayName}</p>
+                  <p className="ud-email">{user.email}</p>
+                  <p className="ud-role">Scenic Route Explorer</p>
+                </div>
+              </div>
+
+              <div className="ud-theme-row">
+                <span className="ud-theme-label">Theme</span>
+                <ThemeSwitch />
+              </div>
+
+              <div className="ud-links">
+                <p className="ud-section-label">Navigate</p>
+
+                <Link href="/explore" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+                  Explore Routes
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <Link href="/about" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><BookOpen size={14} strokeWidth={1.8} /></span>
+                  About
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <p className="ud-section-label">Account</p>
+
+                <Link href="/profile" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
+                  Profile
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <Link href="/my-trips" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
+                  My Trips
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <button className="ud-logout" onClick={handleLogout}>
+                  <span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mobile-nav-links">
+                {[["Explore Routes", "/explore"], ["About", "/about"]].map(([label, href]) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mobile-nav-bottom">
+                <Link href={loginHref} className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>
+                  Login
+                </Link>
+                <ThemeSwitch />
+              </div>
+            </>
+          )}
+        </div>
 
         {/* HERO */}
         <section className="hero">
@@ -679,12 +1014,76 @@ function ExplorePageInner() {
               </div>
 
               <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration.</p>
+
+              {/* NEU (Mobile): Explore-Routes-Button ersetzt visuell die Suchleiste im Hero,
+                  scrollt zu den Ergebnissen/Filtern weiter unten */}
+              <button
+                className="hero-explore-btn mobile-only"
+                onClick={() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                Explore Routes <ArrowRight size={13} strokeWidth={2.5} />
+              </button>
             </div>
           </div>
         </section>
 
         {/* CONTENT */}
         <div className="content" ref={resultsRef}>
+          {/* NEU (Mobile): kompakte Such- + Filter-Leiste oben, ersetzt visuell
+              die versteckte Desktop-Suchleiste im Hero und den bisherigen
+              Filter-Button ganz unten */}
+          <div className="mobile-toolbar mobile-only" ref={mobileSearchRef}>
+            <div className="mobile-search-pill">
+              <Search size={14} strokeWidth={2} />
+              <input
+                type="text"
+                placeholder="Search for countries"
+                value={mobileCountryOpen ? mobileCountrySearch : selected}
+                onFocus={() => { setMobileCountryOpen(true); setMobileCountrySearch(""); }}
+                onChange={(e) => setMobileCountrySearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && setMobileCountryOpen(false)}
+              />
+
+              {mobileCountryOpen && (
+                <div className="mobile-search-dropdown" onClick={(e) => e.stopPropagation()}>
+                  <div className="search-dropdown-scroll">
+                    <div
+                      className="search-dropdown-item all-item"
+                      onClick={() => {
+                        setSelected(""); setAppliedSelected("");
+                        setMobileCountryOpen(false); setMobileCountrySearch("");
+                      }}
+                    >
+                      <CornerDownRight size={12} strokeWidth={2} /> All countries
+                    </div>
+                    {mobileFilteredCountries.map((c) => (
+                      <div
+                        key={c}
+                        className="search-dropdown-item"
+                        onClick={() => {
+                          setSelected(c); setAppliedSelected(c);
+                          setMobileCountryOpen(false); setMobileCountrySearch("");
+                        }}
+                      >
+                        <span className="item-dot" />{c}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              className="mobile-filter-pill"
+              onClick={() => setShowFilters((p) => !p)}
+              aria-label="Filter öffnen"
+            >
+              <SlidersHorizontal size={15} strokeWidth={2} />
+              {activeFilterCount > 0 && <span className="filter-count">{activeFilterCount}</span>}
+            </button>
+          </div>
+
+
           <div className="toolbar">
             <p className="results-count">
               {loading ? "Loading routes…" : <><strong>{routes.length}</strong> routes found</>}
@@ -702,7 +1101,16 @@ function ExplorePageInner() {
                   <div className="filter-panel">
                     <div className="filter-panel-header">
                       <span className="filter-panel-title">Filters</span>
-                      <button className="filter-reset" onClick={clearAllFilters}>Reset all</button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <button className="filter-reset" onClick={clearAllFilters}>Reset all</button>
+                        <button
+                          className="filter-panel-close mobile-only"
+                          onClick={() => setShowFilters(false)}
+                          aria-label="Filter schließen"
+                        >
+                          <X size={16} strokeWidth={2} />
+                        </button>
+                      </div>
                     </div>
                     <div className="filter-section">
                       <p className="filter-section-title">Terrain</p>
@@ -764,6 +1172,13 @@ function ExplorePageInner() {
             </div>
           </div>
 
+          {/* NEU (Mobile): Ergebnis-Zähler bleibt über der aktiven Filter-Leiste sichtbar,
+              auch wenn die Desktop-Toolbar (mit dem "Filters"-Button) auf Mobile
+              ausgeblendet ist */}
+          <p className="results-count mobile-only" style={{ marginBottom: 16 }}>
+            {loading ? "Loading routes…" : <><strong>{routes.length}</strong> routes found</>}
+          </p>
+
           {(activeFilterCount > 0 || appliedSelected || appliedSelectedDate) && (
             <div className="active-tags">
               {filters.difficulty.map((t) => (<span key={t} className="active-tag">{t}<button onClick={() => toggleFilter("difficulty", t)}><X size={11} strokeWidth={2.5} /></button></span>))}
@@ -794,36 +1209,55 @@ function ExplorePageInner() {
               <button className="filter-apply-btn" style={{ width:"auto", padding:"14px 28px", borderRadius:999, display:"inline-flex" }} onClick={clearAllFilters}>Clear Filters</button>
             </div>
           ) : (
-            <div className="route-grid">
-              {routes.map((route) => (
-                <div key={route.id} className="route-card">
-                  <div className="route-card-img">
-                    <Link href={`/routedetail/${route.id}`}>
-                      <img src={route.image_url || "/iceland.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
-                    </Link>
-                    <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
-                      <Heart size={16} strokeWidth={2} fill={savedRoutes.includes(route.id) ? "#ef4444" : "transparent"} stroke={savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)"} />
-                    </button>
-                    {(route.terrain || route.type) && <div className="route-card-type">{route.terrain || route.type}</div>}
-                  </div>
-                  <div className="route-card-body">
-                    <div className="route-card-country">{route.country}</div>
-                    <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{route.title}</div></Link>
-                    <p className="route-card-desc">{route.description || ""}</p>
-                    <div className="route-card-meta">
-                      {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
-                      {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{fmtKm(route.distance_km)}</div>}
+            <>
+              <div className="route-grid">
+                {displayedRoutes.map((route) => (
+                  <div key={route.id} className="route-card">
+                    <div className="route-card-img">
+                      <Link href={`/routedetail/${route.id}`}>
+                        <img src={route.image_url || "/iceland.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
+                      </Link>
+                      <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
+                        <Heart size={16} strokeWidth={2} fill={savedRoutes.includes(route.id) ? "#ef4444" : "transparent"} stroke={savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)"} />
+                      </button>
+                      {(route.terrain || route.type) && <div className="route-card-type">{route.terrain || route.type}</div>}
                     </div>
-                    <div className="route-card-footer" style={!route.rating ? { justifyContent: "flex-end" } : undefined}>
-                      {route.rating && (
-                        <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating.toFixed(1)}</div>
-                      )}
-                      <Link href={`/routedetail/${route.id}`} className="view-route-btn">View Route <ArrowRight size={12} strokeWidth={2.5} /></Link>
+                    <div className="route-card-body">
+                      <div className="route-card-country">
+                        <MapPin size={10} strokeWidth={2.2} className="route-card-pin" />
+                        {route.country}
+                      </div>
+                      <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{route.title}</div></Link>
+                      <p className="route-card-desc">{route.description || ""}</p>
+                      <div className="route-card-meta">
+                        {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
+                        {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{fmtKm(route.distance_km)}</div>}
+                      </div>
+                      <div className="route-card-footer" style={!route.rating ? { justifyContent: "flex-end" } : undefined}>
+                        {route.rating && (
+                          <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating.toFixed(1)}</div>
+                        )}
+                        <Link href={`/routedetail/${route.id}`} className="view-route-btn">View Route <ArrowRight size={12} strokeWidth={2.5} /></Link>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* NEU (Mobile): "Load more routes", nur mobil, echte Pagination —
+                  Desktop zeigt weiterhin alle Routen ohne diesen Button.
+                  Der Filter-Zugriff sitzt jetzt oben in der mobile-toolbar. */}
+              {hasMoreMobile && (
+                <div className="load-more-row">
+                  <button
+                    className="load-more-btn"
+                    onClick={() => setVisibleCount((p) => p + MOBILE_PAGE_SIZE)}
+                  >
+                    Load more routes
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 
@@ -844,21 +1278,40 @@ function ExplorePageInner() {
                   Thoughtfully curated road trips for people who value the
                   journey as much as the destination
                 </p>
+
+                {/* NEU (Mobile): Social-Icons */}
+                <div className="footer-social mobile-only">
+                  <a href="#" aria-label="Instagram"><InstagramIcon size={15} strokeWidth={1.8} /></a>
+                  <a href="#" aria-label="YouTube"><YoutubeIcon size={15} strokeWidth={1.8} /></a>
+                  <a href="#" aria-label="E-Mail"><Mail size={15} strokeWidth={1.8} /></a>
+                </div>
               </div>
 
-              {[
-                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
-                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
-                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
-              ].map(([heading, links]) => (
-                <div className="footer-col" key={heading as string}>
-                  <p className="footer-col-title">{heading as string}</p>
+              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+                const isOpen = openFooterSection === id;
+                return (
+                  <div className="footer-col" key={id}>
+                    {/* NEU (Mobile): Header ist auf Mobile klickbar (Akkordeon).
+                        Auf PC ohne Wirkung/Klickbarkeit, da die Collapse-Styles
+                        nur innerhalb der Mobile-Media-Query existieren. */}
+                    <button
+                      className="footer-col-header"
+                      onClick={() => setOpenFooterSection(isOpen ? null : id)}
+                    >
+                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{heading}</p>
+                      <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
+                    </button>
 
-                  {(links as string[]).map((link) => (
-                    <a href="#" key={link}>{link}</a>
-                  ))}
-                </div>
-              ))}
+                    <div className={`footer-col-links ${isOpen ? "open" : ""}`}>
+                      <div style={{ paddingTop: 14 }}>
+                        {links.map((link) => (
+                          <a href="#" key={link}>{link}</a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="footer-bottom">
