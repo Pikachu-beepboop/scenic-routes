@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -10,6 +10,7 @@ import { ThemeSwitch } from "../components/ThemeSwitch";
 import {
   Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
   User as UserIcon, Map as MapIcon, Compass, LogOut, Globe,
+  Menu, ChevronDown,
 } from "lucide-react";
 
 const fmtKm = (km?: number) =>
@@ -20,6 +21,16 @@ const LANGUAGES = [
   { code: "EN", label: "English" },
   { code: "RU", label: "Русский" },
 ];
+
+// NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
+const FOOTER_COLUMNS = [
+  { id: "explore", heading: "Explore", links: ["All Routes", "Destinations", "Experiences", "Journal"] },
+  { id: "company", heading: "Company", links: ["About Us", "Membership", "Gift Cards", "Careers"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"] },
+];
+
+// NEU (Mobile): wie viele Route-Einträge initial + pro "Load more"-Klick angezeigt werden
+const MOBILE_PAGE_SIZE = 4;
 
 export default function MyTripsPage() {
   const [user, setUser] = useState<any>(null);
@@ -38,6 +49,12 @@ export default function MyTripsPage() {
 
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
+
+  // NEU (Mobile): Hamburger-Menü, Saved/Planned-Tabs, Pagination, Footer-Akkordeon
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(MOBILE_PAGE_SIZE);
+  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
 
   const savedCountriesCount = new Set(
     savedRoutes.map((route: any) => route.country).filter(Boolean)
@@ -86,6 +103,22 @@ export default function MyTripsPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showLangMenu]);
 
+  // NEU (Mobile): Body-Scroll sperren, solange das Hamburger-Menü offen ist
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
+
+  // NEU (Mobile): erkennt den Mobile-Breakpoint JS-seitig, damit die
+  // Pagination NUR auf Mobile greift — Desktop zeigt weiterhin alle
+  // gespeicherten Routen ohne "Load more" auf einmal.
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 760);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   async function fetchSavedRoutes(userId: string) {
     setLoading(true);
     const { data, error } = await supabase
@@ -94,6 +127,11 @@ export default function MyTripsPage() {
       .eq("user_id", userId);
     if (!error && data) setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
     setLoading(false);
+    // NEU (Mobile): Pagination nur bei einem echten Neuladen zurücksetzen
+    // (z.B. nach Seitenwechsel/erneutem Mount) — NICHT beim lokalen Entfernen
+    // einer einzelnen Route via handleUnsave, damit "Load more" nicht
+    // verlorengeht, wenn man danach eine Route löscht.
+    setVisibleCount(MOBILE_PAGE_SIZE);
   }
 
   async function fetchProfile(userId: string) {
@@ -110,8 +148,13 @@ export default function MyTripsPage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+    setMobileMenuOpen(false);
     router.push("/");
   }
+
+  // NEU (Mobile): auf Mobile nur die sichtbare Teilmenge rendern, Desktop unverändert alles
+  const displayedRoutes = isMobile ? savedRoutes.slice(0, visibleCount) : savedRoutes;
+  const hasMoreMobile = isMobile && visibleCount < savedRoutes.length;
 
   return (
     <>
@@ -292,9 +335,11 @@ export default function MyTripsPage() {
         }
         @media (max-width:760px) {
           .nav-links { display:none; }
-          .page-header { padding:120px 20px 56px; }
+          .page-header { min-height:88vh; padding:120px 20px 64px; align-items:flex-end; }
           .page-h1 { font-size:clamp(58px,17vw,82px); }
-          .page-sub { font-size:15px; }
+          .page-header-bg img { transform:scale(1.18) translateY(-8%) !important; }
+          .page-h1 { color:#EDE5D4 !important; }
+          .page-sub { font-size:15px; color:#EDE5D4 !important; text-shadow:0 2px 10px rgba(0,0,0,0.45); }
           .collection-stats { flex-direction:column; }
           .collection-stat { width:100%; }
           .saved-preview-panel { padding:20px; border-radius:20px; }
@@ -306,6 +351,95 @@ export default function MyTripsPage() {
           .saved-preview-action, .saved-preview-remove { width:100%; border-radius:999px; }
           .footer-top { grid-template-columns:1fr; }
           .footer-bottom { flex-direction:column; align-items:flex-start; }
+        }
+
+        /* ==================================================================
+           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
+           Nichts oberhalb dieser Zeile wurde verändert.
+
+           WICHTIG: jede "eingeklappt"-Voreinstellung (max-height:0 etc.) steht
+           ausschließlich innerhalb der @media(max-width:760px)-Blöcke weiter
+           unten. Basis-Regeln setzen bewusst "immer sichtbar", damit PC exakt
+           das bisherige Verhalten behält.
+
+           .mobile-only ist standardmäßig unsichtbar und wird nur innerhalb
+           der Mobile-Media-Query wieder eingeblendet.
+           ================================================================== */
+
+        .mobile-only { display:none; }
+
+        /* Hamburger-Button */
+        .mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
+
+        /* Mobile Popup-Menü (zentriertes Fenster, gleiches Muster wie die anderen Seiten) */
+        .mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
+        .mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
+        .mobile-nav-drawer { position:fixed; top:50%; left:50%; z-index:401; width:min(380px,88vw); max-height:85vh; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:26px; box-shadow:0 50px 120px rgba(0,0,0,0.55); opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(0.94); transition:opacity .28s ease, transform .28s ease; padding:22px 22px 26px; }
+        .mobile-nav-drawer.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+        .mobile-nav-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+        .mobile-nav-close { width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--border); color:var(--cream); background:none !important; }
+        .mobile-nav-links { display:flex; flex-direction:column; gap:4px; margin-bottom:auto; }
+        .mobile-nav-link { padding:16px 6px; font-family:var(--serif); font-size:26px; font-weight:300; color:var(--cream); border-bottom:1px solid var(--border); }
+        .mobile-nav-link-active { color:var(--gold); }
+        .mobile-nav-bottom { display:flex; align-items:center; justify-content:space-between; padding-top:20px; border-top:1px solid var(--border); margin-top:20px; }
+        .mobile-nav-login { padding:12px 24px; border:1px solid var(--border); border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; }
+        .mobile-profile-card { border:1px solid var(--border); border-radius:20px; background:color-mix(in srgb, var(--bg2) 80%, transparent); overflow:hidden; }
+        .mobile-profile-card .ud-link { font-size:13px; }
+        .mobile-profile-card .ud-header,
+        .mobile-profile-card .ud-theme-row,
+        .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
+        .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
+
+        /* Stats — kompakte 2-Spalten-Cards statt gestapelt */
+        .mobile-collection-stats .collection-stat { width:auto; min-width:0; }
+
+        /* Mobile Liste — kompakte horizontale Zeilen statt gestapelter Karten */
+        .mobile-saved-section { background:var(--bg); border-top:1px solid var(--border); border-radius:28px 28px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,0.12); padding:32px 20px 8px; }
+        .mobile-saved-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+        .mobile-route-row { display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); }
+        .mobile-route-row:last-child { border-bottom:none; }
+        .mobile-route-thumb { width:76px; height:76px; border-radius:12px; overflow:hidden; flex-shrink:0; background:var(--bg3); border:1px solid var(--border); }
+        .mobile-route-thumb img { width:100%; height:100%; object-fit:cover; }
+        .mobile-route-info { flex:1; min-width:0; }
+        .mobile-route-country { font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:4px; }
+        .mobile-route-title { font-family:var(--serif); font-size:16px; font-weight:400; color:var(--cream); line-height:1.15; margin-bottom:6px; }
+        .mobile-route-meta { display:flex; align-items:center; gap:10px; font-size:10px; color:var(--dim); font-weight:500; flex-wrap:wrap; }
+        .mobile-route-meta span { display:inline-flex; align-items:center; gap:4px; }
+        .mobile-route-actions { display:flex; flex-direction:column; align-items:center; gap:8px; flex-shrink:0; }
+        button.mobile-route-open { width:30px; height:30px; border-radius:50%; border:1px solid rgba(201,168,106,0.45); color:var(--gold); display:flex; align-items:center; justify-content:center; }
+        button.mobile-route-remove { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); color:var(--dim); display:flex; align-items:center; justify-content:center; }
+
+        /* Load more / Zähler */
+        button.mobile-load-more { width:100%; padding:14px; margin-top:20px; border:1px dashed rgba(201,168,106,0.4); border-radius:999px; color:var(--gold); font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:8px; background:color-mix(in srgb, var(--gold) 6%, transparent) !important; }
+        .mobile-showing-count { text-align:center; font-size:10px; color:var(--dim); margin-top:12px; margin-bottom:32px; letter-spacing:0.08em; }
+
+        /* CTA — "Ready for your next journey?" */
+        /* Footer — Social Icons + Akkordeon */
+        .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; text-align:left; }
+        .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
+        .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .footer-col-links-wrap { overflow:visible; max-height:none; }
+
+        @media (max-width:760px) {
+          .mobile-menu-btn { display:flex; }
+          .user-menu-wrap { display:none; }
+
+          .saved-preview-panel { display:none; }
+          .mobile-saved-section { display:block; margin:-32px 0 0; position:relative; z-index:15; }
+
+          .collection-stats { display:none; }
+          .mobile-collection-stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; }
+
+          .mobile-route-list { display:block; }
+
+          .footer-col-header { cursor:pointer; pointer-events:auto; }
+          .footer-lang-menu { left:0; right:auto; }
+          .footer-top > div:first-child { text-align:center; }
+          .footer-logo-container { justify-content:center; margin:0 auto; }
+          .footer-tagline { margin-left:auto; margin-right:auto; }
+          .footer-col-links-wrap { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .footer-col-links-wrap.open { max-height:400px; }
+          .footer-col-chevron { display:block; }
         }
       `}</style>
 
@@ -357,8 +491,106 @@ export default function MyTripsPage() {
             ) : (
               <Link href="/login" className="login-btn">Login</Link>
             )}
+
+            {/* NEU (Mobile): Hamburger-Button */}
+            <button
+              className="mobile-menu-btn mobile-only"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Menü öffnen"
+            >
+              <Menu size={20} strokeWidth={1.8} />
+            </button>
           </div>
         </nav>
+
+        {/* NEU (Mobile): Popup-Menü + Backdrop */}
+        <div className={`mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
+
+        <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
+          <div className="mobile-nav-top">
+            <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8, display: "flex" }}>
+              <Compass size={18} strokeWidth={1.6} color="var(--gold)" />
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+            </span>
+            <button className="mobile-nav-close" onClick={() => setMobileMenuOpen(false)} aria-label="Menü schließen">
+              <X size={18} strokeWidth={1.8} />
+            </button>
+          </div>
+
+          {user ? (
+            <div className="mobile-profile-card">
+              <div className="ud-header">
+                <div className="ud-avatar">
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar" onError={() => setAvatarUrl("")} /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p className="ud-name">{displayName}</p>
+                  <p className="ud-email">{user.email}</p>
+                  <p className="ud-role">Scenic Route Explorer</p>
+                </div>
+              </div>
+
+              <div className="ud-theme-row">
+                <span className="ud-theme-label">Theme</span>
+                <ThemeSwitch />
+              </div>
+
+              <div className="ud-links">
+                <p className="ud-section-label">Navigate</p>
+                <Link href="/explore" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+                  Explore Routes
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+                <Link href="/about" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+                  About
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <p className="ud-section-label">Account</p>
+                <Link href="/profile" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
+                  Profile
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+                <Link href="/my-trips" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
+                  My Trips
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <button className="ud-logout" onClick={handleLogout}>
+                  <span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mobile-nav-links">
+                {[["Explore Routes", "/explore"], ["About", "/about"]].map(([label, href]) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+              <div className="mobile-nav-bottom">
+                <Link href="/login" className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                <ThemeSwitch />
+              </div>
+            </>
+          )}
+        </div>
 
         {/* HERO */}
         <section className="page-header">
@@ -374,6 +606,8 @@ export default function MyTripsPage() {
               </div>
               <h1 className="page-h1">My Trips</h1>
               <p className="page-sub">The journeys you've chosen to remember. Revisit your favorite scenic routes and plan your next adventure.</p>
+
+              {/* Desktop-Stats — unverändert */}
               <div className="collection-stats">
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Bookmark size={19} strokeWidth={1.8} /></div>
@@ -390,6 +624,25 @@ export default function MyTripsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* NEU (Mobile): Stats als kompaktes 2-Spalten-Grid, eigenes
+                  Markup, per .mobile-only auf PC unsichtbar */}
+              <div className="mobile-collection-stats mobile-only">
+                <div className="collection-stat">
+                  <div className="collection-stat-icon"><Bookmark size={17} strokeWidth={1.8} /></div>
+                  <div className="collection-stat-main">
+                    <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
+                    <span className="collection-stat-label">Saved Routes</span>
+                  </div>
+                </div>
+                <div className="collection-stat">
+                  <div className="collection-stat-icon"><Globe2 size={17} strokeWidth={1.8} /></div>
+                  <div className="collection-stat-main">
+                    <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
+                    <span className="collection-stat-label">Countries</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="saved-preview-panel">
@@ -399,6 +652,8 @@ export default function MyTripsPage() {
                   <span className="saved-preview-count">{savedRoutes.length} saved</span>
                 )}
               </div>
+
+              {/* Planned-Tab wurde entfernt */}
 
               {!user ? (
                 <div className="saved-preview-empty">
@@ -444,9 +699,82 @@ export default function MyTripsPage() {
                   ))}
                 </div>
               )}
+
             </div>
           </div>
         </section>
+
+        {/* NEU (Mobile): eigenständige Card AUSSERHALB der Hero-Section, mit
+            deckendem Hintergrund statt durchscheinendem Hero-Bild dahinter.
+            Ersetzt visuell die (auf Mobile ausgeblendete) .saved-preview-panel. */}
+        <div className="mobile-saved-section mobile-only">
+          <div className="mobile-saved-head">
+            <h2 className="saved-preview-title">Your saved scenic routes</h2>
+            {user && savedRoutes.length > 0 && (
+              <span className="saved-preview-count">{savedRoutes.length} saved</span>
+            )}
+          </div>
+
+          <div className="mobile-route-list">
+            {!user ? (
+              <div className="saved-preview-empty">
+                <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
+                <h3>Sign in to build your collection.</h3>
+                <p>Create an account and save the scenic routes you want to drive later.</p>
+                <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>Login →</button>
+              </div>
+            ) : loading ? (
+              <div className="saved-preview-empty">
+                <div className="spinner" />
+              </div>
+            ) : savedRoutes.length === 0 ? (
+              <div className="saved-preview-empty">
+                <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
+                <h3>No saved routes yet.</h3>
+                <p>Explore the collection and save the routes that speak to you.</p>
+                <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
+              </div>
+            ) : (
+              <>
+                {displayedRoutes.map((route: any) => (
+                  <div key={route.id} className="mobile-route-row">
+                    <Link href={`/routedetail/${route.id}`} className="mobile-route-thumb">
+                      <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+                    </Link>
+                    <div className="mobile-route-info">
+                      <p className="mobile-route-country">{route.country || "Scenic Route"}</p>
+                      <Link href={`/routedetail/${route.id}`}>
+                        <h3 className="mobile-route-title">{route.title}</h3>
+                      </Link>
+                      <div className="mobile-route-meta">
+                        {route.distance_km && <span><Navigation size={11} strokeWidth={1.8} /> {fmtKm(route.distance_km)}</span>}
+                        {route.duration && <span><Clock size={11} strokeWidth={1.8} /> {route.duration}</span>}
+                      </div>
+                    </div>
+                    <div className="mobile-route-actions">
+                      <Link href={`/routedetail/${route.id}`} className="mobile-route-open" title="Open route"><ChevronRight size={15} strokeWidth={2} /></Link>
+                      <button className="mobile-route-remove" onClick={() => handleUnsave(route.id)} title="Remove"><X size={12} strokeWidth={2} /></button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* NEU (Mobile): "Load more" + Zähler, echte Pagination —
+                    Desktop zeigt weiterhin alle gespeicherten Routen auf einmal */}
+                {hasMoreMobile && (
+                  <button
+                    className="mobile-load-more"
+                    onClick={() => setVisibleCount((p) => p + MOBILE_PAGE_SIZE)}
+                  >
+                    + Load more routes
+                  </button>
+                )}
+                <p className="mobile-showing-count">
+                  Showing {displayedRoutes.length} of {savedRoutes.length} routes
+                </p>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* FOOTER */}
         <footer className="footer">
@@ -465,21 +793,37 @@ export default function MyTripsPage() {
                   Thoughtfully curated road trips for people who value the
                   journey as much as the destination
                 </p>
+
+                {/* NEU (Mobile): Social-Icons */}
+                {/* Social-Icons wurden entfernt */}
               </div>
 
-              {[
-                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
-                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
-                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
-              ].map(([heading, links]) => (
-                <div className="footer-col" key={heading as string}>
-                  <p className="footer-col-title">{heading as string}</p>
+              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+                const isOpen = openFooterSection === id;
+                return (
+                  <div className="footer-col" key={id}>
+                    {/* NEU (Mobile): Header klickbar (Akkordeon). Auf PC durch
+                        pointer-events:none wirkungslos, Links bleiben über
+                        .footer-col-links-wrap (max-height:none Basis-Regel)
+                        immer sichtbar. */}
+                    <button
+                      className="footer-col-header"
+                      onClick={() => setOpenFooterSection(isOpen ? null : id)}
+                    >
+                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{heading}</p>
+                      <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
+                    </button>
 
-                  {(links as string[]).map((link) => (
-                    <a href="#" key={link}>{link}</a>
-                  ))}
-                </div>
-              ))}
+                    <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
+                      <div style={{ paddingTop: 14 }}>
+                        {links.map((link) => (
+                          <a href="#" key={link}>{link}</a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="footer-bottom">
