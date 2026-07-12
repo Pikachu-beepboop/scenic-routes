@@ -1,14 +1,36 @@
 "use client";
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
 import {
   User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight, Globe,
+  Menu, X, ChevronRight, ChevronDown, Mail,
 } from 'lucide-react';
+
+// NEU (Mobile): eigene Instagram/YouTube-Icons im lucide-Stroke-Stil,
+// da diese Marken-Icons in lucide-react nicht mehr enthalten sind.
+function InstagramIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+    </svg>
+  );
+}
 
 const TEAM = [
   { initials: "LA", name: "Lavr",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
@@ -35,6 +57,13 @@ const LANGUAGES = [
   { code: "RU", label: "Русский" },
 ];
 
+// NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
+const FOOTER_COLUMNS = [
+  { id: "explore", heading: "Explore", links: ["All Routes", "Destinations", "Experiences", "Journal"] },
+  { id: "company", heading: "Company", links: ["About Us", "Membership", "Gift Cards", "Careers"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"] },
+];
+
 export default function AboutPage() {
   const [user,         setUser]         = useState<any>(null);
   const [avatarUrl,    setAvatarUrl]    = useState("");
@@ -49,6 +78,13 @@ export default function AboutPage() {
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
+
+  // NEU (Mobile): Hamburger-Menü, Values-Akkordeon, Team-Karussell, Footer-Akkordeon
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openValueIndex, setOpenValueIndex] = useState<number | null>(0);
+  const [teamActiveIndex, setTeamActiveIndex] = useState(0);
+  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
+  const teamScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -83,6 +119,7 @@ export default function AboutPage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null); setUsername(""); setAvatarUrl(""); setShowUserMenu(false);
+    setMobileMenuOpen(false);
     router.push("/");
   }
 
@@ -103,6 +140,28 @@ export default function AboutPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showLangMenu]);
+
+  // NEU (Mobile): Body-Scroll sperren, solange das Hamburger-Menü offen ist
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
+
+  // NEU (Mobile): aktiven Dot beim horizontalen Scrollen der Team-Cards ermitteln
+  const handleTeamScroll = () => {
+    const el = teamScrollRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / TEAM.length;
+    const idx = Math.round(el.scrollLeft / cardWidth);
+    setTeamActiveIndex(Math.min(TEAM.length - 1, Math.max(0, idx)));
+  };
+
+  const scrollToTeamCard = (idx: number) => {
+    const el = teamScrollRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / TEAM.length;
+    el.scrollTo({ left: cardWidth * idx, behavior: "smooth" });
+  };
 
   return (
     <>
@@ -307,6 +366,132 @@ export default function AboutPage() {
           .footer-bottom{ flex-direction:column; align-items:flex-start; }
           .cta-actions  { flex-direction:column; align-items:center; }
         }
+
+        /* ==================================================================
+           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
+           Nichts oberhalb dieser Zeile wurde verändert.
+
+           WICHTIG: jede "eingeklappt"-Voreinstellung (max-height:0 etc.)
+           steht ausschließlich INNERHALB der @media(max-width:760px)-Blöcke
+           weiter unten. Die Basis-Regeln hier (außerhalb der Media Query)
+           setzen alles bewusst auf "immer sichtbar", damit auf PC exakt das
+           bisherige Verhalten erhalten bleibt, egal welchen React-State die
+           Komponente gerade hat.
+
+           .mobile-only ist standardmäßig unsichtbar und wird nur innerhalb
+           der Mobile-Media-Query wieder eingeblendet.
+           ================================================================== */
+
+        .mobile-only { display:none; }
+        .hero-stack { display:contents; }
+
+        /* Hamburger-Button */
+        .mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
+
+        /* Mobile Popup-Menü (zentriertes Fenster) */
+        .mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
+        .mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
+        .mobile-nav-drawer { position:fixed; top:50%; left:50%; z-index:401; width:min(380px,88vw); max-height:85vh; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:26px; box-shadow:0 50px 120px rgba(0,0,0,0.55); opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(0.94); transition:opacity .28s ease, transform .28s ease; padding:22px 22px 26px; }
+        .mobile-nav-drawer.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+        .mobile-nav-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+        .mobile-nav-close { width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--border); color:var(--cream); background:none !important; }
+        .mobile-nav-links { display:flex; flex-direction:column; gap:4px; margin-bottom:auto; }
+        .mobile-nav-link { padding:16px 6px; font-family:var(--serif); font-size:26px; font-weight:300; color:var(--cream); border-bottom:1px solid var(--border); }
+        .mobile-nav-link-active { color:var(--gold); }
+        .mobile-nav-bottom { display:flex; align-items:center; justify-content:space-between; padding-top:20px; border-top:1px solid var(--border); margin-top:20px; }
+        .mobile-nav-login { padding:12px 24px; border:1px solid var(--border); border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; }
+        .mobile-profile-card { border:1px solid var(--border); border-radius:20px; background:color-mix(in srgb, var(--bg2) 80%, transparent); overflow:hidden; }
+        .mobile-profile-card .ud-link { font-size:13px; }
+        .mobile-profile-card .ud-header,
+        .mobile-profile-card .ud-theme-row,
+        .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
+        .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
+
+        /* Stats — mobile Card-Variante (eigenes Markup, siehe JSX weiter unten),
+           standardmäßig unsichtbar (per .mobile-only), Größe/Position nur mobil relevant */
+        .mobile-stats-card { grid-template-columns:1fr 1fr; }
+        .mobile-stats-card .stat-item { border-right:1px solid var(--border); border-bottom:1px solid var(--border); align-items:flex-start; padding:22px 20px; }
+        .mobile-stats-card .stat-item:nth-child(2n) { border-right:none; }
+        .mobile-stats-card .stat-item:nth-last-child(-n+2) { border-bottom:none; }
+
+        /* Values — Akkordeon-Optik (Chevron), Klick-Handler ist auf PC durch
+           pointer-events:none wirkungslos; der Text bleibt auf PC über
+           .value-text-wrap IMMER sichtbar (siehe Regel direkt darunter) */
+        .value-card-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; text-align:left; }
+        .value-chevron { color:var(--gold); transition:transform .3s; flex-shrink:0; }
+        .value-chevron.open { transform:rotate(180deg); }
+        .value-text-wrap { overflow:visible; max-height:none; }
+
+        /* Team — horizontales Karussell + Dots (eigenes Markup, .mobile-only) */
+        .team-scroll { gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin:0 -20px; padding:0 20px; }
+        .team-scroll::-webkit-scrollbar { display:none; }
+        .team-scroll .team-card { flex:0 0 64%; scroll-snap-align:start; padding:22px 18px; }
+        .team-scroll .team-avatar { width:42px; height:42px; border-radius:50%; margin-bottom:14px; font-size:13px; }
+        .team-scroll .team-name { font-size:12px; margin-bottom:3px; }
+        .team-scroll .team-role { font-size:7.5px; letter-spacing:0.16em; margin-bottom:10px; }
+        .team-scroll .team-bio { font-size:11px; line-height:1.55; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+        .team-dots { justify-content:center; gap:8px; margin-top:20px; }
+        button.team-dot { width:7px; height:7px; border-radius:50%; background:var(--border) !important; border:1px solid var(--dim) !important; padding:0; transition:all .25s; }
+        button.team-dot.active { width:22px; border-radius:999px; background:var(--gold) !important; border-color:var(--gold) !important; }
+
+        /* Footer — Social Icons (nur mobil) + Akkordeon (Klick auf PC wirkungslos,
+           Links bleiben auf PC IMMER sichtbar) + Back to top (nur mobil) */
+        .footer-social { gap:10px; margin-top:16px; margin-bottom:6px; }
+        .footer-social a { width:34px; height:34px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); transition:all .2s; }
+        .footer-social a:hover { color:var(--gold); border-color:rgba(201,168,106,0.4); }
+        .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; text-align:left; }
+        .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
+        .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .footer-col-links-wrap { overflow:visible; max-height:none; }
+
+        @media (max-width:760px) {
+          .mobile-menu-btn { display:flex; }
+          .user-menu-wrap { display:none; }
+
+          .hero-stack { display:flex; flex-direction:column; min-height:100vh; }
+          .about-hero { flex:1 1 auto; min-height:0; padding-bottom:0; align-items:flex-end; }
+          .about-hero-bg img { object-position:75% 35% !important; }
+          .about-hero-content { padding-top:0; padding-bottom:56px; }
+          .about-eyebrow { font-size:10px; margin-bottom:14px; }
+          .about-h1 { font-size:clamp(26px,7.5vw,34px); margin-bottom:12px; }
+          .about-hero-sub { font-size:12px; line-height:1.6; margin-bottom:18px; padding-left:14px; }
+          .about-hero-actions { gap:9px; }
+          .about-hero-actions .btn-gold-filled,
+          .about-hero-actions .btn-outline { width:100%; justify-content:center; padding:11px 22px; font-size:8px; }
+
+          .stats-section { display:none; }
+          .mobile-stats-card {
+            display:grid; margin:-40px 0 0; position:relative; z-index:15;
+            border-radius:24px; background:var(--bg); border:1px solid var(--border);
+            box-shadow:0 20px 50px rgba(0,0,0,0.18); overflow:hidden;
+          }
+          .mobile-stats-card .stat-item { padding:34px 22px; }
+          .mobile-stats-card .stat-num { font-size:34px; }
+          .mobile-stats-card .stat-label { font-size:10px; }
+
+          .value-card-header { cursor:pointer; pointer-events:auto; }
+          .value-chevron { display:block; }
+          .value-text-wrap { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .value-text-wrap.open { max-height:300px; }
+          .value-card { padding:26px 22px; }
+
+          .team-header { margin-bottom:32px; }
+          .team-grid { display:none; }
+          .team-scroll { display:flex; }
+          .team-dots { display:flex; }
+          .team-footer-bar { flex-direction:column; align-items:flex-start; gap:14px; }
+
+          .footer-social { display:flex; }
+          .footer-col-header { cursor:pointer; pointer-events:auto; }
+          .footer-col-links-wrap { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .footer-col-links-wrap.open { max-height:400px; }
+          .footer-col-chevron { display:block; }
+          .footer-lang-menu { left:0; right:auto; }
+          .footer-top > div:first-child { text-align:center; }
+          .footer-logo-container { justify-content:center; margin:0 auto; }
+          .footer-tagline { margin-left:auto; margin-right:auto; }
+          .footer-social { justify-content:center; }
+        }
       `}</style>
 
       <div className="ab">
@@ -366,8 +551,112 @@ export default function AboutPage() {
             ) : (
               <Link href={loginHref} className="login-btn">Login</Link>
             )}
+
+            {/* NEU (Mobile): Hamburger-Button */}
+            <button
+              className="mobile-menu-btn mobile-only"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Menü öffnen"
+            >
+              <Menu size={20} strokeWidth={1.8} />
+            </button>
           </div>
         </nav>
+
+        {/* NEU (Mobile): Popup-Menü + Backdrop */}
+        <div className={`mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
+
+        <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
+          <div className="mobile-nav-top">
+            <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8, display: "flex" }}>
+              <Compass size={18} strokeWidth={1.6} color="var(--gold)" />
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+            </span>
+            <button className="mobile-nav-close" onClick={() => setMobileMenuOpen(false)} aria-label="Menü schließen">
+              <X size={18} strokeWidth={1.8} />
+            </button>
+          </div>
+
+          {user ? (
+            <div className="mobile-profile-card">
+              <div className="ud-header">
+                <div className="ud-avatar">
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar" onError={() => setAvatarUrl("")} /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p className="ud-name">{displayName}</p>
+                  <p className="ud-email">{user.email}</p>
+                  <p className="ud-role">Scenic Route Explorer</p>
+                </div>
+              </div>
+
+              <div className="ud-theme-row">
+                <span className="ud-theme-label">Theme</span>
+                <ThemeSwitch />
+              </div>
+
+              <div className="ud-links">
+                <p className="ud-section-label">Navigate</p>
+                <Link href="/explore" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+                  Explore Routes
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+                <Link href="/about" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+                  About
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <p className="ud-section-label">Account</p>
+                <Link href="/profile" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
+                  Profile
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+                <Link href="/my-trips" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                  <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
+                  My Trips
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
+                <div className="ud-divider" />
+
+                <button className="ud-logout" onClick={handleLogout}>
+                  <span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mobile-nav-links">
+                {[["Explore Routes", "/explore"], ["About", "/about"]].map(([label, href]) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+              <div className="mobile-nav-bottom">
+                <Link href={loginHref} className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                <ThemeSwitch />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* NEU (Mobile): Wrapper, der Hero + Stats-Card auf Mobile zu einem
+            100vh-hohen Flex-Stack macht (Card endet bündig am Bildschirmrand).
+            Auf PC per display:contents komplett wirkungslos — strukturell
+            identisch zum bisherigen Markup. */}
+        <div className="hero-stack">
 
         {/* HERO */}
         <section className="about-hero">
@@ -391,7 +680,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* STATS */}
+        {/* STATS (Desktop) */}
         <div className="stats-section">
           <div className="stats-inner">
             {STATS.map(({value,label})=>(
@@ -403,19 +692,49 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* NEU (Mobile): Stats als schwebende Card über dem Hero-Rand, eigenes
+            Markup, per .mobile-only auf PC unsichtbar */}
+        <div className="mobile-stats-card mobile-only">
+          {STATS.map(({ value, label }) => (
+            <div className="stat-item" key={label}>
+              <div className="stat-num">{value}</div>
+              <div className="stat-label">{label}</div>
+            </div>
+          ))}
+        </div>
+
+        </div>{/* /hero-stack */}
+
         {/* VALUES */}
         <section className="section values-section">
           <div className="container">
             <p className="section-eyebrow">What we believe</p>
             <h2 className="section-h2">Three principles<br/>that guide us.</h2>
             <div className="values-grid">
-              {VALUES.map(({num,title,text})=>(
-                <div className="value-card" key={title}>
-                  <div className="value-num">{num}</div>
-                  <div className="value-title">{title}</div>
-                  <p className="value-text">{text}</p>
-                </div>
-              ))}
+              {VALUES.map(({num,title,text}, i)=>{
+                const isOpen = openValueIndex === i;
+                return (
+                  <div className="value-card" key={title}>
+                    {/* NEU (Mobile): Header klickbar fürs Akkordeon. Auf PC ist
+                        der Klick durch pointer-events:none wirkungslos, und der
+                        Text bleibt über .value-text-wrap (max-height:none als
+                        Basis-Regel) so oder so immer sichtbar. */}
+                    <button
+                      className="value-card-header"
+                      onClick={() => setOpenValueIndex(isOpen ? null : i)}
+                    >
+                      <div>
+                        <div className="value-num">{num}</div>
+                        <div className="value-title">{title}</div>
+                      </div>
+                      <ChevronDown size={16} className={`value-chevron mobile-only ${isOpen ? "open" : ""}`} />
+                    </button>
+                    <div className={`value-text-wrap ${isOpen ? "open" : ""}`}>
+                      <p className="value-text" style={{ paddingTop: 14 }}>{text}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -455,6 +774,7 @@ export default function AboutPage() {
               </p>
             </div>
 
+            {/* Desktop-Grid — unverändert */}
             <div className="team-grid">
               {TEAM.map(({initials,name,role,bio})=>(
                 <div className="team-card" key={name}>
@@ -463,6 +783,30 @@ export default function AboutPage() {
                   <div className="team-role">{role}</div>
                   <p className="team-bio">{bio}</p>
                 </div>
+              ))}
+            </div>
+
+            {/* NEU (Mobile): horizontales Swipe-Karussell statt Grid, eigenes
+                Markup, per .mobile-only auf PC unsichtbar */}
+            <div className="team-scroll mobile-only" ref={teamScrollRef} onScroll={handleTeamScroll}>
+              {TEAM.map(({ initials, name, role, bio }) => (
+                <div className="team-card" key={name}>
+                  <div className="team-avatar">{initials}</div>
+                  <div className="team-name">{name}</div>
+                  <div className="team-role">{role}</div>
+                  <p className="team-bio">{bio}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="team-dots mobile-only">
+              {TEAM.map((_, i) => (
+                <button
+                  key={i}
+                  className={`team-dot ${i === teamActiveIndex ? "active" : ""}`}
+                  onClick={() => scrollToTeamCard(i)}
+                  aria-label={`Team member ${i + 1}`}
+                />
               ))}
             </div>
 
@@ -516,21 +860,41 @@ export default function AboutPage() {
                   Thoughtfully curated road trips for people who value the
                   journey as much as the destination
                 </p>
+
+                {/* NEU (Mobile): Social-Icons */}
+                <div className="footer-social mobile-only">
+                  <a href="#" aria-label="Instagram"><InstagramIcon size={15} strokeWidth={1.8} /></a>
+                  <a href="#" aria-label="YouTube"><YoutubeIcon size={15} strokeWidth={1.8} /></a>
+                  <a href="#" aria-label="E-Mail"><Mail size={15} strokeWidth={1.8} /></a>
+                </div>
               </div>
 
-              {[
-                ["Explore", ["All Routes", "Destinations", "Experiences", "Journal"]],
-                ["Company", ["About Us", "Membership", "Gift Cards", "Careers"]],
-                ["Support", ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"]],
-              ].map(([heading, links]) => (
-                <div key={heading as string}>
-                  <p className="footer-col-title">{heading as string}</p>
+              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+                const isOpen = openFooterSection === id;
+                return (
+                  <div key={id}>
+                    {/* NEU (Mobile): Header klickbar (Akkordeon). Auf PC durch
+                        pointer-events:none wirkungslos, Links bleiben über
+                        .footer-col-links-wrap (max-height:none Basis-Regel)
+                        immer sichtbar. */}
+                    <button
+                      className="footer-col-header"
+                      onClick={() => setOpenFooterSection(isOpen ? null : id)}
+                    >
+                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{heading}</p>
+                      <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
+                    </button>
 
-                  {(links as string[]).map((link) => (
-                    <a href="#" key={link} className="footer-col-link">{link}</a>
-                  ))}
-                </div>
-              ))}
+                    <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
+                      <div style={{ paddingTop: 14 }}>
+                        {links.map((link) => (
+                          <a href="#" key={link} className="footer-col-link">{link}</a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="footer-bottom">
