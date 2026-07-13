@@ -133,6 +133,11 @@ function ExplorePageInner() {
   const [countrySearch, setCountrySearch] = useState("");
   const searchBarRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  // NEU (Desktop, auf Wunsch): Ref für das Inline-Eingabefeld im Country-Suchfeld
+  const countryInputRef = useRef<HTMLInputElement | null>(null);
+  // NEU (Desktop, auf Wunsch): eigener Suchtext + Ref für das Inline-Eingabefeld im Duration-Feld
+  const [durationSearch, setDurationSearch] = useState("");
+  const durationInputRef = useRef<HTMLInputElement | null>(null);
   const displayName = username || user?.email?.split("@")[0] || "";
 
   // NEU (Mobile): Hamburger-Menü, Footer-Akkordeon, Pagination
@@ -189,6 +194,11 @@ function ExplorePageInner() {
     ? countries.filter((c) => c.toLowerCase().includes(countrySearch.trim().toLowerCase()))
     : countries;
 
+  // NEU (Desktop, auf Wunsch): Durations werden beim Tippen im Feld live gefiltert
+  const filteredDurations = durationSearch.trim()
+    ? durations.filter((d) => d.toLowerCase().includes(durationSearch.trim().toLowerCase()))
+    : durations;
+
   useEffect(() => {
     if (!isOpen && !isOpenDate) return;
     const handleClickOutside = (event: MouseEvent) => {
@@ -215,6 +225,8 @@ function ExplorePageInner() {
   }, []);
 
   useEffect(() => { if (!isOpen) setCountrySearch(""); }, [isOpen]);
+  // NEU (Desktop, auf Wunsch): Duration-Suchtext beim Schließen zurücksetzen
+  useEffect(() => { if (!isOpenDate) setDurationSearch(""); }, [isOpenDate]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
@@ -462,6 +474,13 @@ function ExplorePageInner() {
         .search-field-value .placeholder {font-size:18px; color:var(--muted); font-style:italic; }
         .search-field-value .arrow { display:flex; color:rgba(201,168,106,0.55); transition:transform .25s,color .2s; flex-shrink:0; }
         .search-field.open .arrow { transform:rotate(180deg); color:var(--gold); }
+        /* NEU (Desktop, auf Wunsch): Inline-Eingabefeld im Country-Suchfeld —
+           übernimmt exakt die Optik des bisherigen statischen Werts/Placeholders */
+        .search-field-input { flex:1; min-width:0; background:none; border:none; outline:none; font-family:var(--serif); font-size:16px; font-weight:300; letter-spacing:0.01em; color:var(--cream); padding:0; cursor:pointer; }
+        .search-field.open .search-field-input { cursor:text; }
+        .search-field-input::placeholder { font-family:var(--serif); font-size:18px; color:var(--muted); font-style:italic; }
+        .light .search-field-input { color:#fff; }
+        .light .search-field-input::placeholder { color:rgba(237,229,212,0.6); }
         .search-divider { width:1px; background:var(--border); margin:14px 0; flex-shrink:0; }
         .search-btn { margin:8px; padding:0 28px; background:var(--gold); color:var(--bg); border-radius:14px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:all .25s; white-space:nowrap; box-shadow:0 8px 24px rgba(201,168,106,0.2); display:inline-flex; align-items:center; gap:8px; }
         .search-btn:hover { background:#d8b978; transform:translateY(-1px); }
@@ -656,9 +675,6 @@ function ExplorePageInner() {
         .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
         .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
 
-        /* Hero — mobiler Explore-Routes-Button */
-        .hero-explore-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--bg); margin-top:26px; }
-
         /* Route-Card — Pin-Icon vor dem Land, nur mobil */
         .route-card-pin { display:none; color:var(--gold); flex-shrink:0; }
 
@@ -667,7 +683,7 @@ function ExplorePageInner() {
         button.load-more-btn { width:100%; padding:16px; background:var(--gold); color:var(--bg); border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; }
 
         /* NEU (Mobile): obere Such- + Filter-Leiste */
-        .mobile-toolbar { display:none; gap:12px; margin:24px 0 22px; }
+        .mobile-toolbar { display:none; gap:12px; margin:24px 0 22px; scroll-margin-top:88px; }
         .mobile-search-pill { position:relative; flex:1; display:flex; align-items:center; gap:10px; padding:15px 18px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 35%, transparent); color:var(--muted); font-size:12px; }
         .mobile-search-pill svg { flex-shrink:0; color:var(--gold); }
         .mobile-search-pill input { flex:1; min-width:0; background:none; border:none; outline:none; font:inherit; color:var(--cream); }
@@ -691,10 +707,9 @@ function ExplorePageInner() {
           .mobile-menu-btn { display:flex; }
           .ep-user-menu-wrap { display:none; }
 
-          .hero { height:auto; min-height:0; padding:120px 0 60px; align-items:flex-start; }
-          .hero-inner { align-items:flex-start; }
+          .hero { height:auto; min-height:72vh; padding:120px 0 48px; align-items:flex-end; }
+          .hero-inner { align-items:flex-end; }
           .hero-sub { font-size:15px; margin-top:18px; }
-          .hero-explore-btn { display:inline-flex; }
           .search-bar { display:none; }
 
           .route-card-pin { display:inline-flex; }
@@ -742,6 +757,9 @@ function ExplorePageInner() {
           .view-route-btn { font-size:9px; }
 
           .footer-social { display:flex; }
+          /* Fix (Grundregel 8): Sprachmenü würde sonst mit right:0 links aus dem
+             Viewport ragen, da der Footer auf Mobile untereinander stapelt */
+          .footer-lang-menu { left:0; right:auto; }
           .footer-col-header { cursor:pointer; pointer-events:auto; }
           .footer-col-links { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
           .footer-col-links.open { max-height:400px; }
@@ -939,35 +957,35 @@ function ExplorePageInner() {
               <h1 className="hero-h1">Find your<br />perfect route</h1>
 
               <div className="search-bar" ref={searchBarRef}>
-                <div className={`search-field ${isOpen ? "open" : ""}`} style={{ position: "relative" }} onClick={() => { setIsOpen((p) => !p); setIsOpenDate(false); }}>
+                <div className={`search-field ${isOpen ? "open" : ""}`} style={{ position: "relative" }} onClick={() => { setIsOpen(true); setIsOpenDate(false); countryInputRef.current?.focus(); }}>
                   <div className="search-field-label">Country</div>
                   <div className="search-field-value">
-                    {selected ? <span>{selected}</span> : <span className="placeholder">Choose destination</span>}
-                    <span className="arrow"><ChevronDown size={12} strokeWidth={2.5} /></span>
+                    {/* GEÄNDERT (Desktop, auf Wunsch): Land wird direkt hier eingetippt,
+                        nicht mehr in einem Eingabefeld innerhalb des Dropdowns */}
+                    <input
+                      ref={countryInputRef}
+                      type="text"
+                      className="search-field-input"
+                      placeholder="Choose destination"
+                      value={isOpen ? countrySearch : selected}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      onFocus={() => { setIsOpen(true); setIsOpenDate(false); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && countrySearch.trim()) {
+                          const exactMatch = countries.find(
+                            (c) => c.toLowerCase() === countrySearch.trim().toLowerCase()
+                          );
+                          setSelected(exactMatch || countrySearch.trim());
+                          setIsOpen(false);
+                        } else if (e.key === "Escape") {
+                          setIsOpen(false);
+                        }
+                      }}
+                    />
+                    <span className="arrow" onClick={(e) => { e.stopPropagation(); setIsOpen((p) => !p); setIsOpenDate(false); }}><ChevronDown size={12} strokeWidth={2.5} /></span>
                   </div>
                   {isOpen && (
                     <div className="search-dropdown" onClick={(e) => e.stopPropagation()}>
-                      <div className="search-dropdown-header">
-                        <input
-                          type="text"
-                          className="search-dropdown-input"
-                          placeholder="Land eingeben…"
-                          value={countrySearch}
-                          onChange={(e) => setCountrySearch(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && countrySearch.trim()) {
-                              const exactMatch = countries.find(
-                                (c) => c.toLowerCase() === countrySearch.trim().toLowerCase()
-                              );
-                              setSelected(exactMatch || countrySearch.trim());
-                              setIsOpen(false);
-                            } else if (e.key === "Escape") {
-                              setIsOpen(false);
-                            }
-                          }}
-                          autoFocus
-                        />
-                      </div>
                       <div className="search-dropdown-scroll">
                         <div className="search-dropdown-item all-item" onClick={() => { setSelected(""); setIsOpen(false); }}><CornerDownRight size={12} strokeWidth={2} /> All countries</div>
                         {filteredCountries.map((c) => (
@@ -988,24 +1006,44 @@ function ExplorePageInner() {
 
                 <div className="search-divider" />
 
-                <div className={`search-field ${isOpenDate ? "open" : ""}`} style={{ position: "relative" }} onClick={() => { setIsOpenDate((p) => !p); setIsOpen(false); }}>
+                <div className={`search-field ${isOpenDate ? "open" : ""}`} style={{ position: "relative" }} onClick={() => { setIsOpenDate(true); setIsOpen(false); durationInputRef.current?.focus(); }}>
                   <div className="search-field-label">Duration</div>
                   <div className="search-field-value">
-                    {selectedDate ? <span>{selectedDate}</span> : <span className="placeholder">Choose duration</span>}
-                    <span className="arrow"><ChevronDown size={12} strokeWidth={2.5} /></span>
+                    {/* GEÄNDERT (Desktop, auf Wunsch): Duration wird direkt hier eingetippt,
+                        analog zum Country-Feld */}
+                    <input
+                      ref={durationInputRef}
+                      type="text"
+                      className="search-field-input"
+                      placeholder="Choose duration"
+                      value={isOpenDate ? durationSearch : selectedDate}
+                      onChange={(e) => setDurationSearch(e.target.value)}
+                      onFocus={() => { setIsOpenDate(true); setIsOpen(false); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && durationSearch.trim()) {
+                          const exactMatch = durations.find(
+                            (d) => d.toLowerCase() === durationSearch.trim().toLowerCase()
+                          );
+                          setSelectedDate(exactMatch || durationSearch.trim());
+                          setIsOpenDate(false);
+                        } else if (e.key === "Escape") {
+                          setIsOpenDate(false);
+                        }
+                      }}
+                    />
+                    <span className="arrow" onClick={(e) => { e.stopPropagation(); setIsOpenDate((p) => !p); setIsOpen(false); }}><ChevronDown size={12} strokeWidth={2.5} /></span>
                   </div>
                   {isOpenDate && (
-                    <div className="search-dropdown">
-                      <div className="search-dropdown-header"><span className="search-dropdown-header-label">Duration</span></div>
+                    <div className="search-dropdown" onClick={(e) => e.stopPropagation()}>
                       <div className="search-dropdown-scroll">
                         <div className="search-dropdown-item all-item" onClick={(e) => { e.stopPropagation(); setSelectedDate(""); setIsOpenDate(false); }}><CornerDownRight size={12} strokeWidth={2} /> Any duration</div>
-                        {durations.map((d) => (
+                        {filteredDurations.map((d) => (
                           <div key={d} className="search-dropdown-item" onClick={(e) => { e.stopPropagation(); setSelectedDate(d); setIsOpenDate(false); }}>
                             <span className="item-dot" />{d}
                           </div>
                         ))}
                       </div>
-                      <div className="search-dropdown-footer">{durations.length} durations available</div>
+                      <div className="search-dropdown-footer">{filteredDurations.length} durations available</div>
                     </div>
                   )}
                 </div>
@@ -1014,15 +1052,6 @@ function ExplorePageInner() {
               </div>
 
               <p className="hero-sub">Search through hundreds of handpicked scenic drives — filtered by country, duration.</p>
-
-              {/* NEU (Mobile): Explore-Routes-Button ersetzt visuell die Suchleiste im Hero,
-                  scrollt zu den Ergebnissen/Filtern weiter unten */}
-              <button
-                className="hero-explore-btn mobile-only"
-                onClick={() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                Explore Routes <ArrowRight size={13} strokeWidth={2.5} />
-              </button>
             </div>
           </div>
         </section>
@@ -1039,7 +1068,15 @@ function ExplorePageInner() {
                 type="text"
                 placeholder="Search for countries"
                 value={mobileCountryOpen ? mobileCountrySearch : selected}
-                onFocus={() => { setMobileCountryOpen(true); setMobileCountrySearch(""); }}
+                onFocus={() => {
+                  setMobileCountryOpen(true); setMobileCountrySearch("");
+                  // NEU (Mobile): Seite hochscrollen, damit das aufklappende
+                  // Dropdown vollständig sichtbar ist (Toolbar wandert unter
+                  // die fixe Nav, s. scroll-margin-top an .mobile-toolbar)
+                  setTimeout(() => {
+                    mobileSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 60);
+                }}
                 onChange={(e) => setMobileCountrySearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Escape" && setMobileCountryOpen(false)}
               />
