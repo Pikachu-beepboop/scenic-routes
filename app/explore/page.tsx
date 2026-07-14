@@ -764,6 +764,29 @@ function ExplorePageInner() {
           .footer-col-links { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
           .footer-col-links.open { max-height:400px; }
           .footer-col-chevron { display:block; }
+
+          /* NEU: Logo + Tagline + Social-Icons im Footer zentrieren, analog
+             zur Homepage/About-Page — vorher linksbündig auf Mobile. */
+          .footer-top > div:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+
+          .footer-logo-container {
+            margin: 0 auto;
+            justify-content: center;
+          }
+
+          .footer-tagline {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .footer-social {
+            justify-content: center;
+          }
         }
       `}</style>
 

@@ -483,7 +483,7 @@ export default function HomePage() {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      if (!target.closest(".footer-lang-wrap")) {
+      if (!target.closest(".footer-lang-wrap") && !target.closest(".footer-lang-menu")) {
         setShowLangMenu(false);
       }
     };
@@ -922,6 +922,39 @@ export default function HomePage() {
           .footer-col-links { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
           .footer-col-links.open { max-height:400px; }
           .footer-col-chevron { display:block; }
+
+          /* NEU: Logo + Tagline im Footer auf Mobile zentrieren, statt linksbündig */
+          .footer-top > div:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+
+          .footer-logo-container {
+            margin: 0 auto;
+            justify-content: center;
+          }
+
+          .footer-tagline {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          /* NEU: Sprachmenü bleibt ein normales, am Button verankertes Popover
+             (wie am Desktop) — bisher stand es mit right:0, was es bei einem
+             links positionierten Button über den linken Bildschirmrand hinaus
+             schob. left:0 hält es innerhalb des Viewports, ohne das Aussehen
+             oder Verhalten sonst zu verändern. */
+          .footer-lang-menu {
+            left: 0;
+            right: auto;
+          }
+
+          .footer-lang-option {
+            padding: 12px 16px;
+            font-size: 13px;
+          }
         }
       `}</style>
 
