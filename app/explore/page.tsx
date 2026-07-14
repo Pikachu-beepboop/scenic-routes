@@ -9,7 +9,7 @@ import { ThemeSwitch } from "../components/ThemeSwitch";
 import {
   SlidersHorizontal, ChevronDown, Star, X, CornerDownRight,
   User as UserIcon, Map as MapIcon, Compass, LogOut, Clock, Navigation, Heart, ArrowRight, Globe,
-  Menu, ChevronRight, MapPin, Mail, BookOpen, Search,
+  Menu, ChevronRight, MapPin, Mail, BookOpen, Search, ArrowUp,
 } from "lucide-react";
 
 type Route = {
@@ -127,6 +127,7 @@ function ExplorePageInner() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false); // NEU: steuert Sichtbarkeit des Nach-oben-Buttons
   const [username, setUsername] = useState("");
   const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -219,7 +220,10 @@ function ExplorePageInner() {
   }, [isOpen, isOpenDate]);
 
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 40);
+    const onScroll = () => {
+      setNavScrolled(window.scrollY > 40);
+      setShowScrollTop(window.scrollY > 600); // NEU: Button erscheint erst nach etwas Scroll-Strecke
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -617,6 +621,36 @@ function ExplorePageInner() {
         .footer-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
         .footer-lang-option.active { color:var(--gold); font-weight:700; }
 
+        /* NEU: Nach-oben-Button, taucht per Fade+Slide auf, sobald man weit genug scrollt */
+        .scroll-top-btn {
+          position: fixed;
+          bottom: 28px;
+          right: 28px;
+          z-index: 250;
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          background: var(--gold);
+          color: var(--bg);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 12px 32px rgba(201,168,106,0.35), 0 4px 12px rgba(0,0,0,0.25);
+          opacity: 0;
+          transform: translateY(16px) scale(0.9);
+          pointer-events: none;
+          transition: opacity .3s ease, transform .3s cubic-bezier(0.22,1,0.36,1), background .25s;
+        }
+        .scroll-top-btn.visible {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          pointer-events: auto;
+        }
+        .scroll-top-btn:hover {
+          background: #d8b978;
+          transform: translateY(-3px) scale(1.04);
+        }
+
         @media (max-width:1100px) {
           .route-grid, .loading-grid { grid-template-columns:repeat(3,1fr); }
           .footer-top { grid-template-columns:1fr 1fr; }
@@ -786,6 +820,14 @@ function ExplorePageInner() {
 
           .footer-social {
             justify-content: center;
+          }
+
+          /* NEU: Nach-oben-Button auf Mobile etwas kleiner und näher am Rand */
+          .scroll-top-btn {
+            width: 46px;
+            height: 46px;
+            bottom: 20px;
+            right: 20px;
           }
         }
       `}</style>
@@ -1416,6 +1458,15 @@ function ExplorePageInner() {
             </div>
           </div>
         </footer>
+
+        {/* NEU: Nach-oben-Button */}
+        <button
+          className={`scroll-top-btn ${showScrollTop ? "visible" : ""}`}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Nach oben scrollen"
+        >
+          <ArrowUp size={20} strokeWidth={2.4} />
+        </button>
       </div>
     </>
   );
