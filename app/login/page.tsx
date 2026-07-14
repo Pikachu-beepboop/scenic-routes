@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -25,6 +25,8 @@ function LoginPageInner() {
   const [success, setSuccess] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
+  const googleBtnWrapperRef = useRef<HTMLDivElement>(null);
 
   const redirectPath = useMemo(() => {
     const rawRedirect = searchParams.get("redirect");
@@ -76,15 +78,6 @@ function LoginPageInner() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [redirectPath, router, searchParams]);
 
-  // Загрузка скрипта Google Identity Services (отдельный, самостоятельный useEffect)
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, []);
-
   async function handleGoogleCredential(response: any) {
     setError("");
     const { error } = await supabase.auth.signInWithIdToken({
@@ -100,11 +93,29 @@ function LoginPageInner() {
     }
   }
 
-  // Инициализация кнопки Google, как только скрипт готов
+  // Google Identity Services Script laden
   useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, []);
+
+  // GSI initialisieren und unsichtbar rendern, sobald Script bereit ist.
+  // Unser eigener, gestylter Button proxied den Klick auf dieses versteckte
+  // Google-Element, damit der Popup weiterhin über unsere echte client_id
+  // läuft (korrekter App-Name statt Supabase-Domain).
+  useEffect(() => {
+    let cancelled = false;
+
     const interval = setInterval(() => {
       // @ts-ignore
-      if (window.google?.accounts?.id) {
+      if (window.google?.accounts?.id && googleBtnWrapperRef.current) {
+        clearInterval(interval);
+        clearTimeout(timeout);
+        if (cancelled) return;
+
         // @ts-ignore
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
@@ -112,14 +123,42 @@ function LoginPageInner() {
         });
         // @ts-ignore
         window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-button'),
+          googleBtnWrapperRef.current,
           { theme: 'outline', size: 'large', width: 320 }
         );
-        clearInterval(interval);
+        setGoogleReady(true);
       }
     }, 200);
-    return () => clearInterval(interval);
+
+    // Falls das Google-Script nach 10s nicht geladen hat (z.B. Adblocker,
+    // langsames Netz, Script blockiert) - kein endloses Warten mehr.
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
+
+  function handleGoogleLogin() {
+    if (!googleReady) return;
+
+    const container = googleBtnWrapperRef.current;
+    if (!container) return;
+
+    const realButton = container.querySelector(
+      'div[role="button"]'
+    ) as HTMLElement | null;
+
+    if (realButton) {
+      realButton.click();
+    } else {
+      setError("Google sign-in isn't ready yet, please try again in a second.");
+    }
+  }
 
   function resetFields() {
     setEmail("");
@@ -274,6 +313,13 @@ function LoginPageInner() {
         .lp-form-title { font-family:var(--serif); font-size:clamp(26px,3vw,34px); font-weight:300; letter-spacing:-0.03em; color:var(--cream); margin-bottom:6px; }
         .lp-form-sub { font-size:12px; color:var(--dim); font-weight:300; margin-bottom:24px; }
 
+        /* GOOGLE BUTTON */
+        .lp-google-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:14px 16px; background:rgba(237,229,212,0.04); border:1px solid rgba(237,229,212,0.12); border-radius:12px; color:var(--cream); font-size:13px; font-weight:500; cursor:pointer; transition:all .25s; margin-bottom:20px; }
+        .lp-google-btn:hover { border-color:rgba(201,168,106,0.5); background:rgba(237,229,212,0.07); }
+        .lp-google-btn:disabled { opacity:0.5; cursor:not-allowed; }
+        .lp-google-btn:disabled:hover { border-color:rgba(237,229,212,0.12); background:rgba(237,229,212,0.04); }
+        .lp-google-btn svg { flex-shrink:0; }
+
         /* DIVIDER */
         .lp-divider { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
         .lp-divider::before, .lp-divider::after { content:""; flex:1; height:1px; background:var(--border); }
@@ -369,7 +415,11 @@ function LoginPageInner() {
 
             <div className="lp-features">
               <div className="lp-feat">
-                <div className="lp-feat-icon">◎</div>
+                <div className="lp-feat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 3.5C6 2.67157 6.67157 2 7.5 2H16.5C17.3284 2 18 2.67157 18 3.5V21L12 17L6 21V3.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="lp-feat-text">
                   <h4>Save your routes</h4>
                   <p>Bookmark any route and access it anytime, anywhere</p>
@@ -377,7 +427,13 @@ function LoginPageInner() {
               </div>
 
               <div className="lp-feat">
-                <div className="lp-feat-icon">△</div>
+                <div className="lp-feat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="5" cy="6" r="2" stroke="currentColor" strokeWidth="1.4"/>
+                    <circle cx="19" cy="18" r="2" stroke="currentColor" strokeWidth="1.4"/>
+                    <path d="M5 8C5 8 5 13 9 13H15C19 13 19 16 19 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                </div>
                 <div className="lp-feat-text">
                   <h4>Build custom trips</h4>
                   <p>Plan and personalise multi-day road trips with ease</p>
@@ -385,7 +441,12 @@ function LoginPageInner() {
               </div>
 
               <div className="lp-feat">
-                <div className="lp-feat-icon">⬡</div>
+                <div className="lp-feat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 9L8 3H16L20 9L12 21L4 9Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                    <path d="M4 9H20M9.5 3L8 9L12 21M14.5 3L16 9L12 21" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="lp-feat-text">
                   <h4>Discover hidden gems</h4>
                   <p>Exclusive spots and insider tips for members only</p>
@@ -470,7 +531,37 @@ function LoginPageInner() {
                     </>
                   )}
 
-                  <div id="google-signin-button" style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }} />
+                  {/* Unsichtbarer, echter Google-Button (GSI). Wird per
+                      Proxy-Klick vom sichtbaren, eigenen Button ausgelöst,
+                      damit der Consent-Screen unseren echten App-Namen zeigt. */}
+                  <div
+                    ref={googleBtnWrapperRef}
+                    style={{
+                      position: 'absolute',
+                      opacity: 0,
+                      pointerEvents: 'none',
+                      top: 0,
+                      left: 0,
+                      width: 0,
+                      height: 0,
+                      overflow: 'hidden',
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    className="lp-google-btn"
+                    onClick={handleGoogleLogin}
+                    disabled={!googleReady}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/>
+                      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/>
+                      <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
+                      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+                    </svg>
+                    {googleReady ? "Continue with Google" : "Loading Google Sign-In..."}
+                  </button>
 
                   <div className="lp-divider">
                     <span>or</span>
