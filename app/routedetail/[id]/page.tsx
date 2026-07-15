@@ -5,9 +5,10 @@ import { useParams, useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import {
-    Clock, MapPin, Navigation, Star, ChevronDown,
+    Clock, MapPin, Navigation, Star, ChevronDown, ChevronRight,
     Heart, ArrowLeft, User, ArrowRight, Send, Globe,
-    Map as MapIcon, Compass, LogOut
+    Map as MapIcon, Compass, LogOut, Menu, X,
+    Route as RouteIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
@@ -72,13 +73,17 @@ function HighlightedTitle({ title }: { title: string }) {
 /* ── Impression Slideshow ──
    Eigenständiger Bereich, unabhängig von den Kapiteln der Route.
    Zeigt mehrere Bilder (image1..image5 aus Supabase) und wechselt sie
-   automatisch alle paar Sekunden mit einem sanften Fade-Übergang. */
+   automatisch alle paar Sekunden mit einem sanften Fade-Übergang.
+   `compact` ist NEU und nur für die Mobile-Ansicht gedacht (kleinere Höhe).
+   Ohne die Prop verhält sich die Komponente exakt wie zuvor -> PC unverändert. */
 function ImpressionSlideshow({
     images,
     intervalMs = 4000,
+    compact = false,
 }: {
     images: string[];
     intervalMs?: number;
+    compact?: boolean;
 }) {
     const [activeIndex, setActiveIndex] = useState(0);
 
@@ -95,7 +100,7 @@ function ImpressionSlideshow({
     if (images.length === 0) return null;
 
     return (
-        <div className="relative h-[600px] md:h-[680px] w-full overflow-hidden rounded-[2rem] border border-[var(--border)] shadow-2xl group">
+        <div className={`relative w-full overflow-hidden border border-[var(--border)] shadow-2xl group ${compact ? 'h-[380px] rounded-[1.5rem]' : 'h-[600px] md:h-[680px] rounded-[2rem]'}`}>
             <AnimatePresence mode="sync">
                 <motion.img
                     key={`${images[activeIndex]}-${activeIndex}`}
@@ -148,6 +153,15 @@ export default function RouteDetailPage() {
     const [language, setLanguage] = useState("DE");
     const [showLangMenu, setShowLangMenu] = useState(false);
 
+    // NEU – nur für die Mobile-Ansicht: Vollbild-Menü-Overlay
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
+    // NEU – nur für die Mobile-Ansicht: Navbar bekommt beim Scrollen Hintergrund/Blur/Border (wie auf der About-Page)
+    const [mobileNavScrolled, setMobileNavScrolled] = useState(false);
+    // NEU – nur für die Mobile-Ansicht: Accordion-Footer (Discover/Company)
+    const [mobileFooterOpen, setMobileFooterOpen] = useState<'explore' | 'company' | 'support' | null>(null);
+    // NEU – nur für die Mobile-Ansicht: aktives Bild im Highlights-Slider
+    const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
+
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -182,6 +196,12 @@ export default function RouteDetailPage() {
 
     useMotionValueEvent(scrollY, 'change', (latest) => {
         setNavInteractive(latest > 350);
+    });
+
+    // NEU – nur für die Mobile-Ansicht: identischer Schwellenwert (40px) und
+    // dieselbe Logik wie navScrolled auf der About-Page.
+    useMotionValueEvent(scrollY, 'change', (latest) => {
+        setMobileNavScrolled(latest > 40);
     });
 
     useEffect(() => {
@@ -393,8 +413,168 @@ export default function RouteDetailPage() {
 
             <div className="bg-[var(--bg)] text-[var(--cream)] font-sans selection:bg-emerald-500/30 overflow-x-hidden">
 
-                {/* ── Back Button ── */}
-                <div className="fixed top-6 left-10 z-[60]">
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE TOP BAR — NEU, nur unter lg sichtbar.
+                    Ersetzt Back-Button + Nav rein optisch für kleine Screens.
+                   ══════════════════════════════════════════════════════════ */}
+                <div
+                    className={`lg:hidden fixed top-0 left-0 w-full z-[70] flex items-start justify-between gap-2 px-4 h-[68px] pt-5 transition-all duration-300 ${
+                        mobileNavScrolled
+                            ? 'bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] backdrop-blur-xl border-b border-[var(--border)]'
+                            : 'bg-transparent border-b border-transparent'
+                    }`}
+                >
+                    <button
+                        onClick={handleBack}
+                        aria-label="Zurück"
+                        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all duration-300 ${
+                            mobileNavScrolled
+                                ? 'bg-[color-mix(in_srgb,var(--border)_40%,transparent)] border border-[var(--border)]'
+                                : 'bg-black/35 backdrop-blur-md border border-white/20'
+                        }`}
+                    >
+                        <ArrowLeft size={17} className={mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white'} />
+                    </button>
+
+                    <Link href="/" className="flex flex-col items-center leading-[1.15]">
+                        <span className={`text-[11px] font-extrabold uppercase tracking-[0.22em] transition-colors duration-300 ${mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'}`}>SCENIC</span>
+                        <span className={`text-[11px] font-extrabold uppercase tracking-[0.22em] transition-colors duration-300 ${mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'}`}>ROUTES</span>
+                    </Link>
+
+                    <button
+                        onClick={() => setShowMobileMenu(true)}
+                        aria-label="Menü öffnen"
+                        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all duration-300 ${
+                            mobileNavScrolled
+                                ? 'bg-[color-mix(in_srgb,var(--border)_40%,transparent)] border border-[var(--border)]'
+                                : 'bg-black/35 backdrop-blur-md border border-white/20'
+                        }`}
+                    >
+                        <Menu size={18} strokeWidth={1.8} className={mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white'} />
+                    </button>
+                </div>
+
+                {/* Popup-Menü — zentriertes Drawer mit Backdrop, identisch zur About-Page */}
+                <div
+                    className={`lg:hidden fixed inset-0 z-[400] bg-black/55 backdrop-blur-[2px] transition-opacity duration-300 ${showMobileMenu ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                    onClick={() => setShowMobileMenu(false)}
+                />
+
+                <div
+                    className={`lg:hidden fixed top-1/2 left-1/2 z-[401] w-[88vw] max-w-[380px] max-h-[85vh] overflow-y-auto bg-[var(--bg)] border border-[var(--border)] rounded-[26px] shadow-[0_50px_120px_rgba(0,0,0,0.55)] p-[22px] transition-all duration-300 ${
+                        showMobileMenu ? 'opacity-100 pointer-events-auto -translate-x-1/2 -translate-y-1/2 scale-100' : 'opacity-0 pointer-events-none -translate-x-1/2 -translate-y-1/2 scale-95'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-[22px]">
+                        <span className="text-[12px] font-extrabold tracking-[0.18em] text-[var(--cream)]">SCENIC ROUTES</span>
+                        <button
+                            onClick={() => setShowMobileMenu(false)}
+                            aria-label="Menü schließen"
+                            className="w-[38px] h-[38px] rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--cream)]"
+                        >
+                            <X size={18} strokeWidth={1.8} />
+                        </button>
+                    </div>
+
+                    {user ? (
+                        <div className="border border-[var(--border)] rounded-[20px] bg-[color-mix(in_srgb,var(--bg2)_80%,transparent)] overflow-hidden">
+                            <div className="px-[18px] py-5 border-b border-[var(--border)] flex items-center gap-3.5">
+                                <div className="w-[46px] h-[46px] rounded-[11px] border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center overflow-hidden shrink-0">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span style={{ fontFamily: 'var(--serif)' }} className="text-[22px] font-bold text-[var(--cream)]">
+                                            {username?.[0]?.toUpperCase() || user.email?.charAt(0)?.toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="min-w-0">
+                                    <p style={{ fontFamily: 'var(--serif)' }} className="text-[18px] font-light text-[var(--cream)] leading-tight truncate">
+                                        {username || user.email?.split('@')[0]}
+                                    </p>
+                                    <p className="text-[10px] text-[var(--dim)] mt-1 truncate max-w-[180px]">{user.email}</p>
+                                    <p className="text-[8px] font-extrabold tracking-[0.18em] uppercase text-[var(--gold)] mt-1 opacity-70">Scenic Route Explorer</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[var(--border)]">
+                                <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">Theme</span>
+                                <ThemeSwitch />
+                            </div>
+
+                            <div className="p-2">
+                                <p className="text-[9px] font-extrabold tracking-[0.2em] uppercase text-[var(--dim)] px-3 pt-3.5 pb-1.5">Navigate</p>
+                                <Link href="/explore" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
+                                    <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
+                                    Explore Routes
+                                    <ChevronRight size={14} className="ml-auto opacity-40" />
+                                </Link>
+                                <Link href="/about" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
+                                    <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
+                                    About
+                                    <ChevronRight size={14} className="ml-auto opacity-40" />
+                                </Link>
+
+                                <div className="h-px bg-[var(--border)] my-1 mx-2" />
+
+                                <p className="text-[9px] font-extrabold tracking-[0.2em] uppercase text-[var(--dim)] px-3 pt-2.5 pb-1.5">Account</p>
+                                <Link href="/profile" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
+                                    <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><User size={14} strokeWidth={1.8} /></span>
+                                    Profile
+                                    <ChevronRight size={14} className="ml-auto opacity-40" />
+                                </Link>
+                                <Link href="/my-trips" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
+                                    <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><MapIcon size={14} strokeWidth={1.8} /></span>
+                                    My Trips
+                                    <ChevronRight size={14} className="ml-auto opacity-40" />
+                                </Link>
+
+                                <div className="h-px bg-[var(--border)] my-1 mx-2" />
+
+                                <button
+                                    onClick={async () => {
+                                        await supabase.auth.signOut();
+                                        setShowMobileMenu(false);
+                                        router.push('/');
+                                    }}
+                                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[rgba(224,128,128,0.55)]"
+                                >
+                                    <span className="text-[#e08080] w-[18px] flex items-center justify-center shrink-0"><LogOut size={14} strokeWidth={1.8} /></span>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex flex-col gap-1 mb-0">
+                                {[['Explore Routes', '/explore'], ['About', '/about']].map(([label, href]) => (
+                                    <Link
+                                        key={label}
+                                        href={href}
+                                        onClick={() => setShowMobileMenu(false)}
+                                        style={{ fontFamily: 'var(--serif)' }}
+                                        className="px-1.5 py-4 text-[26px] font-light text-[var(--cream)] border-b border-[var(--border)]"
+                                    >
+                                        {label}
+                                    </Link>
+                                ))}
+                            </div>
+                            <div className="flex items-center justify-between pt-5 mt-5 border-t border-[var(--border)]">
+                                <Link
+                                    href={loginHref}
+                                    onClick={() => setShowMobileMenu(false)}
+                                    className="px-6 py-3 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--border)_40%,transparent)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--cream)]"
+                                >
+                                    Login
+                                </Link>
+                                <ThemeSwitch />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* ── Back Button (nur Desktop, unverändert) ── */}
+                <div className="hidden lg:block fixed top-6 left-10 z-[60]">
                     <button
                         onClick={handleBack}
                         className="group relative flex items-center justify-center w-16 h-16 transition-all duration-500"
@@ -411,7 +591,7 @@ export default function RouteDetailPage() {
                     </button>
                 </div>
 
-                {/* ── Scroll-triggered Navbar ── */}
+                {/* ── Scroll-triggered Navbar (nur Desktop, unverändert) ── */}
                 <motion.nav
                     style={{
                         opacity: navOpacity,
@@ -421,7 +601,7 @@ export default function RouteDetailPage() {
                         fontFamily: 'var(--sans)',
                         pointerEvents: navInteractive ? 'auto' : 'none',
                     }}
-                    className="fixed top-0 left-0 w-full z-50 border-b border-[var(--border)]"
+                    className="hidden lg:block fixed top-0 left-0 w-full z-50 border-b border-[var(--border)]"
                 >
                     <div className="max-w-screen-2xl mx-auto px-12 h-28 flex items-center justify-between">
                         <Link href="/" className="flex flex-col leading-none pl-14">
@@ -549,8 +729,67 @@ export default function RouteDetailPage() {
                     </div>
                 </motion.nav>
 
-                {/* ── 1. Hero ── */}
-                <section className="relative h-screen w-full overflow-hidden flex items-end justify-start px-12 pb-24 md:px-20 md:pb-32">
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE HERO — NEU
+                   ══════════════════════════════════════════════════════════ */}
+                <section className="lg:hidden">
+                    <div className="relative w-full h-[560px] overflow-hidden">
+                        <img
+                            src={route?.image_url}
+                            alt={route?.title ?? 'Route'}
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-transparent to-transparent" />
+                        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/45 to-transparent pointer-events-none" />
+                    </div>
+
+                    <div className="px-5 pt-5 pb-6 space-y-5">
+                        <div className="space-y-2">
+                            <h1 className="text-4xl font-black uppercase leading-[0.95] tracking-tight text-[var(--cream)]">
+                                <HighlightedTitle title={route?.title ?? ''} />
+                            </h1>
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-400">
+                                <MapPin size={12} /> {route?.country}
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-4 bg-[var(--bg2)] border border-[var(--border)] rounded-2xl px-5 py-5">
+                            <span className="flex items-center gap-2 text-[13px] text-[var(--muted)]">
+                                <Clock size={16} className="text-[var(--dim)]" /> {route?.duration}
+                            </span>
+                            <span className="flex items-center gap-2 text-[13px] text-[var(--muted)]">
+                                <RouteIcon size={16} className="text-[var(--dim)]" /> {route?.distance_km} km
+                            </span>
+                            <span className="flex items-center gap-2 text-[13px] text-[var(--muted)] truncate">
+                                <MapPin size={16} className="text-[var(--dim)]" /> {route?.country}
+                            </span>
+                            <span className="flex items-center gap-2 text-[13px] text-[var(--muted)]">
+                                <Star size={14} className="fill-emerald-500 text-emerald-500" /> 4.8 Rating
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <a
+                                href="#route-map"
+                                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 text-[13px] font-bold uppercase tracking-[0.1em] active:scale-[0.98] transition-transform"
+                            >
+                                <MapIcon size={15} strokeWidth={1.8} /> View Map
+                            </a>
+
+                            <motion.button
+                                whileTap={{ scale: 0.88 }}
+                                onClick={handleSaveToggle}
+                                aria-label={isSaved ? 'Route entfernen' : 'Route speichern'}
+                                className="w-[52px] h-[52px] shrink-0 rounded-full border border-emerald-500/50 bg-emerald-500/10 flex items-center justify-center active:scale-95 transition-transform"
+                            >
+                                <Heart className={`w-5 h-5 transition-colors duration-300 ${isSaved ? 'text-red-500 fill-red-500' : 'text-emerald-400'}`} />
+                            </motion.button>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── 1. Hero (nur Desktop, unverändert) ── */}
+                <section className="hidden lg:flex relative h-screen w-full overflow-hidden items-end justify-start px-12 pb-24 md:px-20 md:pb-32">
                     <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
                         <img
                             src={route?.image_url}
@@ -584,8 +823,8 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── 2. Quick Stats Bar ── */}
-                <div className="sticky top-0 z-40 w-full backdrop-blur-3xl bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] border-y border-[var(--border)] shadow-2xl">
+                {/* ── 2. Quick Stats Bar (nur Desktop, unverändert) ── */}
+                <div className="hidden lg:block sticky top-0 z-40 w-full backdrop-blur-3xl bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] border-y border-[var(--border)] shadow-2xl">
                     <div className="max-w-7xl mx-auto px-12 py-10 grid grid-cols-2 md:grid-cols-5 gap-8 text-[10px] font-bold uppercase tracking-[0.6em] opacity-90">
                         {[
                             { icon: <Clock size={18} strokeWidth={1} />, label: route?.duration },
@@ -611,8 +850,114 @@ export default function RouteDetailPage() {
                     </div>
                 </div>
 
-                {/* ── 3. Story Section ── */}
-                <section className="max-w-7xl mx-auto px-12 pt-12 pb-24 md:pt-16 md:pb-32 space-y-32">
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE STORY / CHAPTERS / IMPRESSIONS — NEU
+                   ══════════════════════════════════════════════════════════ */}
+                <section className="lg:hidden px-5 pt-10 pb-4 space-y-10">
+                    <div className="space-y-4">
+                        <h2 className="text-[26px] leading-[1.1] font-serif italic text-[var(--cream)]">
+                            The <br /> Untold Story.
+                        </h2>
+                        <div className="h-px w-14 bg-emerald-500/40" />
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="w-full h-[200px] rounded-2xl overflow-hidden border border-[var(--border)]">
+                            <img src={route?.image_url} className="w-full h-full object-cover" alt="Story visual" />
+                        </div>
+                        <p className="text-[13px] leading-relaxed text-[var(--muted)] font-light">
+                            {route?.description}
+                        </p>
+                    </div>
+
+                    {chapters.length > 0 && (
+                        <div className="space-y-4">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">The Route</p>
+
+                            <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
+                                {chapters.map((chapter, index) => (
+                                    <button
+                                        key={chapter.key}
+                                        type="button"
+                                        onClick={() => setActiveChapter(index)}
+                                        className={`shrink-0 px-4 py-2 rounded-full border text-[13px] font-bold tracking-wider transition-all duration-300
+                                            ${activeChapter === index
+                                                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                                                : 'border-[var(--border)] text-[var(--dim)]'
+                                            }`}
+                                    >
+                                        {String(index + 1).padStart(2, '0')}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <motion.div
+                                key={chapters[activeChapter].key}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4 }}
+                                className="border border-[var(--border)] rounded-[1.5rem] bg-[var(--bg2)] p-6 space-y-3"
+                            >
+                                <span className="font-serif text-2xl text-emerald-400 italic leading-none">
+                                    {String(activeChapter + 1).padStart(2, '0')}
+                                </span>
+
+                                <h3 className="text-lg font-serif italic text-[var(--cream)] leading-snug">
+                                    {chapters[activeChapter].title}
+                                </h3>
+
+                                <p className="text-[var(--muted)] text-[13px] leading-relaxed font-light whitespace-pre-line">
+                                    {chapters[activeChapter].body}
+                                </p>
+                            </motion.div>
+                        </div>
+                    )}
+                </section>
+
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE HIGHLIGHTS — NEU (Slider + Icon-Liste + Merken-Button)
+                   ══════════════════════════════════════════════════════════ */}
+                <section className="lg:hidden relative px-5 pt-6 pb-20 space-y-6">
+                    {impressionImages.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Scenic Highlights</p>
+
+                            <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--border)]">
+                                <AnimatePresence mode="sync">
+                                    <motion.img
+                                        key={`${impressionImages[mobileSlideIndex % impressionImages.length]}-${mobileSlideIndex}`}
+                                        src={impressionImages[mobileSlideIndex % impressionImages.length]}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.6 }}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        alt="Impression"
+                                    />
+                                </AnimatePresence>
+                            </div>
+
+                            {impressionImages.length > 1 && (
+                                <div className="flex items-center justify-center gap-1.5">
+                                    {impressionImages.map((_, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            onClick={() => setMobileSlideIndex(i)}
+                                            aria-label={`Bild ${i + 1} anzeigen`}
+                                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                                                i === mobileSlideIndex % impressionImages.length ? 'w-5 bg-emerald-400' : 'w-1.5 bg-[var(--border)]'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
+
+                {/* ── 3. Story Section (nur Desktop, unverändert) ── */}
+                <section className="hidden lg:block max-w-7xl mx-auto px-12 pt-12 pb-24 md:pt-16 md:pb-32 space-y-32">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
                         <motion.div
                             initial={{ opacity: 0, x: -50 }}
@@ -740,8 +1085,78 @@ export default function RouteDetailPage() {
                     )}
                 </section>
 
-                {/* ── 4. Map Section ── */}
-                <section id="route-map" className="max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-10">
+                {/* Anker-Marker für "View Map" / "Karte" – vermeidet doppelte id="route-map" bei zwei Sektionen */}
+                <div id="route-map" className="scroll-mt-16 lg:scroll-mt-0" />
+
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE MAP — NEU
+                   ══════════════════════════════════════════════════════════ */}
+                <section className="lg:hidden px-5 pt-4 pb-10">
+                    <div className="space-y-3 mb-5">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Navigation</p>
+                        <h2 className="text-[26px] font-serif italic text-[var(--cream)] leading-tight">
+                            Route <span className="text-emerald-500">Overview</span>
+                        </h2>
+                        <div className="h-px w-14 bg-emerald-500/40" />
+                    </div>
+
+                    <div className={`rounded-2xl overflow-hidden ${isLight ? 'border border-[var(--border)] shadow-[0_16px_40px_rgba(43,38,32,0.10)]' : 'shadow-[0_20px_60px_rgba(0,0,0,0.7)]'}`}>
+                        <div className={`relative h-[230px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
+                            {route?.['google_maps'] && (
+                                <iframe
+                                    src={route['google_maps']}
+                                    width="100%"
+                                    height="100%"
+                                    style={{
+                                        border: 0,
+                                        filter: isLight
+                                            ? 'none'
+                                            : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
+                                    }}
+                                    allowFullScreen
+                                    loading="lazy"
+                                    title="Route Map"
+                                    className="w-full h-full outline-none border-none"
+                                />
+                            )}
+
+                            {!isLight && (
+                                <>
+                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
+                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
+                                </>
+                            )}
+                        </div>
+
+                        <div className={`flex items-center justify-between gap-3 px-4 py-4 ${isLight ? 'bg-[#ffffff]' : 'bg-[#0d1626]'}`}>
+                            <div className="space-y-1 min-w-0">
+                                <p className={`font-bold text-sm truncate ${isLight ? 'text-[#1a1a1a]' : 'text-white'}`}>
+                                    {route?.['start_point']}
+                                    <span className="text-emerald-500 mx-1.5">→</span>
+                                    {route?.['end_point']}
+                                </p>
+                                <p className={`text-[11px] flex items-center gap-1.5 flex-wrap ${isLight ? 'text-[#6b6b6b]' : 'text-zinc-400'}`}>
+                                    <span className="text-emerald-500">{route?.distance_km} KM</span>
+                                    <span className="opacity-40">·</span>
+                                    <span>{route?.duration}</span>
+                                </p>
+                            </div>
+
+                            <a
+                                href={route?.['maps_URL']}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`shrink-0 flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider px-4 py-2.5 rounded-full active:scale-95 transition-transform ${isLight ? 'bg-[#1a1a1a] text-white' : 'bg-white text-black'}`}
+                            >
+                                <ArrowRight size={13} />
+                                Route
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── 4. Map Section (nur Desktop, unverändert) ── */}
+                <section className="hidden lg:block max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-10">
                     <div className="space-y-6 mb-10 px-2">
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)]">
                             Navigation
@@ -807,8 +1222,112 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── Footer ── */}
-                <footer className="relative bg-gradient-to-b from-[var(--bg)] via-[var(--bg2)] to-[var(--bg)] border-t border-[var(--border)] overflow-hidden">
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE FOOTER — NEU
+                   ══════════════════════════════════════════════════════════ */}
+                <footer className="lg:hidden relative bg-[var(--bg)] border-t border-[var(--border)] px-5 pt-12 pb-28">
+                    <div className="flex flex-col items-center text-center">
+                        <img
+                            src="/logodark.png"
+                            alt="Scenic Routes"
+                            style={{
+                                width: '150px',
+                                height: 'auto',
+                                display: 'block',
+                                filter: isLight ? 'none' : 'invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%)',
+                            }}
+                        />
+
+                        <p className="text-[var(--dim)] text-[13px] leading-relaxed font-light max-w-[280px] mt-2">
+                            Thoughtfully curated road trips for people who value the journey as much as the destination.
+                        </p>
+                    </div>
+
+                    <div className="mt-10">
+                        {([
+                            { key: 'explore' as const, heading: 'Explore', links: ['All Routes', 'Destinations', 'Experiences', 'Journal'] },
+                            { key: 'company' as const, heading: 'Company', links: ['About Us', 'Membership', 'Gift Cards', 'Careers'] },
+                            { key: 'support' as const, heading: 'Support', links: ['FAQ', 'Travel Policies', 'Contact Us', 'Privacy Policy'] },
+                        ]).map(({ key, heading, links }) => (
+                            <div key={key} className="border-t border-[var(--border)]">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileFooterOpen(mobileFooterOpen === key ? null : key)}
+                                    className="w-full flex items-center justify-between py-4 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[var(--dim)]"
+                                >
+                                    {heading}
+                                    <ChevronDown
+                                        size={14}
+                                        className={`text-[var(--dim)] transition-transform duration-300 ${mobileFooterOpen === key ? 'rotate-180 text-[var(--gold)]' : ''}`}
+                                    />
+                                </button>
+                                <AnimatePresence>
+                                    {mobileFooterOpen === key && (
+                                        <motion.ul
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.25 }}
+                                            className="overflow-hidden space-y-3 pb-4"
+                                        >
+                                            {links.map(link => (
+                                                <li key={link}>
+                                                    <a href="#" className="text-sm text-[var(--dim)]">{link}</a>
+                                                </li>
+                                            ))}
+                                        </motion.ul>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="border-t border-[var(--border)] mt-2 pt-6 text-center">
+                        <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--dim)]">
+                            © {new Date().getFullYear()} Explore Scenic Routes. All Rights Reserved.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-3 pt-5">
+                        <div className="relative route-lang-wrap">
+                            <button
+                                onClick={() => setShowLangMenu((p) => !p)}
+                                className="flex items-center gap-2 h-[33px] px-4 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--border)_30%,transparent)] text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]"
+                            >
+                                <Globe size={12} /> {language}
+                            </button>
+
+                            {showLangMenu && (
+                                <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 min-w-[140px] bg-[color-mix(in_srgb,var(--bg)_97%,transparent)] border border-[var(--border)] rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl z-50">
+                                    {LANGUAGES.map((lang) => (
+                                        <button
+                                            key={lang.code}
+                                            onClick={() => {
+                                                setLanguage(lang.code);
+                                                setShowLangMenu(false);
+                                            }}
+                                            className={`block w-full text-left px-4 py-2.5 text-xs font-medium ${
+                                                lang.code === language ? 'text-emerald-500 font-bold' : 'text-[var(--muted)]'
+                                            }`}
+                                        >
+                                            {lang.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <ThemeSwitch />
+                    </div>
+
+                    <div className="flex items-center justify-center gap-6 pt-6 text-[10px] uppercase tracking-[0.08em] text-[var(--dim)]">
+                        <a href="#">Terms &amp; Conditions</a>
+                        <a href="#">Privacy</a>
+                    </div>
+                </footer>
+
+                {/* ── Footer (nur Desktop, unverändert) ── */}
+                <footer className="hidden lg:block relative bg-gradient-to-b from-[var(--bg)] via-[var(--bg2)] to-[var(--bg)] border-t border-[var(--border)] overflow-hidden">
                     <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
                         backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(16,185,129,0.15) 1px, transparent 0)',
                         backgroundSize: '40px 40px',
@@ -916,8 +1435,8 @@ export default function RouteDetailPage() {
                     </div>
                 </footer>
 
-                {/* ── Floating Heart ── */}
-                <div className="fixed bottom-16 right-16 z-50">
+                {/* ── Floating Heart (nur Desktop, unverändert — auf Mobile übernimmt der Herz-Button in der Top-Bar) ── */}
+                <div className="hidden lg:block fixed bottom-16 right-16 z-50">
                     <motion.button
                         whileHover={{ scale: 1.12 }}
                         whileTap={{ scale: 0.88 }}
