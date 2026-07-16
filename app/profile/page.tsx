@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import {
   User, Award, Settings as SettingsIcon, Map, LogOut,
   Bell, ShieldCheck, LifeBuoy, Info,
-  ChevronRight,
+  ChevronRight, Menu, X,
 } from "lucide-react";
 
 type Stamp = {
@@ -305,6 +305,8 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [navScrolled, setNavScrolled]     = useState(false);
   const [stamps, setStamps]               = useState<Stamp[]>([]);
+  // NEU (Mobile): Popup-Menü, identisch zum Muster auf About-/Route-Detail-Seite
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   const [subTab, setSubTab] = useState<
@@ -335,6 +337,12 @@ export default function ProfilePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // NEU (Mobile): Body-Scroll sperren, solange das Popup-Menü offen ist
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -570,6 +578,76 @@ export default function ProfilePage() {
 
 
         @media (max-width:760px) { .st-body { grid-template-columns:1fr; } .st-subnav { position:static; flex-direction:row; overflow-x:auto; } }
+
+        /* ==================================================================
+           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
+           Nichts oberhalb dieser Zeile wurde verändert. Die Basis-Regeln hier
+           (außerhalb der @media-Blöcke) sind bewusst wirkungslos für PC.
+           ================================================================== */
+
+        .mobile-only { display:none; }
+
+        /* Hamburger-Button */
+        .pp-mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
+
+        /* Popup-Menü (zentriertes Fenster), identisch im Aufbau zu About-/Route-Detail-Seite */
+        .pp-mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
+        .pp-mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
+        .pp-mobile-nav-drawer { position:fixed; top:50%; left:50%; z-index:401; width:min(380px,88vw); max-height:85vh; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:26px; box-shadow:0 50px 120px rgba(0,0,0,0.55); opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(0.94); transition:opacity .28s ease, transform .28s ease; padding:22px 22px 26px; }
+        .pp-mobile-nav-drawer.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+        .pp-mobile-nav-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+        .pp-mobile-nav-close { width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--border); color:var(--cream); background:none !important; }
+
+        .pp-mobile-profile-card { border:1px solid var(--border); border-radius:20px; background:color-mix(in srgb, var(--bg2) 80%, transparent); overflow:hidden; }
+        .pp-mobile-profile-head { padding:18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+        .pp-mobile-avatar { width:46px; height:46px; border-radius:14px; border:1px solid rgba(201,168,106,0.3); background:rgba(201,168,106,0.12); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; color:var(--gold); overflow:hidden; flex-shrink:0; }
+        .pp-mobile-avatar img { width:100%; height:100%; object-fit:cover; }
+        .pp-mobile-name { font-family:var(--serif); font-size:17px; font-weight:400; color:var(--cream); line-height:1.2; }
+        .pp-mobile-email { font-size:10px; color:var(--dim); margin-top:2px; }
+        .pp-mobile-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.8; }
+        .pp-mobile-theme-row { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+        .pp-mobile-theme-label { font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+        .pp-mobile-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
+        .pp-mobile-links { padding:8px; }
+        .pp-mobile-link { display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border-radius:10px; font-size:13px; font-weight:600; color:var(--dim); transition:all .18s; }
+        .pp-mobile-link:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
+        .pp-mobile-link.active { color:var(--gold); background:rgba(201,168,106,0.1); }
+        .pp-mobile-link-icon { width:18px; display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
+        .pp-mobile-divider { height:1px; background:var(--border); margin:4px 8px; }
+        .pp-mobile-logout { display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border-radius:10px; font-size:13px; font-weight:600; color:rgba(224,128,128,0.55); }
+        .pp-mobile-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
+
+        /* Mobile Subnav — horizontale Pill-Tabs statt Sidebar */
+        .pp-mobile-subnav { display:none; gap:8px; overflow-x:auto; padding-bottom:4px; margin:0 0 18px; scrollbar-width:none; }
+        .pp-mobile-subnav::-webkit-scrollbar { display:none; }
+        .pp-mobile-subnav-item { flex-shrink:0; display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:999px; border:1px solid var(--border); font-size:11px; font-weight:700; letter-spacing:0.04em; color:var(--dim); background:color-mix(in srgb, var(--bg2) 60%, transparent); white-space:nowrap; }
+        .pp-mobile-subnav-item.active { color:var(--gold); border-color:rgba(201,168,106,0.4); background:rgba(201,168,106,0.1); }
+
+        /* Traveller Pass auf Mobile herunterskalieren, damit die feste Breite nicht überläuft.
+           Ohne Media Query ist der Wrapper ein reiner No-Op (kein Effekt auf PC). */
+        .pp-pass-scale-wrap { }
+
+        @media (max-width:760px) {
+          .pp-mobile-menu-btn { display:flex; }
+          .pp-mobile-subnav { display:flex; }
+          .st-subnav { display:none; }
+
+          .pp-layout { padding:84px 16px 40px; }
+          .st-megacard { padding:18px; border-radius:22px; box-shadow:0 24px 60px rgba(0,0,0,0.35); }
+          .st-header { flex-direction:column; align-items:flex-start; gap:14px; padding-bottom:18px; }
+          .st-header .st-save-btn { width:100%; text-align:center; background:color-mix(in srgb, var(--border) 40%, transparent); }
+          .st-title { font-size:21px; }
+
+          .st-body { padding-top:18px; }
+          .st-content, .st-content.wide { padding-left:0; max-width:none; }
+          .st-profile-head { flex-wrap:wrap; }
+
+          .pp-pass-scale-wrap { transform:scale(0.8); transform-origin:top center; margin-bottom:-125px; width:125%; margin-left:-12.5%; }
+        }
+
+        @media (max-width:420px) {
+          .pp-pass-scale-wrap { transform:scale(0.68); margin-bottom:-195px; width:147%; margin-left:-23.5%; }
+        }
       `}</style>
 
       <div className="pp">
@@ -589,7 +667,98 @@ export default function ProfilePage() {
           <div className="pp-nav-right">
             <ThemeSwitch />
           </div>
+
+          {/* NEU (Mobile): Hamburger-Button, öffnet das Popup-Menü */}
+          <button
+            className="pp-mobile-menu-btn mobile-only"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Menü öffnen"
+          >
+            <Menu size={20} strokeWidth={1.8} />
+          </button>
         </nav>
+
+        {/* NEU (Mobile): Popup-Menü + Backdrop */}
+        <div className={`pp-mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
+
+        <div className={`pp-mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
+          <div className="pp-mobile-nav-top">
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em", color: "var(--cream)" }}>SCENIC ROUTES</span>
+            <button className="pp-mobile-nav-close" onClick={() => setMobileMenuOpen(false)} aria-label="Menü schließen">
+              <X size={18} strokeWidth={1.8} />
+            </button>
+          </div>
+
+          <div className="pp-mobile-profile-card">
+            <div className="pp-mobile-profile-head">
+              <div className="pp-mobile-avatar">
+                {avatarPreview ? <img src={avatarPreview} alt="avatar" /> : initials}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p className="pp-mobile-name">{username || user?.email?.split("@")[0]}</p>
+                <p className="pp-mobile-email">{user?.email}</p>
+                <p className="pp-mobile-role">Scenic Route Explorer</p>
+              </div>
+            </div>
+
+            <div className="pp-mobile-theme-row">
+              <span className="pp-mobile-theme-label">Theme</span>
+              <ThemeSwitch />
+            </div>
+
+            <div className="pp-mobile-links">
+              <p className="pp-mobile-section-label">Navigate</p>
+              <Link href="/explore" className="pp-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                <span className="pp-mobile-link-icon"><Map size={14} strokeWidth={1.8} /></span>
+                Explore Routes
+                <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+              </Link>
+              <Link href="/about" className="pp-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                <span className="pp-mobile-link-icon"><Info size={14} strokeWidth={1.8} /></span>
+                About
+                <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+              </Link>
+              <Link href="/my-trips" className="pp-mobile-link" onClick={() => setMobileMenuOpen(false)}>
+                <span className="pp-mobile-link-icon"><Map size={14} strokeWidth={1.8} /></span>
+                My Trips
+                <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+              </Link>
+
+              <div className="pp-mobile-divider" />
+
+              <p className="pp-mobile-section-label">Profile Settings</p>
+              {([
+                { id: "account",       label: "Account",            icon: <User size={14} strokeWidth={1.8} /> },
+                { id: "pass",          label: "Traveller Pass",     icon: <Award size={14} strokeWidth={1.8} /> },
+                { id: "preferences",   label: "Preferences",        icon: <SettingsIcon size={14} strokeWidth={1.8} /> },
+                { id: "notifications", label: "Notifications",      icon: <Bell size={14} strokeWidth={1.8} /> },
+                { id: "privacy",       label: "Privacy & Security", icon: <ShieldCheck size={14} strokeWidth={1.8} /> },
+                { id: "support",       label: "Support & Feedback", icon: <LifeBuoy size={14} strokeWidth={1.8} /> },
+                { id: "about",         label: "About",              icon: <Info size={14} strokeWidth={1.8} /> },
+              ] as const).map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  className={`pp-mobile-link ${subTab === id ? "active" : ""}`}
+                  onClick={() => { setSubTab(id); setMobileMenuOpen(false); }}
+                >
+                  <span className="pp-mobile-link-icon">{icon}</span>
+                  {label}
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </button>
+              ))}
+
+              <div className="pp-mobile-divider" />
+
+              <button
+                className="pp-mobile-logout"
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+              >
+                <span className="pp-mobile-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="pp-layout">
           <div className="st-wrap">
@@ -611,6 +780,27 @@ export default function ProfilePage() {
               </div>
 
               <div className="st-body">
+              {/* NEU (Mobile): horizontale Pill-Tabs statt Sidebar-Navigation */}
+              <div className="pp-mobile-subnav mobile-only">
+                {([
+                  { id: "account",       label: "Account",      icon: <User size={13} strokeWidth={1.8} /> },
+                  { id: "pass",          label: "Pass",          icon: <Award size={13} strokeWidth={1.8} /> },
+                  { id: "preferences",   label: "Preferences",   icon: <SettingsIcon size={13} strokeWidth={1.8} /> },
+                  { id: "notifications", label: "Notifications", icon: <Bell size={13} strokeWidth={1.8} /> },
+                  { id: "privacy",       label: "Privacy",       icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
+                  { id: "support",       label: "Support",       icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
+                  { id: "about",         label: "About",         icon: <Info size={13} strokeWidth={1.8} /> },
+                ] as const).map(({ id, label, icon }) => (
+                  <button
+                    key={id}
+                    className={`pp-mobile-subnav-item ${subTab === id ? "active" : ""}`}
+                    onClick={() => setSubTab(id)}
+                  >
+                    {icon} {label}
+                  </button>
+                ))}
+              </div>
+
               {/* SUB-NAVIGATION */}
               <div className="st-subnav">
                 {([
@@ -703,13 +893,15 @@ export default function ProfilePage() {
 
               {subTab === "pass" && (
                 <div className="st-content wide">
-                  <TravellerPass
-                    username={username}
-                    email={user?.email || ""}
-                    avatarPreview={avatarPreview}
-                    initials={initials}
-                    stamps={stamps}
-                  />
+                  <div className="pp-pass-scale-wrap">
+                    <TravellerPass
+                      username={username}
+                      email={user?.email || ""}
+                      avatarPreview={avatarPreview}
+                      initials={initials}
+                      stamps={stamps}
+                    />
+                  </div>
                 </div>
               )}
 
