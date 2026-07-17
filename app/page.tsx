@@ -95,19 +95,19 @@ const FALLBACK_ROUTES = [
 const TESTIMONIALS = [
   {
     quote:
-      "“ Every curve led to something unforgettable. Scenic Routes turned a trip into a story. ”",
+      "\u201c Every curve led to something unforgettable. Scenic Routes turned a trip into a story. \u201d",
     name: "Sarah G.",
     role: "Traveler",
   },
   {
     quote:
-      "“ I've driven roads all over the world. Scenic Routes showed me places I never would have found alone. ”",
+      "\u201c I've driven roads all over the world. Scenic Routes showed me places I never would have found alone. \u201d",
     name: "Marcus K.",
     role: "Automotive Journalist",
   },
   {
     quote:
-      "“ The routes, the timing, the hidden gems along the way — absolutely flawless. ”",
+      "\u201c The routes, the timing, the hidden gems along the way — absolutely flawless. \u201d",
     name: "Alex M.",
     role: "World Traveler",
   },
@@ -905,7 +905,6 @@ export default function HomePage() {
           .builder-find-card { margin-top:36px; max-width:100%; }
 
           /* Testimonial */
-          .testimonial-qq { display:block; }
           .builder-section { min-height:auto; }
           .dest-section { padding-top:40px; padding-bottom:40px; }
           .dest-explore-btn { border:1px solid var(--border); border-radius:999px; padding:14px 26px !important; background:color-mix(in srgb, var(--border) 30%, transparent); }
@@ -1111,7 +1110,6 @@ export default function HomePage() {
         <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="mobile-nav-top">
             <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Compass size={18} strokeWidth={1.6} color="var(--gold)" />
               <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
             </span>
 

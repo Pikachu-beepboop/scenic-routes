@@ -911,10 +911,7 @@ function ExplorePageInner() {
 
         <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="mobile-nav-top">
-            <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8, display: "flex" }}>
-              <Compass size={18} strokeWidth={1.6} color="var(--gold)" />
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
-            </span>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
 
             <button
               className="mobile-nav-close"

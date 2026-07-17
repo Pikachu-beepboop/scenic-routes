@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "next-themes";
@@ -46,6 +46,31 @@ export default function WorldMap() {
   const router = useRouter();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  // NEU (Mobile): erkennt, ob wir uns unterhalb des mobilen Breakpoints befinden.
+  // Nur dort wird die Karte zoom-/pan-bar; auf PC bleibt das Verhalten unverändert.
+  const [isMobile, setIsMobile] = useState(false);
+
+  // NEU (Mobile): Zoom-/Pan-Zustand für die ZoomableGroup
+  const [zoom, setZoom] = useState(1);
+  const [center, setCenter] = useState<[number, number]>([13, 30]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 680px)");
+    setIsMobile(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // NEU (Mobile): ab dieser Zoomstufe werden die Routen-Titel neben den
+  // Markern eingeblendet ("reinzoomen auf ein Land zeigt die Routen")
+  const LABEL_ZOOM_THRESHOLD = 3.5;
+
+  function handleMoveEnd(position: { coordinates: [number, number]; zoom: number }) {
+    setCenter(position.coordinates);
+    setZoom(position.zoom);
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -116,6 +141,7 @@ export default function WorldMap() {
           .wm-composable-map {
             height: 300px;
             margin-top: 0;
+            touch-action: none;
           }
         }
 
@@ -132,45 +158,171 @@ export default function WorldMap() {
         viewBox="10 0 720 600"
         className="wm-composable-map"
       >
-        <Geographies geography={GEO_URL}>
-          {({ geographies }) =>
-            geographies.map((geo) => (
-              <Geography
-                key={geo.rsmKey}
-                geography={geo}
-                style={{
-                  default: { fill: mapColors.geoDefault, stroke: mapColors.geoStroke, strokeWidth: 0.5, outline: "none" },
-                  hover: { fill: mapColors.geoHover, stroke: mapColors.geoStroke, strokeWidth: 0.5, outline: "none" },
-                  pressed: { fill: mapColors.geoDefault, outline: "none" },
-                }}
-              />
-            ))
-          }
-        </Geographies>
+        {isMobile ? (
+          /* NEU (Mobile): zoom-/pan-bare Variante. Reinzoomen (Pinch-Geste)
+             blendet ab LABEL_ZOOM_THRESHOLD die Routennamen neben den
+             Markern ein — quasi "Routen erscheinen, wenn man auf ein Land
+             zoomt". Auf PC wird dieser Zweig nie gerendert. */
+          <ZoomableGroup
+            zoom={zoom}
+            center={center}
+            onMoveEnd={handleMoveEnd}
+            minZoom={1}
+            maxZoom={7}
+          >
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    style={{
+                      default: { fill: mapColors.geoDefault, stroke: mapColors.geoStroke, strokeWidth: 0.5 / zoom, outline: "none" },
+                      hover: { fill: mapColors.geoHover, stroke: mapColors.geoStroke, strokeWidth: 0.5 / zoom, outline: "none" },
+                      pressed: { fill: mapColors.geoDefault, outline: "none" },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
 
-        {markers.map((route) => (
-          route.latitude && route.longitude ? (
-            <Marker
-              key={route.id}
-              coordinates={[route.longitude, route.latitude]}
-              onClick={() => router.push(`/routedetail/${route.id}`)}
-              onMouseEnter={(e: any) => {
-                const rect = e.target.closest("svg").getBoundingClientRect();
-                setTooltip({
-                  title: route.title,
-                  country: route.country,
-                  x: e.clientX - rect.left,
-                  y: e.clientY - rect.top,
-                });
-              }}
-              onMouseLeave={() => setTooltip(null)}
-            >
-              <circle r={10} fill="rgba(201,168,106,0.08)" />
-              <circle r={5} fill="rgba(201,168,106,0.25)" />
-              <circle r={3.5} fill="#C9A86A" stroke="rgba(201,168,106,0.6)" strokeWidth={1.5} style={{ cursor: "pointer" }} />
-            </Marker>
-          ) : null
-        ))}
+            {markers.map((route) => (
+              route.latitude && route.longitude ? (
+                <Marker
+                  key={route.id}
+                  coordinates={[route.longitude, route.latitude]}
+                  onClick={() => router.push(`/routedetail/${route.id}`)}
+                >
+                  <circle r={10 / zoom} fill="rgba(201,168,106,0.08)" />
+                  <circle r={5 / zoom} fill="rgba(201,168,106,0.25)" />
+                  <circle r={3.5 / zoom} fill="#C9A86A" stroke="rgba(201,168,106,0.6)" strokeWidth={1.5 / zoom} style={{ cursor: "pointer" }} />
+
+                  {zoom >= LABEL_ZOOM_THRESHOLD && (() => {
+                    // Card-Maße grob an die Textlänge angepasst, im selben
+                    // Stil wie der Desktop-Tooltip (Titel fett/uppercase,
+                    // Land darunter in Gold, abgerundete Box mit Rahmen).
+                    //
+                    // "sizeZoom" ist der live-Zoom, aber nach oben gedeckelt.
+                    // Ohne Deckel werden die Werte vor der Hochskalierung bei
+                    // starkem Reinzoomen so klein, dass die Card auf dem
+                    // Bildschirm trotz gleicher Rechnung kleiner/unschärfer
+                    // wirkt. Mit dem Deckel bleibt sie ab dieser Zoomstufe
+                    // mindestens so groß und wächst darüber hinaus sogar
+                    // noch etwas mit, statt zu schrumpfen.
+                    const sizeZoom = Math.min(zoom, 4);
+                    const titleFontSize = 8.5;
+                    const countryFontSize = 6.5;
+                    // Breite bewusst großzügig berechnet (großer Faktor pro
+                    // Zeichen + fester Mindest-Puffer), damit die Box den
+                    // fetten Uppercase-Text nie beschneidet.
+                    const longestLine = Math.max(route.title.length, route.country.length + 2);
+                    const cardWidth = Math.max(85, longestLine * 5.3 + 14) / sizeZoom;
+                    const cardHeight = 31 / sizeZoom;
+                    const cardBottom = -10 / sizeZoom;
+                    const cardTop = cardBottom - cardHeight;
+
+                    return (
+                      <g style={{ pointerEvents: "none" }}>
+                        {/* Schatten für mehr Kontrast zum Kartenhintergrund */}
+                        <rect
+                          x={-cardWidth / 2}
+                          y={cardTop + 1 / sizeZoom}
+                          width={cardWidth}
+                          height={cardHeight}
+                          rx={6 / sizeZoom}
+                          ry={6 / sizeZoom}
+                          fill="rgba(0,0,0,0.18)"
+                        />
+                        <rect
+                          x={-cardWidth / 2}
+                          y={cardTop}
+                          width={cardWidth}
+                          height={cardHeight}
+                          rx={6 / sizeZoom}
+                          ry={6 / sizeZoom}
+                          fill={mapColors.tooltipBg}
+                          stroke="#C9A86A"
+                          strokeOpacity={0.55}
+                          strokeWidth={1 / sizeZoom}
+                        />
+                        <text
+                          textAnchor="middle"
+                          x={0}
+                          y={cardTop + 13 / sizeZoom}
+                          style={{
+                            fontFamily: "Inter, system-ui, sans-serif",
+                            fontSize: titleFontSize / sizeZoom,
+                            fontWeight: 800,
+                            letterSpacing: "0.03em",
+                            fill: mapColors.tooltipTitle,
+                          }}
+                        >
+                          {route.title.toUpperCase()}
+                        </text>
+                        <text
+                          textAnchor="middle"
+                          x={0}
+                          y={cardTop + 23 / sizeZoom}
+                          style={{
+                            fontFamily: "Inter, system-ui, sans-serif",
+                            fontSize: countryFontSize / sizeZoom,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            fill: "#C9A86A",
+                          }}
+                        >
+                          {route.country.toUpperCase()}
+                        </text>
+                      </g>
+                    );
+                  })()}
+                </Marker>
+              ) : null
+            ))}
+          </ZoomableGroup>
+        ) : (
+          <>
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    style={{
+                      default: { fill: mapColors.geoDefault, stroke: mapColors.geoStroke, strokeWidth: 0.5, outline: "none" },
+                      hover: { fill: mapColors.geoHover, stroke: mapColors.geoStroke, strokeWidth: 0.5, outline: "none" },
+                      pressed: { fill: mapColors.geoDefault, outline: "none" },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
+
+            {markers.map((route) => (
+              route.latitude && route.longitude ? (
+                <Marker
+                  key={route.id}
+                  coordinates={[route.longitude, route.latitude]}
+                  onClick={() => router.push(`/routedetail/${route.id}`)}
+                  onMouseEnter={(e: any) => {
+                    const rect = e.target.closest("svg").getBoundingClientRect();
+                    setTooltip({
+                      title: route.title,
+                      country: route.country,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    });
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                >
+                  <circle r={10} fill="rgba(201,168,106,0.08)" />
+                  <circle r={5} fill="rgba(201,168,106,0.25)" />
+                  <circle r={3.5} fill="#C9A86A" stroke="rgba(201,168,106,0.6)" strokeWidth={1.5} style={{ cursor: "pointer" }} />
+                </Marker>
+              ) : null
+            ))}
+          </>
+        )}
       </ComposableMap>
 
       {/* Tooltip */}
