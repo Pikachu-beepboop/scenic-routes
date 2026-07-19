@@ -1292,9 +1292,9 @@ export default function RouteDetailPage() {
                         <div className="relative route-lang-wrap">
                             <button
                                 onClick={() => setShowLangMenu((p) => !p)}
-                                className="flex items-center gap-2 h-[33px] px-4 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--border)_30%,transparent)] text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]"
+                                className="flex items-center gap-1 h-[38px] px-3 rounded-full border-none bg-transparent text-[14px] font-normal uppercase tracking-wider text-[var(--muted)]"
                             >
-                                <Globe size={12} /> {language}
+                                <Globe size={17} /> {language}
                             </button>
 
                             {showLangMenu && (

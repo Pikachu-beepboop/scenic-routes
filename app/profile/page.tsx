@@ -914,10 +914,6 @@ export default function ProfilePage() {
                       <select className="st-select" defaultValue="km"><option value="km">Kilometers</option><option value="mi">Miles</option></select>
                     </div>
                     <div className="st-row">
-                      <span className="st-row-label">Temperature</span>
-                      <select className="st-select" defaultValue="c"><option value="c">°C</option><option value="f">°F</option></select>
-                    </div>
-                    <div className="st-row">
                       <span className="st-row-label">Language</span>
                       <select className="st-select" defaultValue="en"><option value="en">English</option><option value="de">Deutsch</option></select>
                     </div>
@@ -928,13 +924,6 @@ export default function ProfilePage() {
                     <div className="st-row">
                       <span className="st-row-label">Default Map Style</span>
                       <select className="st-select" defaultValue="scenic"><option value="scenic">Scenic</option><option value="satellite">Satellite</option></select>
-                    </div>
-                    <div className="st-row">
-                      <div>
-                        <p className="st-row-label">Route Recommendations</p>
-                        <p className="st-row-sub">Choose how routes are recommended to you.</p>
-                      </div>
-                      <select className="st-select" defaultValue="balanced"><option value="balanced">Balanced</option><option value="scenic">Scenic First</option><option value="fast">Fastest</option></select>
                     </div>
                   </div>
                 </div>
