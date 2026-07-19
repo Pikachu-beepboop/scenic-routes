@@ -6,6 +6,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+import { useUnit } from "../UnitContext";
+import { formatDistance } from "@/lib/formatDistance";
 import {
   SlidersHorizontal, ChevronDown, Star, X, CornerDownRight,
   User as UserIcon, Map as MapIcon, Compass, LogOut, Clock, Navigation, Heart, ArrowRight, Globe,
@@ -24,9 +26,6 @@ type Route = {
   description?: string;
   rating?: number;
 };
-
-const fmtKm = (km?: number) =>
-  km != null ? `${km.toLocaleString("en-US")} km` : "—";
 
 const LANGUAGES = [
   { code: "DE", label: "Deutsch" },
@@ -71,6 +70,7 @@ function ExplorePageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const { theme } = useTheme();
+  const { unit } = useUnit();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -1330,7 +1330,7 @@ function ExplorePageInner() {
                       <p className="route-card-desc">{route.description || ""}</p>
                       <div className="route-card-meta">
                         {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
-                        {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{fmtKm(route.distance_km)}</div>}
+                        {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{formatDistance(route.distance_km, unit)}</div>}
                       </div>
                       <div className="route-card-footer" style={!route.rating ? { justifyContent: "flex-end" } : undefined}>
                         {route.rating && (

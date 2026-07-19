@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useTheme } from "next-themes";
+import { useUnit } from "../UnitContext";
 import {
   User, Award, Settings as SettingsIcon, Map, LogOut,
   Bell, ShieldCheck, LifeBuoy, Info,
@@ -326,6 +327,7 @@ export default function ProfilePage() {
   }
 
   const { theme } = useTheme();
+  const { unit, setUnit } = useUnit();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -486,10 +488,11 @@ export default function ProfilePage() {
         .pp-nav-logo { display:flex; flex-direction:column; line-height:1; }
         .pp-nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .pp-nav-links { display:flex; gap:36px; }
-        .pp-nav-link { position:relative; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .pp-nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .pp-nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
-        .pp-nav-link:hover { color:var(--cream); }
+        .pp-nav-link:hover { color:var(--cream); opacity:1; }
         .pp-nav-link:hover::after { width:100%; }
+        .pp-nav-link-active { color:var(--cream) !important; font-weight:700; opacity:1; }
         .pp-nav-right { display:flex; align-items:center; justify-content:flex-end; }
         @media (max-width:680px) { .pp-nav-links { display:none; } .pp-nav-right { display:none; } }
 
@@ -662,7 +665,7 @@ export default function ProfilePage() {
           <div className="pp-nav-links">
             <Link href="/explore"  className="pp-nav-link">Explore Routes</Link>
             <Link href="/about"    className="pp-nav-link">About</Link>
-            <Link href="/my-trips" className="pp-nav-link" style={{ color: "var(--cream)" }}>My Trips</Link>
+            <Link href="/my-trips" className="pp-nav-link">My Trips</Link>
           </div>
           <div className="pp-nav-right">
             <ThemeSwitch />
@@ -911,7 +914,14 @@ export default function ProfilePage() {
                     <p className="st-card-title">Preferences</p>
                     <div className="st-row">
                       <span className="st-row-label">Distance Unit</span>
-                      <select className="st-select" defaultValue="km"><option value="km">Kilometers</option><option value="mi">Miles</option></select>
+                      <select
+                        className="st-select"
+                        value={unit}
+                        onChange={(e) => setUnit(e.target.value as "km" | "mi")}
+                      >
+                        <option value="km">Kilometers</option>
+                        <option value="mi">Miles</option>
+                      </select>
                     </div>
                     <div className="st-row">
                       <span className="st-row-label">Language</span>

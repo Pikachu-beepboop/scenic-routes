@@ -13,6 +13,8 @@ import {
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
 import { useTheme } from 'next-themes';
+import { useUnit } from '@/app/UnitContext';
+import { formatDistance } from '@/lib/formatDistance';
 
 interface Route {
     id: string;
@@ -163,6 +165,7 @@ export default function RouteDetailPage() {
     const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
 
     const { theme } = useTheme();
+    const { unit } = useUnit();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -758,7 +761,7 @@ export default function RouteDetailPage() {
                                 <Clock size={16} className="text-[var(--dim)]" /> {route?.duration}
                             </span>
                             <span className="flex items-center gap-2 text-[13px] text-[var(--muted)]">
-                                <RouteIcon size={16} className="text-[var(--dim)]" /> {route?.distance_km} km
+                                <RouteIcon size={16} className="text-[var(--dim)]" /> {formatDistance(route?.distance_km, unit)}
                             </span>
                             <span className="flex items-center gap-2 text-[13px] text-[var(--muted)] truncate">
                                 <MapPin size={16} className="text-[var(--dim)]" /> {route?.country}
@@ -828,7 +831,7 @@ export default function RouteDetailPage() {
                     <div className="max-w-7xl mx-auto px-12 py-10 grid grid-cols-2 md:grid-cols-5 gap-8 text-[10px] font-bold uppercase tracking-[0.6em] opacity-90">
                         {[
                             { icon: <Clock size={18} strokeWidth={1} />, label: route?.duration },
-                            { icon: <Navigation size={18} strokeWidth={1} />, label: `${route?.distance_km} km` },
+                            { icon: <Navigation size={18} strokeWidth={1} />, label: formatDistance(route?.distance_km, unit) },
                             { icon: <MapPin size={18} strokeWidth={1} />, label: route?.country, truncate: true },
                             { icon: <Star size={18} className="fill-emerald-500 text-emerald-500" />, label: '4.9 Rating' },
                         ].map(({ icon, label, truncate }, i) => (
@@ -1136,7 +1139,7 @@ export default function RouteDetailPage() {
                                     {route?.['end_point']}
                                 </p>
                                 <p className={`text-[11px] flex items-center gap-1.5 flex-wrap ${isLight ? 'text-[#6b6b6b]' : 'text-zinc-400'}`}>
-                                    <span className="text-emerald-500">{route?.distance_km} KM</span>
+                                    <span className="text-emerald-500">{formatDistance(route?.distance_km, unit)}</span>
                                     <span className="opacity-40">·</span>
                                     <span>{route?.duration}</span>
                                 </p>
@@ -1205,7 +1208,7 @@ export default function RouteDetailPage() {
                                 <p className={`text-xs md:text-sm flex items-center gap-2 flex-wrap ${isLight ? 'text-[#6b6b6b]' : 'text-zinc-400'}`}>
                                     <span className="text-emerald-500">{route?.duration}</span>
                                     <span className="opacity-40">·</span>
-                                    <span>{route?.distance_km} km</span>
+                                    <span>{formatDistance(route?.distance_km, unit)}</span>
                                 </p>
                             </div>
 
