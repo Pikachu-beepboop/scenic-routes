@@ -10,7 +10,7 @@ import { useUnit } from "../UnitContext";
 import {
   User, Award, Settings as SettingsIcon, Map, LogOut,
   Bell, ShieldCheck, LifeBuoy, Info,
-  ChevronRight, Menu, X,
+  ChevronRight, ChevronDown, Menu, X, Globe,
 } from "lucide-react";
 
 type Stamp = {
@@ -23,6 +23,20 @@ type Stamp = {
 
 const PASSPORT_PAGES = ["cover", "id", "stamps"] as const;
 type PassportPageId = typeof PASSPORT_PAGES[number];
+
+const LANGUAGES = [
+  { code: "DE", label: "Deutsch" },
+  { code: "EN", label: "English" },
+  { code: "RU", label: "Русский" },
+];
+
+// Footer-Spalten — gleiche Daten für Desktop-Grid und Mobile-Akkordeon
+const FOOTER_COLUMNS = [
+  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
+  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
+  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
+];
 
 function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
   username: string; email: string; avatarPreview: string; initials: string; stamps: Stamp[];
@@ -306,8 +320,17 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [navScrolled, setNavScrolled]     = useState(false);
   const [stamps, setStamps]               = useState<Stamp[]>([]);
+  // NEU: Delete-Account-Flow (Bestätigungsdialog + Status)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   // NEU (Mobile): Popup-Menü, identisch zum Muster auf About-/Route-Detail-Seite
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // NEU: Footer — Sprachauswahl + mobiles Akkordeon
+  const [language, setLanguage] = useState("DE");
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
   const router = useRouter();
 
   const [subTab, setSubTab] = useState<
@@ -333,6 +356,17 @@ export default function ProfilePage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const isLight = mounted && theme === "light";
+
+  useEffect(() => {
+    if (!showLangMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".pp-footer-lang-wrap")) setShowLangMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showLangMenu]);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
@@ -425,6 +459,46 @@ export default function ProfilePage() {
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push("/");
+  }
+
+  async function handleDeleteAccount() {
+    if (!user) return;
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setDeleteError("Your session has expired. Please log in again.");
+        setDeleting(false);
+        return;
+      }
+
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setDeleteError(result?.error || "Something went wrong while deleting your account.");
+        setDeleting(false);
+        return;
+      }
+
+      // Löschung erfolgreich — client-seitig ausloggen und zur Startseite
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (err: any) {
+      setDeleteError(err?.message || "Something went wrong while deleting your account.");
+      setDeleting(false);
+    }
   }
 
   if (loading) return (
@@ -650,6 +724,54 @@ export default function ProfilePage() {
 
         @media (max-width:420px) {
           .pp-pass-scale-wrap { transform:scale(0.68); margin-bottom:-195px; width:147%; margin-left:-23.5%; }
+        }
+
+        /* ══════════════════════════════════════════════════════════
+           FOOTER — NEU, gilt für Desktop (Grid) und Mobile (Akkordeon)
+           ══════════════════════════════════════════════════════════ */
+        .pp-footer { position:relative; z-index:10; background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
+        .pp-footer-inner { max-width:1200px; margin:0 auto; }
+        .pp-footer-top { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .pp-footer-logo-container { width:190px; height:127px; display:flex; align-items:center; flex-shrink:0; }
+        .pp-footer-logo-img { height:auto; display:block; }
+        .pp-footer-logo-light { width:160px; }
+        .pp-footer-logo-dark  { width:190px; filter:invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
+        .pp-footer-tagline { font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-top:8px; max-width:220px; }
+        .pp-footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; padding:0; cursor:default; }
+        .pp-footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
+        .pp-footer-col a { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
+        .pp-footer-col a:hover { color:var(--cream); }
+        .pp-footer-chevron { display:none; color:var(--dim); transition:transform .3s; flex-shrink:0; }
+        .pp-footer-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .pp-footer-col-links { overflow:visible; max-height:none; }
+        .pp-footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+        .pp-footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
+        .pp-footer-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+        .pp-footer-lang-wrap { position:relative; }
+        .pp-footer-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; border-radius:999px; background:none; font-size:13px; font-weight:400; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .pp-footer-lang-btn:hover { color:var(--cream); }
+        .pp-footer-lang-menu { position:absolute; bottom:calc(100% + 10px); right:0; min-width:150px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.55); backdrop-filter:blur(24px); z-index:50; }
+        .pp-footer-lang-option { display:block; width:100%; text-align:left; padding:10px 14px; font-size:12px; font-weight:500; color:var(--muted); background:none; transition:background .15s,color .15s; }
+        .pp-footer-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
+        .pp-footer-lang-option.active { color:var(--gold); font-weight:700; }
+
+        @media (max-width:900px) {
+          .pp-footer-top { grid-template-columns:1fr 1fr 1fr; }
+          .pp-footer-top > div:first-child { grid-column:1 / -1; }
+        }
+        @media (max-width:760px) {
+          .pp-footer-top { grid-template-columns:1fr; gap:0; }
+          .pp-footer-top > div:first-child { display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:8px; }
+          .pp-footer-logo-container { margin:0 auto; justify-content:center; }
+          .pp-footer-tagline { margin-left:auto; margin-right:auto; }
+          .pp-footer-bottom { flex-direction:column; align-items:flex-start; }
+          .pp-footer-col { border-top:1px solid var(--border); }
+          .pp-footer-col-header { cursor:pointer; padding:14px 0; }
+          .pp-footer-col-title { margin-bottom:0; }
+          .pp-footer-chevron { display:block; }
+          .pp-footer-col-links { overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .pp-footer-col-links.open { max-height:400px; }
+          .pp-footer-col-links > div { padding-top:4px; padding-bottom:14px; }
         }
       `}</style>
 
@@ -883,7 +1005,12 @@ export default function ProfilePage() {
 
                     <div className="st-divider" />
 
-                    <div className="st-row st-row-clickable st-row-danger">
+                    <div
+                      className="st-row st-row-clickable st-row-danger"
+                      onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(""); setDeleteError(""); }}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <div>
                         <p className="st-row-label">Delete Account</p>
                         <p className="st-row-sub">Permanently delete your account and data.</p>
@@ -1034,6 +1161,153 @@ export default function ProfilePage() {
 
           </div>
         </div>
+
+        {/* ── Footer — Desktop-Grid + Mobile-Akkordeon, gleiche Datenquelle FOOTER_COLUMNS ── */}
+        <footer className="pp-footer">
+          <div className="pp-footer-inner">
+            <div className="pp-footer-top">
+              <div>
+                <div className="pp-footer-logo-container">
+                  <img
+                    src="/logodark.png"
+                    alt="Scenic Routes"
+                    className={`pp-footer-logo-img ${isLight ? "pp-footer-logo-light" : "pp-footer-logo-dark"}`}
+                  />
+                </div>
+                <p className="pp-footer-tagline">
+                  Thoughtfully curated road trips for people who value the
+                  journey as much as the destination
+                </p>
+              </div>
+
+              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+                const isSectionOpen = openFooterSection === id;
+                return (
+                  <div className="pp-footer-col" key={id}>
+                    <button
+                      className="pp-footer-col-header"
+                      onClick={() => setOpenFooterSection(isSectionOpen ? null : id)}
+                    >
+                      <p className="pp-footer-col-title" style={{ marginBottom: 0 }}>{heading}</p>
+                      <ChevronDown size={14} className={`pp-footer-chevron ${isSectionOpen ? "open" : ""}`} />
+                    </button>
+
+                    <div className={`pp-footer-col-links ${isSectionOpen ? "open" : ""}`}>
+                      <div>
+                        {links.map((link) => (
+                          <a href="#" key={link}>{link}</a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pp-footer-bottom">
+              <p className="pp-footer-copy">
+                © {new Date().getFullYear()} Explore Scenic Routes. All Rights Reserved.
+              </p>
+
+              <div className="pp-footer-controls">
+                <div className="pp-footer-lang-wrap">
+                  <button
+                    className="pp-footer-lang-btn"
+                    onClick={() => setShowLangMenu((p) => !p)}
+                  >
+                    <Globe size={12} strokeWidth={2} /> {language}
+                  </button>
+
+                  {showLangMenu && (
+                    <div className="pp-footer-lang-menu">
+                      {LANGUAGES.map((lang) => (
+                        <button
+                          key={lang.code}
+                          className={`pp-footer-lang-option ${lang.code === language ? "active" : ""}`}
+                          onClick={() => {
+                            setLanguage(lang.code);
+                            setShowLangMenu(false);
+                          }}
+                        >
+                          {lang.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <ThemeSwitch />
+              </div>
+            </div>
+          </div>
+        </footer>
+
+        {/* Delete-Account-Bestätigungsdialog */}
+        {showDeleteConfirm && (
+          <>
+            <div
+              onClick={() => !deleting && setShowDeleteConfirm(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
+            />
+            <div
+              style={{
+                position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+                zIndex: 501, width: "min(420px,90vw)", background: "var(--bg2)",
+                border: "1px solid var(--border)", borderRadius: 22,
+                boxShadow: "0 50px 120px rgba(0,0,0,0.55)", padding: 28,
+              }}
+            >
+              <p style={{ fontFamily: "var(--serif)", fontSize: 24, fontWeight: 400, color: "#e08080", marginBottom: 10 }}>
+                Delete your account?
+              </p>
+              <p style={{ fontSize: 13, color: "var(--dim)", lineHeight: 1.6, marginBottom: 18 }}>
+                This will permanently delete your account, saved routes, and profile data. This action cannot be undone.
+              </p>
+
+              <label style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--dim)", display: "block", marginBottom: 6 }}>
+                Type DELETE to confirm
+              </label>
+              <input
+                className="st-input"
+                type="text"
+                placeholder="DELETE"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                style={{ marginBottom: 14 }}
+              />
+
+              {deleteError && <p className="st-error" style={{ marginBottom: 14 }}>{deleteError}</p>}
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: "12px", borderRadius: 999, border: "1px solid var(--border)",
+                    background: "transparent", color: "var(--cream)", fontSize: 11, fontWeight: 700,
+                    letterSpacing: "0.08em", cursor: deleting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirmText !== "DELETE" || deleting}
+                  style={{
+                    flex: 1, padding: "12px", borderRadius: 999, border: "1px solid #e08080",
+                    background: deleteConfirmText === "DELETE" ? "#e08080" : "transparent",
+                    color: deleteConfirmText === "DELETE" ? "#1a0a0a" : "#e08080",
+                    fontSize: 11, fontWeight: 800, letterSpacing: "0.08em",
+                    cursor: deleteConfirmText !== "DELETE" || deleting ? "not-allowed" : "pointer",
+                    opacity: deleteConfirmText !== "DELETE" || deleting ? 0.6 : 1,
+                  }}
+                >
+                  {deleting ? "Deleting…" : "Delete Account"}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );
