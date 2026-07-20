@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useTheme } from "next-themes";
 import { useUnit } from "../UnitContext";
+import { useLanguage } from "../LanguageContext";
 import {
   User, Award, Settings as SettingsIcon, Map, LogOut,
   Bell, ShieldCheck, LifeBuoy, Info,
@@ -333,6 +334,7 @@ export default function ProfilePage() {
 
   const { theme } = useTheme();
   const { unit, setUnit } = useUnit();
+  const { lang, setLang } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -975,7 +977,14 @@ export default function ProfilePage() {
                     </div>
                     <div className="st-row">
                       <span className="st-row-label">Language</span>
-                      <select className="st-select" defaultValue="en"><option value="en">English</option><option value="de">Deutsch</option></select>
+                      <select
+                        className="st-select"
+                        value={lang}
+                        onChange={(e) => setLang(e.target.value as "en" | "de")}
+                      >
+                        <option value="en">English</option>
+                        <option value="de">Deutsch</option>
+                      </select>
                     </div>
                     <div className="st-row">
                       <span className="st-row-label">Start Page</span>

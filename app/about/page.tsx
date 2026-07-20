@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
+import { useLanguage } from '../LanguageContext';
 import {
   User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight, Globe,
   Menu, X, ChevronRight, ChevronDown, Mail,
@@ -33,36 +34,30 @@ function YoutubeIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWi
 }
 
 const TEAM = [
-  { initials: "LA", name: "Lavr",  role: "Co-Founder & Product",     bio: "Road tripper at heart. Built Scenic Routes because every great drive deserves to be discovered." },
-  { initials: "US", name: "Usman",    role: "Co-Founder & Engineering",  bio: "The brain behind the tech. Builds every feature from the ground up and keeps everything running smoothly." },
-  { initials: "MD", name: "Madalina", role: "Design Manager",            bio: "Makes sure every pixel is in its right place. Turns complex ideas into clean, beautiful interfaces." },
+  { initials: "LA", name: "Lavr",     roleKey: "about.team.role1" as const, bioKey: "about.team.bio1" as const },
+  { initials: "US", name: "Usman",    roleKey: "about.team.role2" as const, bioKey: "about.team.bio2" as const },
+  { initials: "MD", name: "Madalina", roleKey: "about.team.role3" as const, bioKey: "about.team.bio3" as const },
 ];
 
 const STATS = [
-  { value: "150+", label: "Curated Routes" },
-  { value: "40+",  label: "Countries" },
-  { value: "18K+", label: "Travellers" },
-  { value: "6",    label: "Continents" },
+  { value: "150+", labelKey: "about.stats.routes" as const },
+  { value: "40+",  labelKey: "about.stats.countries" as const },
+  { value: "18K+", labelKey: "about.stats.travellers" as const },
+  { value: "6",    labelKey: "about.stats.continents" as const },
 ];
 
 const VALUES = [
-  { num: "01", title: "Slow Down",      text: "The fastest route is rarely the best one. We celebrate roads that make you pull over, breathe deep, and stay a little longer." },
-  { num: "02", title: "Go Off-Script",  text: "Every great road trip has an unplanned detour. We build tools that help you discover those moments — not avoid them." },
-  { num: "03", title: "Leave It Better",text: "We only feature routes where travellers are welcome and nature is respected. Beautiful roads deserve careful guests." },
-];
-
-const LANGUAGES = [
-  { code: "DE", label: "Deutsch" },
-  { code: "EN", label: "English" },
-  { code: "RU", label: "Русский" },
+  { num: "01", titleKey: "about.values.v1.title" as const, textKey: "about.values.v1.text" as const },
+  { num: "02", titleKey: "about.values.v2.title" as const, textKey: "about.values.v2.text" as const },
+  { num: "03", titleKey: "about.values.v3.title" as const, textKey: "about.values.v3.text" as const },
 ];
 
 // Footer-Linkdaten mit stabiler id fürs Akkordeon — gleiche Daten für Desktop-Grid und Mobile-Akkordeon
 const FOOTER_COLUMNS = [
-  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
-  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
-  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
-  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
+  { id: "explore", headingKey: "footer.col.explore" as const, linkKeys: ["footer.link.allRoutes", "footer.link.myTrips", "footer.link.profile"] as const },
+  { id: "about", headingKey: "footer.col.about" as const, linkKeys: ["footer.link.travellerPass", "footer.link.about", "footer.link.ourTeam"] as const },
+  { id: "support", headingKey: "footer.col.support" as const, linkKeys: ["footer.link.faq", "footer.link.contact", "footer.link.reportProblem", "footer.link.reportRouteIssue"] as const },
+  { id: "legal", headingKey: "footer.col.legal" as const, linkKeys: ["footer.link.termsOfUse", "footer.link.privacyPolicy", "footer.link.imprint"] as const },
 ];
 
 export default function AboutPage() {
@@ -71,8 +66,8 @@ export default function AboutPage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [navScrolled,  setNavScrolled]  = useState(false);
   const [mounted,      setMounted]      = useState(false);
-  const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const { t, lang, setLang } = useLanguage();
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
@@ -502,10 +497,10 @@ export default function AboutPage() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
-              <Link key={l} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{l}</Link>
+            {[['nav.explore','/explore'],['nav.about','/about']].map(([key,h])=>(
+              <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
             ))}
-            {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>My Trips</Link>}
+            {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
           </div>
           <div className="nav-right">
             {!user && <ThemeSwitch />}
@@ -523,35 +518,35 @@ export default function AboutPage() {
                       <div style={{minWidth:0}}>
                         <p className="ud-name">{displayName}</p>
                         <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">Scenic Route Explorer</p>
+                        <p className="ud-role">{t("common.roleExplorer")}</p>
                       </div>
                     </div>
 
                     <div className="ud-theme-row">
-                      <span className="ud-theme-label">Theme</span>
+                      <span className="ud-theme-label">{t("common.theme")}</span>
                       <ThemeSwitch />
                     </div>
 
                     <div className="ud-links">
                       <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile
+                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}
                       </Link>
                       <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips
+                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}
                       </Link>
                       <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
-                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes
+                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}
                       </Link>
                       <div className="ud-divider"/>
                       <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> Sign Out
+                        <span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href={loginHref} className="login-btn">Login</Link>
+              <Link href={loginHref} className="login-btn">{t("nav.login")}</Link>
             )}
 
             {/* NEU (Mobile): Hamburger-Button */}
@@ -585,39 +580,39 @@ export default function AboutPage() {
                 <div style={{ minWidth: 0 }}>
                   <p className="ud-name">{displayName}</p>
                   <p className="ud-email">{user.email}</p>
-                  <p className="ud-role">Scenic Route Explorer</p>
+                  <p className="ud-role">{t("common.roleExplorer")}</p>
                 </div>
               </div>
 
               <div className="ud-theme-row">
-                <span className="ud-theme-label">Theme</span>
+                <span className="ud-theme-label">{t("common.theme")}</span>
                 <ThemeSwitch />
               </div>
 
               <div className="ud-links">
-                <p className="ud-section-label">Navigate</p>
+                <p className="ud-section-label">{t("nav.navigate")}</p>
                 <Link href="/explore" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
-                  Explore Routes
+                  {t("nav.explore")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
                 <Link href="/about" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
-                  About
+                  {t("nav.about")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
                 <div className="ud-divider" />
 
-                <p className="ud-section-label">Account</p>
+                <p className="ud-section-label">{t("nav.account")}</p>
                 <Link href="/profile" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
-                  Profile
+                  {t("nav.profile")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
                 <Link href="/my-trips" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
-                  My Trips
+                  {t("nav.myTrips")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
@@ -625,26 +620,26 @@ export default function AboutPage() {
 
                 <button className="ud-logout" onClick={handleLogout}>
                   <span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
-                  Sign Out
+                  {t("nav.signOut")}
                 </button>
               </div>
             </div>
           ) : (
             <>
               <div className="mobile-nav-links">
-                {[["Explore Routes", "/explore"], ["About", "/about"]].map(([label, href]) => (
+                {[["nav.explore", "/explore"], ["nav.about", "/about"]].map(([key, href]) => (
                   <Link
-                    key={label}
+                    key={key}
                     href={href}
                     className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {label}
+                    {t(key as any)}
                   </Link>
                 ))}
               </div>
               <div className="mobile-nav-bottom">
-                <Link href={loginHref} className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                <Link href={loginHref} className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>{t("nav.login")}</Link>
                 <ThemeSwitch />
               </div>
             </>
@@ -663,18 +658,17 @@ export default function AboutPage() {
             <img src="/3.jpg" alt="Scenic road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
           </div>
           <div className="about-hero-content">
-            <p className="about-eyebrow">About Us</p>
+            <p className="about-eyebrow">{t("about.eyebrow")}</p>
             <h1 className="about-h1">
-              Built by road lovers,<br/>
-              <em>for road lovers.</em>
+              {t("about.h1.line1")}<br/>
+              <em>{t("about.h1.emphasis")}</em>
             </h1>
             <p className="about-hero-sub">
-              We started Scenic Routes because we were tired of GPS apps routing us through motorways.
-              Every trip should feel like an adventure — we map the roads that make you pull over and stare.
+              {t("about.hero.sub")}
             </p>
             <div className="about-hero-actions">
-              <Link href="/explore" className="btn-gold-filled">Explore Routes <ArrowRight size={13} strokeWidth={2.5} /></Link>
-              <a href="mailto:hello@scenicroutes.app" className="btn-outline">Say Hello <ArrowRight size={13} strokeWidth={2.5} /></a>
+              <Link href="/explore" className="btn-gold-filled">{t("about.hero.explore")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
+              <a href="mailto:hello@scenicroutes.app" className="btn-outline">{t("about.hero.sayHello")} <ArrowRight size={13} strokeWidth={2.5} /></a>
             </div>
           </div>
         </section>
@@ -682,10 +676,10 @@ export default function AboutPage() {
         {/* STATS (Desktop) */}
         <div className="stats-section">
           <div className="stats-inner">
-            {STATS.map(({value,label})=>(
-              <div className="stat-item" key={label}>
+            {STATS.map(({value,labelKey})=>(
+              <div className="stat-item" key={labelKey}>
                 <div className="stat-num">{value}</div>
-                <div className="stat-label">{label}</div>
+                <div className="stat-label">{t(labelKey)}</div>
               </div>
             ))}
           </div>
@@ -694,10 +688,10 @@ export default function AboutPage() {
         {/* NEU (Mobile): Stats als schwebende Card über dem Hero-Rand, eigenes
             Markup, per .mobile-only auf PC unsichtbar */}
         <div className="mobile-stats-card mobile-only">
-          {STATS.map(({ value, label }) => (
-            <div className="stat-item" key={label}>
+          {STATS.map(({ value, labelKey }) => (
+            <div className="stat-item" key={labelKey}>
               <div className="stat-num">{value}</div>
-              <div className="stat-label">{label}</div>
+              <div className="stat-label">{t(labelKey)}</div>
             </div>
           ))}
         </div>
@@ -707,13 +701,13 @@ export default function AboutPage() {
         {/* VALUES */}
         <section className="section values-section">
           <div className="container">
-            <p className="section-eyebrow">What we believe</p>
-            <h2 className="section-h2">Three principles<br/>that guide us.</h2>
+            <p className="section-eyebrow">{t("about.values.eyebrow")}</p>
+            <h2 className="section-h2">{t("about.values.heading1")}<br/>{t("about.values.heading2")}</h2>
             <div className="values-grid">
-              {VALUES.map(({num,title,text}, i)=>{
+              {VALUES.map(({num,titleKey,textKey}, i)=>{
                 const isOpen = openValueIndex === i;
                 return (
-                  <div className="value-card" key={title}>
+                  <div className="value-card" key={titleKey}>
                     {/* NEU (Mobile): Header klickbar fürs Akkordeon. Auf PC ist
                         der Klick durch pointer-events:none wirkungslos, und der
                         Text bleibt über .value-text-wrap (max-height:none als
@@ -724,12 +718,12 @@ export default function AboutPage() {
                     >
                       <div>
                         <div className="value-num">{num}</div>
-                        <div className="value-title">{title}</div>
+                        <div className="value-title">{t(titleKey)}</div>
                       </div>
                       <ChevronDown size={16} className={`value-chevron mobile-only ${isOpen ? "open" : ""}`} />
                     </button>
                     <div className={`value-text-wrap ${isOpen ? "open" : ""}`}>
-                      <p className="value-text" style={{ paddingTop: 14 }}>{text}</p>
+                      <p className="value-text" style={{ paddingTop: 14 }}>{t(textKey)}</p>
                     </div>
                   </div>
                 );
@@ -741,19 +735,19 @@ export default function AboutPage() {
         {/* MISSION */}
         <section className="section mission-section">
           <div className="container">
-            <p className="section-eyebrow">Our Mission</p>
-            <h2 className="section-h2">Every road tells<br/>a story.</h2>
+            <p className="section-eyebrow">{t("about.mission.eyebrow")}</p>
+            <h2 className="section-h2">{t("about.mission.heading1")}<br/>{t("about.mission.heading2")}</h2>
             <div className="mission-grid">
               <div className="mission-image">
                 <img src="/Garden Route.jpg" alt="Road" onError={e=>{e.currentTarget.src="/Trollstigen.jpg";}}/>
               </div>
               <div>
                 <p className="mission-text">
-                  We believe the best journeys happen on roads that haven't been optimised for speed.
+                  {t("about.mission.p1")}
                   <br/><br/>
-                  <strong>Scenic Routes</strong> is a curated collection of the world's most breathtaking drives — each one handpicked by people who understand that the journey is the destination.
+                  <strong>Scenic Routes</strong> {t("about.mission.p2")}
                   <br/><br/>
-                  From alpine passes to coastal curves, we map the roads that reward the curious traveller with moments that GPS will never understand.
+                  {t("about.mission.p3")}
                 </p>
               </div>
             </div>
@@ -765,22 +759,22 @@ export default function AboutPage() {
           <div className="container">
             <div className="team-header">
               <div>
-                <p className="section-eyebrow">The Team</p>
-                <h2 className="section-h2">The people behind<br/>the roads.</h2>
+                <p className="section-eyebrow">{t("about.team.eyebrow")}</p>
+                <h2 className="section-h2">{t("about.team.heading1")}<br/>{t("about.team.heading2")}</h2>
               </div>
               <p className="team-sub">
-                A small crew of passionate drivers, designers and engineers building the tool we always wished existed.
+                {t("about.team.sub")}
               </p>
             </div>
 
             {/* Desktop-Grid — unverändert */}
             <div className="team-grid">
-              {TEAM.map(({initials,name,role,bio})=>(
+              {TEAM.map(({initials,name,roleKey,bioKey})=>(
                 <div className="team-card" key={name}>
                   <div className="team-avatar">{initials}</div>
                   <div className="team-name">{name}</div>
-                  <div className="team-role">{role}</div>
-                  <p className="team-bio">{bio}</p>
+                  <div className="team-role">{t(roleKey)}</div>
+                  <p className="team-bio">{t(bioKey)}</p>
                 </div>
               ))}
             </div>
@@ -788,12 +782,12 @@ export default function AboutPage() {
             {/* NEU (Mobile): horizontales Swipe-Karussell statt Grid, eigenes
                 Markup, per .mobile-only auf PC unsichtbar */}
             <div className="team-scroll mobile-only" ref={teamScrollRef} onScroll={handleTeamScroll}>
-              {TEAM.map(({ initials, name, role, bio }) => (
+              {TEAM.map(({ initials, name, roleKey, bioKey }) => (
                 <div className="team-card" key={name}>
                   <div className="team-avatar">{initials}</div>
                   <div className="team-name">{name}</div>
-                  <div className="team-role">{role}</div>
-                  <p className="team-bio">{bio}</p>
+                  <div className="team-role">{t(roleKey)}</div>
+                  <p className="team-bio">{t(bioKey)}</p>
                 </div>
               ))}
             </div>
@@ -818,9 +812,9 @@ export default function AboutPage() {
                     </div>
                   ))}
                 </div>
-                <span style={{fontSize:"12px",color:"var(--dim)",fontWeight:300}}>A small team, big passion for the road.</span>
+                <span style={{fontSize:"12px",color:"var(--dim)",fontWeight:300}}>{t("about.team.smallTeam")}</span>
               </div>
-              <a href="mailto:jobs@scenicroutes.app" className="team-footer-link">Join the team <ArrowRight size={11} strokeWidth={2.5} /></a>
+              <a href="mailto:jobs@scenicroutes.app" className="team-footer-link">{t("about.team.joinTeam")} <ArrowRight size={11} strokeWidth={2.5} /></a>
             </div>
           </div>
         </section>
@@ -829,13 +823,13 @@ export default function AboutPage() {
         <section className="section cta-section">
           <div className="container">
             <div className="cta-inner">
-              <p className="section-eyebrow">Ready to explore?</p>
-              <h2 className="cta-h2">Your next great<br/>road trip starts here.</h2>
-              <p className="cta-sub">Hundreds of handpicked routes. Endless open road.</p>
+              <p className="section-eyebrow">{t("about.cta.eyebrow")}</p>
+              <h2 className="cta-h2">{t("about.cta.heading1")}<br/>{t("about.cta.heading2")}</h2>
+              <p className="cta-sub">{t("about.cta.sub")}</p>
               <div className="cta-actions">
-                <Link href="/explore" className="btn-gold-filled">Browse Routes <ArrowRight size={13} strokeWidth={2.5} /></Link>
+                <Link href="/explore" className="btn-gold-filled">{t("about.cta.browseRoutes")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
                 {!user && (
-                  <Link href={loginHref} className="btn-outline">Create Account <ArrowRight size={13} strokeWidth={2.5} /></Link>
+                  <Link href={loginHref} className="btn-outline">{t("about.cta.createAccount")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
                 )}
               </div>
             </div>
@@ -856,8 +850,7 @@ export default function AboutPage() {
                 </div>
 
                 <p className="footer-tagline">
-                  Thoughtfully curated road trips for people who value the
-                  journey as much as the destination
+                  {t("home.footer.tagline")}
                 </p>
 
                 {/* NEU (Mobile): Social-Icons */}
@@ -868,7 +861,7 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+              {FOOTER_COLUMNS.map(({ id, headingKey, linkKeys }) => {
                 const isOpen = openFooterSection === id;
                 return (
                   <div key={id}>
@@ -880,14 +873,14 @@ export default function AboutPage() {
                       className="footer-col-header"
                       onClick={() => setOpenFooterSection(isOpen ? null : id)}
                     >
-                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{heading}</p>
+                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{t(headingKey)}</p>
                       <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
                     </button>
 
                     <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
                       <div style={{ paddingTop: 14 }}>
-                        {links.map((link) => (
-                          <a href="#" key={link} className="footer-col-link">{link}</a>
+                        {linkKeys.map((linkKey) => (
+                          <a href="#" key={linkKey} className="footer-col-link">{t(linkKey)}</a>
                         ))}
                       </div>
                     </div>
@@ -898,7 +891,7 @@ export default function AboutPage() {
 
             <div className="footer-bottom">
               <p className="footer-copy">
-                © {new Date().getFullYear()} Explore Scenic Routes. All Rights Reserved.
+                © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
               </p>
 
               <div className="footer-controls">
@@ -907,23 +900,23 @@ export default function AboutPage() {
                     className="footer-lang-btn"
                     onClick={() => setShowLangMenu((p) => !p)}
                   >
-                    <Globe size={12} strokeWidth={2} /> {language}
+                    <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
                   </button>
 
                   {showLangMenu && (
                     <div className="footer-lang-menu">
-                      {LANGUAGES.map((lang) => (
-                        <button
-                          key={lang.code}
-                          className={`footer-lang-option ${lang.code === language ? "active" : ""}`}
-                          onClick={() => {
-                            setLanguage(lang.code);
-                            setShowLangMenu(false);
-                          }}
-                        >
-                          {lang.label}
-                        </button>
-                      ))}
+                      <button
+                        className={`footer-lang-option ${lang === "en" ? "active" : ""}`}
+                        onClick={() => { setLang("en"); setShowLangMenu(false); }}
+                      >
+                        English
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "de" ? "active" : ""}`}
+                        onClick={() => { setLang("de"); setShowLangMenu(false); }}
+                      >
+                        Deutsch
+                      </button>
                     </div>
                   )}
                 </div>

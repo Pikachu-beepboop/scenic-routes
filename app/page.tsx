@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { useTheme } from "next-themes";
+import { useLanguage } from "./LanguageContext";
 import {
   User as UserIcon, Map as MapIcon, Compass, LogOut,
   ArrowLeft, ArrowRight, Wind, BookOpen, Globe,
@@ -93,53 +94,16 @@ const FALLBACK_ROUTES = [
 ];
 
 const TESTIMONIALS = [
-  {
-    quote:
-      "\u201c Every curve led to something unforgettable. Scenic Routes turned a trip into a story. \u201d",
-    name: "Sarah G.",
-    role: "Traveler",
-  },
-  {
-    quote:
-      "\u201c I've driven roads all over the world. Scenic Routes showed me places I never would have found alone. \u201d",
-    name: "Marcus K.",
-    role: "Automotive Journalist",
-  },
-  {
-    quote:
-      "\u201c The routes, the timing, the hidden gems along the way — absolutely flawless. \u201d",
-    name: "Alex M.",
-    role: "World Traveler",
-  },
+  { quoteKey: "home.testimonial.quote1" as const, name: "Sarah G.",  roleKey: "home.testimonial.role1" as const },
+  { quoteKey: "home.testimonial.quote2" as const, name: "Marcus K.", roleKey: "home.testimonial.role2" as const },
+  { quoteKey: "home.testimonial.quote3" as const, name: "Alex M.",   roleKey: "home.testimonial.role3" as const },
 ];
 
 const FEATURES = [
-  {
-    icon: Compass,
-    title: "Curated with care",
-    text: "Handpicked routes and places researched by real travelers.",
-  },
-  {
-    icon: MapIcon,
-    title: "Driven by detail",
-    text: "Maps, tips, and insights that make every mile smoother.",
-  },
-  {
-    icon: Wind,
-    title: "Built for freedom",
-    text: "Flexible plans that adapt to the way you travel.",
-  },
-  {
-    icon: BookOpen,
-    title: "Stories that inspire",
-    text: "Journeys, guides, and journals to fuel your next adventure.",
-  },
-];
-
-const LANGUAGES = [
-  { code: "DE", label: "Deutsch" },
-  { code: "EN", label: "English" },
-  { code: "RU", label: "Русский" },
+  { icon: Compass,  titleKey: "home.features.curated.title" as const, textKey: "home.features.curated.text" as const },
+  { icon: MapIcon,  titleKey: "home.features.detail.title" as const,  textKey: "home.features.detail.text" as const },
+  { icon: Wind,     titleKey: "home.features.freedom.title" as const, textKey: "home.features.freedom.text" as const },
+  { icon: BookOpen, titleKey: "home.features.stories.title" as const, textKey: "home.features.stories.text" as const },
 ];
 
 // Admin_Page
@@ -150,10 +114,10 @@ const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
 
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
-  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
-  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
-  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
-  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
+  { id: "explore", headingKey: "footer.col.explore" as const, linkKeys: ["footer.link.allRoutes", "footer.link.myTrips", "footer.link.profile"] as const },
+  { id: "about", headingKey: "footer.col.about" as const, linkKeys: ["footer.link.travellerPass", "footer.link.about", "footer.link.ourTeam"] as const },
+  { id: "support", headingKey: "footer.col.support" as const, linkKeys: ["footer.link.faq", "footer.link.contact", "footer.link.reportProblem", "footer.link.reportRouteIssue"] as const },
+  { id: "legal", headingKey: "footer.col.legal" as const, linkKeys: ["footer.link.termsOfUse", "footer.link.privacyPolicy", "footer.link.imprint"] as const },
 ];
 
 type Route = {
@@ -169,6 +133,7 @@ type Route = {
 };
 
 function PopularCarousel({ routes }: { routes: Route[] }) {
+  const { t } = useLanguage();
   const [idx, setIdx] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
 
@@ -253,16 +218,16 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
       <div className="popular-container">
         <div className="popular-header">
           <div>
-            <p className="popular-eyebrow">Popular Destinations</p>
+            <p className="popular-eyebrow">{t("home.popular.eyebrow")}</p>
             <h2 className="popular-heading">
-              Roads made
+              {t("home.popular.headLine1")}
               <br />
-              for the journey
+              {t("home.popular.headLine2")}
             </h2>
           </div>
 
           <Link href="/explore" className="popular-view-all">
-            View all destinations <ArrowRight size={14} strokeWidth={2.5} />
+            {t("home.popular.viewAll")} <ArrowRight size={14} strokeWidth={2.5} />
           </Link>
         </div>
 
@@ -315,15 +280,14 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             </span>
 
             <span className="popular-type">
-              {route.terrain || route.type || "Scenic Route"}
+              {route.terrain || route.type || t("home.popular.fallbackType")}
             </span>
 
             <div className="popular-content">
               <p>{route.country}</p>
               <h3>{route.title}</h3>
               <span>
-                {route.description ||
-                  "One of the world's most scenic driving routes"}
+                {route.description || t("home.popular.fallbackDesc")}
               </span>
             </div>
           </Link>
@@ -362,8 +326,8 @@ export default function HomePage() {
   const [navScrolled, setNavScrolled] = useState(false);
   const [heroVisible, setHeroVisible] = useState(false);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
-  const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const { t, lang, setLang } = useLanguage();
 
   // NEU (Mobile): Hamburger-Menü Zustand
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -954,11 +918,11 @@ export default function HomePage() {
 
           <div className="nav-links">
             {[
-              ["Explore Routes", "/explore"],
-              ["About", "/about"],
-            ].map(([label, href]) => (
-              <Link key={label} href={href} className={`nav-link ${pathname === href ? "nav-link-active" : ""}`}>
-                {label}
+              ["nav.explore", "/explore"],
+              ["nav.about", "/about"],
+            ].map(([key, href]) => (
+              <Link key={key} href={href} className={`nav-link ${pathname === href ? "nav-link-active" : ""}`}>
+                {t(key as any)}
               </Link>
             ))}
 
@@ -967,7 +931,7 @@ export default function HomePage() {
                 href="/my-trips"
                 className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}
               >
-                My Trips
+                {t("nav.myTrips")}
               </Link>
             )}
           </div>
@@ -1014,12 +978,12 @@ export default function HomePage() {
                       <div style={{ minWidth: 0 }}>
                         <p className="ud-name">{displayName}</p>
                         <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">Scenic Route Explorer</p>
+                        <p className="ud-role">{t("common.roleExplorer")}</p>
                       </div>
                     </div>
 
                     <div className="ud-theme-row">
-                      <span className="ud-theme-label">Theme</span>
+                      <span className="ud-theme-label">{t("common.theme")}</span>
                       <ThemeSwitch />
                     </div>
 
@@ -1029,7 +993,7 @@ export default function HomePage() {
                         className="ud-link"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile
+                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}
                       </Link>
 
                       <Link
@@ -1037,7 +1001,7 @@ export default function HomePage() {
                         className="ud-link"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips
+                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}
                       </Link>
 
                       <Link
@@ -1045,7 +1009,7 @@ export default function HomePage() {
                         className="ud-link"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes
+                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}
                       </Link>
                         {isAdmin && (
                               <Link
@@ -1053,7 +1017,7 @@ export default function HomePage() {
                                 className="ud-link"
                                 onClick={() => setShowUserMenu(false)}
                               >
-                                <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> Admin Panel
+                                <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> {t("nav.adminPanel")}
                               </Link>
                             )}
                       <div className="ud-divider" />
@@ -1065,7 +1029,7 @@ export default function HomePage() {
                         >
                           <LogOut size={14} strokeWidth={1.8} />
                         </span>{" "}
-                        Sign Out
+                        {t("nav.signOut")}
                       </button>
                     </div>
                   </div>
@@ -1073,7 +1037,7 @@ export default function HomePage() {
               </div>
             ) : (
               <Link href={loginHref} className="login-btn">
-                Login
+                {t("nav.login")}
               </Link>
             )}
 
@@ -1123,17 +1087,17 @@ export default function HomePage() {
                 <div style={{ minWidth: 0 }}>
                   <p className="ud-name">{displayName}</p>
                   <p className="ud-email">{user.email}</p>
-                  <p className="ud-role">Scenic Route Explorer</p>
+                  <p className="ud-role">{t("common.roleExplorer")}</p>
                 </div>
               </div>
 
               <div className="ud-theme-row">
-                <span className="ud-theme-label">Theme</span>
+                <span className="ud-theme-label">{t("common.theme")}</span>
                 <ThemeSwitch />
               </div>
 
               <div className="ud-links">
-                <p className="ud-section-label">Navigate</p>
+                <p className="ud-section-label">{t("nav.navigate")}</p>
 
                 <Link
                   href="/explore"
@@ -1141,7 +1105,7 @@ export default function HomePage() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
-                  Explore Routes
+                  {t("nav.explore")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
@@ -1151,13 +1115,13 @@ export default function HomePage() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="ud-link-icon"><BookOpen size={14} strokeWidth={1.8} /></span>
-                  About
+                  {t("nav.about")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
                 <div className="ud-divider" />
 
-                <p className="ud-section-label">Account</p>
+                <p className="ud-section-label">{t("nav.account")}</p>
 
                 <Link
                   href="/profile"
@@ -1165,7 +1129,7 @@ export default function HomePage() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
-                  Profile
+                  {t("nav.profile")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
@@ -1175,7 +1139,7 @@ export default function HomePage() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
-                  My Trips
+                  {t("nav.myTrips")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
                   {isAdmin && (
@@ -1184,7 +1148,7 @@ export default function HomePage() {
                     className="ud-link"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> Admin Panel
+                    <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> {t("nav.adminPanel")}
                   </Link>
                       )}
                 <div className="ud-divider" />
@@ -1193,7 +1157,7 @@ export default function HomePage() {
                   <span className="ud-link-icon" style={{ color: "#e08080" }}>
                     <LogOut size={14} strokeWidth={1.8} />
                   </span>
-                  Sign Out
+                  {t("nav.signOut")}
                 </button>
               </div>
             </div>
@@ -1201,16 +1165,16 @@ export default function HomePage() {
             <>
               <div className="mobile-nav-links">
                 {[
-                  ["Explore Routes", "/explore"],
-                  ["About", "/about"],
-                ].map(([label, href]) => (
+                  ["nav.explore", "/explore"],
+                  ["nav.about", "/about"],
+                ].map(([key, href]) => (
                   <Link
-                    key={label}
+                    key={key}
                     href={href}
                     className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {label}
+                    {t(key as any)}
                   </Link>
                 ))}
               </div>
@@ -1221,7 +1185,7 @@ export default function HomePage() {
                   className="mobile-nav-login"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Login
+                  {t("nav.login")}
                 </Link>
 
                 <ThemeSwitch />
@@ -1251,17 +1215,17 @@ export default function HomePage() {
           <div className="hero-content">
             <div className={`hero-copy ${heroVisible ? "visible" : ""}`}>
               <h1 className="hero-h1">
-                Start
+                {t("home.hero.line1")}
                 <br />
-                your journey
+                {t("home.hero.line2")}
               </h1>
 
               <p className="hero-sub">
-                Scenic drives. Hidden places. Stories worth the journey.
+                {t("home.hero.subtitle")}
               </p>
 
               <Link href="/explore" className="btn-gold-filled">
-                Explore Routes <ArrowRight size={13} strokeWidth={2.5} />
+                {t("nav.explore")} <ArrowRight size={13} strokeWidth={2.5} />
               </Link>
             </div>
           </div>
@@ -1296,22 +1260,21 @@ export default function HomePage() {
                 />
               </div>
 
-              <p className="eyebrow">Build your route</p>
+              <p className="eyebrow">{t("home.builder.eyebrow")}</p>
 
               <h2 className="builder-h2">
-                Your journey,
+                {t("home.builder.headLine1")}
                 <br />
-                your way
+                {t("home.builder.headLine2")}
               </h2>
 
               <p className="builder-sub">
-                Discover handpicked scenic drives and find the route that fits
-                your next adventure.
+                {t("home.builder.sub")}
               </p>
 
               <div className="builder-find-card">
                 <Link href="/explore" className="builder-find-button">
-                  Find Route <ArrowRight size={14} strokeWidth={2.5} />
+                  {t("home.builder.findRoute")} <ArrowRight size={14} strokeWidth={2.5} />
                 </Link>
               </div>
             </div>
@@ -1328,9 +1291,9 @@ export default function HomePage() {
               marginBottom: "40px",
             }}
           >
-            <p className="eyebrow">Destinations</p>
+            <p className="eyebrow">{t("home.dest.eyebrow")}</p>
 
-            <h2 className="dest-h2">Places that stay with you</h2>
+            <h2 className="dest-h2">{t("home.dest.heading")}</h2>
 
             <p
               style={{
@@ -1340,7 +1303,7 @@ export default function HomePage() {
                 lineHeight: 1.6,
               }}
             >
-              Explore handpicked regions around the world
+              {t("home.dest.sub")}
             </p>
           </div>
 
@@ -1363,7 +1326,7 @@ export default function HomePage() {
                 gap: "8px",
               }}
             >
-              View all destinations <ArrowRight size={13} strokeWidth={2.5} />
+              {t("home.popular.viewAll")} <ArrowRight size={13} strokeWidth={2.5} />
             </Link>
           </div>
         </section>
@@ -1375,11 +1338,11 @@ export default function HomePage() {
             <div className="testimonial-qq">"</div>
 
             <p className="testimonial-text">
-              {TESTIMONIALS[testimonialIdx].quote}
+              &ldquo; {t(TESTIMONIALS[testimonialIdx].quoteKey)} &rdquo;
             </p>
 
             <p className="testimonial-name">
-              — {TESTIMONIALS[testimonialIdx].name}
+              — {TESTIMONIALS[testimonialIdx].name}, {t(TESTIMONIALS[testimonialIdx].roleKey)}
             </p>
 
             <div className="testimonial-dots">
@@ -1398,20 +1361,20 @@ export default function HomePage() {
         {/* FEATURES */}
         <section className="features-section">
           <div className="features-inner">
-            <p className="eyebrow">Why travel with Scenic Routes</p>
+            <p className="eyebrow">{t("home.features.eyebrow")}</p>
 
             <h2 className="features-h2">
-              Designed for
+              {t("home.features.headLine1")}
               <br />
-              the road ahead
+              {t("home.features.headLine2")}
             </h2>
 
             <div className="features-grid">
-              {FEATURES.map(({ icon: Icon, title, text }) => (
-                <div className="feature-card" key={title}>
+              {FEATURES.map(({ icon: Icon, titleKey, textKey }) => (
+                <div className="feature-card" key={titleKey}>
                   <div className="feature-icon"><Icon size={22} strokeWidth={1.7} /></div>
-                  <div className="feature-title">{title}</div>
-                  <p className="feature-text">{text}</p>
+                  <div className="feature-title">{t(titleKey)}</div>
+                  <p className="feature-text">{t(textKey)}</p>
                 </div>
               ))}
             </div>
@@ -1432,12 +1395,11 @@ export default function HomePage() {
                 </div>
 
                 <p className="footer-tagline">
-                  Thoughtfully curated road trips for people who value the
-                  journey as much as the destination
+                  {t("home.footer.tagline")}
                 </p>
               </div>
 
-              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+              {FOOTER_COLUMNS.map(({ id, headingKey, linkKeys }) => {
                 const isOpen = openFooterSection === id;
 
                 return (
@@ -1454,7 +1416,7 @@ export default function HomePage() {
                       }
                     >
                       <p className="footer-col-title" style={{ marginBottom: 0 }}>
-                        {heading}
+                        {t(headingKey)}
                       </p>
                       <ChevronDown
                         size={14}
@@ -1464,9 +1426,9 @@ export default function HomePage() {
 
                     <div className={`footer-col-links ${isOpen ? "open" : ""}`}>
                       <div style={{ paddingTop: 14 }}>
-                        {links.map((link) => (
-                          <a href="#" key={link}>
-                            {link}
+                        {linkKeys.map((linkKey) => (
+                          <a href="#" key={linkKey}>
+                            {t(linkKey)}
                           </a>
                         ))}
                       </div>
@@ -1478,8 +1440,7 @@ export default function HomePage() {
 
             <div className="footer-bottom">
               <p className="footer-copy">
-                © {new Date().getFullYear()} Explore Scenic Routes. All Rights
-                Reserved.
+                © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
               </p>
 
               <div className="footer-controls">
@@ -1488,23 +1449,23 @@ export default function HomePage() {
                     className="footer-lang-btn"
                     onClick={() => setShowLangMenu((p) => !p)}
                   >
-                    <Globe size={12} strokeWidth={2} /> {language}
+                    <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
                   </button>
 
                   {showLangMenu && (
                     <div className="footer-lang-menu">
-                      {LANGUAGES.map((lang) => (
-                        <button
-                          key={lang.code}
-                          className={`footer-lang-option ${lang.code === language ? "active" : ""}`}
-                          onClick={() => {
-                            setLanguage(lang.code);
-                            setShowLangMenu(false);
-                          }}
-                        >
-                          {lang.label}
-                        </button>
-                      ))}
+                      <button
+                        className={`footer-lang-option ${lang === "en" ? "active" : ""}`}
+                        onClick={() => { setLang("en"); setShowLangMenu(false); }}
+                      >
+                        English
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "de" ? "active" : ""}`}
+                        onClick={() => { setLang("de"); setShowLangMenu(false); }}
+                      >
+                        Deutsch
+                      </button>
                     </div>
                   )}
                 </div>

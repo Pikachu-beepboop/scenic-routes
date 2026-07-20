@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import AuthModal from "../AuthModal";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+import { useLanguage } from "../LanguageContext";
 import {
   Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
   User as UserIcon, Map as MapIcon, Compass, LogOut, Globe,
@@ -16,18 +17,12 @@ import {
 const fmtKm = (km?: number) =>
   km != null ? `${km.toLocaleString("en-US")} km` : "—";
 
-const LANGUAGES = [
-  { code: "DE", label: "Deutsch" },
-  { code: "EN", label: "English" },
-  { code: "RU", label: "Русский" },
-];
-
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
-  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
-  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
-  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
-  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
+  { id: "explore", headingKey: "footer.col.explore" as const, linkKeys: ["footer.link.allRoutes", "footer.link.myTrips", "footer.link.profile"] as const },
+  { id: "about", headingKey: "footer.col.about" as const, linkKeys: ["footer.link.travellerPass", "footer.link.about", "footer.link.ourTeam"] as const },
+  { id: "support", headingKey: "footer.col.support" as const, linkKeys: ["footer.link.faq", "footer.link.contact", "footer.link.reportProblem", "footer.link.reportRouteIssue"] as const },
+  { id: "legal", headingKey: "footer.col.legal" as const, linkKeys: ["footer.link.termsOfUse", "footer.link.privacyPolicy", "footer.link.imprint"] as const },
 ];
 
 // NEU (Mobile): wie viele Route-Einträge initial + pro "Load more"-Klick angezeigt werden
@@ -42,8 +37,8 @@ export default function MyTripsPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [language, setLanguage] = useState("DE");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const { t, lang, setLang } = useLanguage();
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
@@ -447,10 +442,10 @@ export default function MyTripsPage() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['Explore Routes','/explore'],['About','/about']].map(([l,h])=>(
-              <Link key={l} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{l}</Link>
+            {[['nav.explore','/explore'],['nav.about','/about']].map(([key,h])=>(
+              <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
             ))}
-            {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>My Trips</Link>}
+            {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
           </div>
           <div className="nav-right">
             {!user && <ThemeSwitch />}
@@ -468,27 +463,27 @@ export default function MyTripsPage() {
                       <div style={{minWidth:0}}>
                         <p className="ud-name">{displayName}</p>
                         <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">Scenic Route Explorer</p>
+                        <p className="ud-role">{t("common.roleExplorer")}</p>
                       </div>
                     </div>
 
                     <div className="ud-theme-row">
-                      <span className="ud-theme-label">Theme</span>
+                      <span className="ud-theme-label">{t("common.theme")}</span>
                       <ThemeSwitch />
                     </div>
 
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> Profile</Link>
-                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> My Trips</Link>
-                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> Explore Routes</Link>
+                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}</Link>
+                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}</Link>
+                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}</Link>
                       <div className="ud-divider"/>
-                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> Sign Out</button>
+                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}</button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <Link href="/login" className="login-btn">Login</Link>
+              <Link href="/login" className="login-btn">{t("nav.login")}</Link>
             )}
 
             {/* NEU (Mobile): Hamburger-Button */}
@@ -522,39 +517,39 @@ export default function MyTripsPage() {
                 <div style={{ minWidth: 0 }}>
                   <p className="ud-name">{displayName}</p>
                   <p className="ud-email">{user.email}</p>
-                  <p className="ud-role">Scenic Route Explorer</p>
+                  <p className="ud-role">{t("common.roleExplorer")}</p>
                 </div>
               </div>
 
               <div className="ud-theme-row">
-                <span className="ud-theme-label">Theme</span>
+                <span className="ud-theme-label">{t("common.theme")}</span>
                 <ThemeSwitch />
               </div>
 
               <div className="ud-links">
-                <p className="ud-section-label">Navigate</p>
+                <p className="ud-section-label">{t("nav.navigate")}</p>
                 <Link href="/explore" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
-                  Explore Routes
+                  {t("nav.explore")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
                 <Link href="/about" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
-                  About
+                  {t("nav.about")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
                 <div className="ud-divider" />
 
-                <p className="ud-section-label">Account</p>
+                <p className="ud-section-label">{t("nav.account")}</p>
                 <Link href="/profile" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
-                  Profile
+                  {t("nav.profile")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
                 <Link href="/my-trips" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
                   <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span>
-                  My Trips
+                  {t("nav.myTrips")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
@@ -562,26 +557,26 @@ export default function MyTripsPage() {
 
                 <button className="ud-logout" onClick={handleLogout}>
                   <span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
-                  Sign Out
+                  {t("nav.signOut")}
                 </button>
               </div>
             </div>
           ) : (
             <>
               <div className="mobile-nav-links">
-                {[["Explore Routes", "/explore"], ["About", "/about"]].map(([label, href]) => (
+                {[["nav.explore", "/explore"], ["nav.about", "/about"]].map(([key, href]) => (
                   <Link
-                    key={label}
+                    key={key}
                     href={href}
                     className={`mobile-nav-link ${pathname === href ? "mobile-nav-link-active" : ""}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {label}
+                    {t(key as any)}
                   </Link>
                 ))}
               </div>
               <div className="mobile-nav-bottom">
-                <Link href="/login" className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                <Link href="/login" className="mobile-nav-login" onClick={() => setMobileMenuOpen(false)}>{t("nav.login")}</Link>
                 <ThemeSwitch />
               </div>
             </>
@@ -598,10 +593,10 @@ export default function MyTripsPage() {
             <div className="collection-copy">
               <div className="collection-eyebrow-wrap">
                 <span className="collection-line" />
-                <p className="page-eyebrow">Your Collection</p>
+                <p className="page-eyebrow">{t("mytrips.eyebrow")}</p>
               </div>
-              <h1 className="page-h1">My Trips</h1>
-              <p className="page-sub">The journeys you've chosen to remember. Revisit your favorite scenic routes and plan your next adventure.</p>
+              <h1 className="page-h1">{t("mytrips.h1")}</h1>
+              <p className="page-sub">{t("mytrips.subtitle")}</p>
 
               {/* Desktop-Stats — unverändert */}
               <div className="collection-stats">
@@ -609,14 +604,14 @@ export default function MyTripsPage() {
                   <div className="collection-stat-icon"><Bookmark size={19} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
                     <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
-                    <span className="collection-stat-label">Saved Routes</span>
+                    <span className="collection-stat-label">{t("mytrips.stats.saved")}</span>
                   </div>
                 </div>
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Globe2 size={19} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
                     <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
-                    <span className="collection-stat-label">Countries</span>
+                    <span className="collection-stat-label">{t("mytrips.stats.countries")}</span>
                   </div>
                 </div>
               </div>
@@ -628,14 +623,14 @@ export default function MyTripsPage() {
                   <div className="collection-stat-icon"><Bookmark size={17} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
                     <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
-                    <span className="collection-stat-label">Saved Routes</span>
+                    <span className="collection-stat-label">{t("mytrips.stats.saved")}</span>
                   </div>
                 </div>
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Globe2 size={17} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
                     <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
-                    <span className="collection-stat-label">Countries</span>
+                    <span className="collection-stat-label">{t("mytrips.stats.countries")}</span>
                   </div>
                 </div>
               </div>
@@ -643,9 +638,9 @@ export default function MyTripsPage() {
 
             <div className="saved-preview-panel">
               <div className="saved-preview-head">
-                <h2 className="saved-preview-title">Your saved scenic routes</h2>
+                <h2 className="saved-preview-title">{t("mytrips.savedTitle")}</h2>
                 {user && savedRoutes.length > 0 && (
-                  <span className="saved-preview-count">{savedRoutes.length} saved</span>
+                  <span className="saved-preview-count">{savedRoutes.length} {t("mytrips.savedSuffix")}</span>
                 )}
               </div>
 
@@ -654,9 +649,9 @@ export default function MyTripsPage() {
               {!user ? (
                 <div className="saved-preview-empty">
                   <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
-                  <h3>Sign in to build your collection.</h3>
-                  <p>Create an account and save the scenic routes you want to drive later.</p>
-                  <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>Login →</button>
+                  <h3>{t("mytrips.empty.signInTitle")}</h3>
+                  <p>{t("mytrips.empty.signInText")}</p>
+                  <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>{t("mytrips.empty.loginBtn")}</button>
                 </div>
               ) : loading ? (
                 <div className="saved-preview-empty">
@@ -665,9 +660,9 @@ export default function MyTripsPage() {
               ) : savedRoutes.length === 0 ? (
                 <div className="saved-preview-empty">
                   <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
-                  <h3>No saved routes yet.</h3>
-                  <p>Explore the collection and save the routes that speak to you.</p>
-                  <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
+                  <h3>{t("mytrips.empty.noRoutesTitle")}</h3>
+                  <p>{t("mytrips.empty.noRoutesText")}</p>
+                  <Link href="/explore" className="btn-gold-filled">{t("mytrips.empty.exploreBtn")}</Link>
                 </div>
               ) : (
                 <div className="saved-preview-list">
@@ -677,7 +672,7 @@ export default function MyTripsPage() {
                         <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
                       </Link>
                       <div>
-                        <p className="saved-preview-country">{route.country || "Scenic Route"}</p>
+                        <p className="saved-preview-country">{route.country || t("home.popular.fallbackType")}</p>
                         <Link href={`/routedetail/${route.id}`}>
                           <h3 className="saved-preview-name">{route.title}</h3>
                         </Link>
@@ -688,8 +683,8 @@ export default function MyTripsPage() {
                         </div>
                       </div>
                       <div className="saved-preview-action-wrap">
-                        <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title="Open route"><ChevronRight size={19} strokeWidth={2} /></Link>
-                        <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title="Remove from saved"><X size={15} strokeWidth={2} /></button>
+                        <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title={t("mytrips.openRoute")}><ChevronRight size={19} strokeWidth={2} /></Link>
+                        <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title={t("mytrips.removeFromSaved")}><X size={15} strokeWidth={2} /></button>
                       </div>
                     </div>
                   ))}
@@ -705,9 +700,9 @@ export default function MyTripsPage() {
             Ersetzt visuell die (auf Mobile ausgeblendete) .saved-preview-panel. */}
         <div className="mobile-saved-section mobile-only">
           <div className="mobile-saved-head">
-            <h2 className="saved-preview-title">Your saved scenic routes</h2>
+            <h2 className="saved-preview-title">{t("mytrips.savedTitle")}</h2>
             {user && savedRoutes.length > 0 && (
-              <span className="saved-preview-count">{savedRoutes.length} saved</span>
+              <span className="saved-preview-count">{savedRoutes.length} {t("mytrips.savedSuffix")}</span>
             )}
           </div>
 
@@ -715,9 +710,9 @@ export default function MyTripsPage() {
             {!user ? (
               <div className="saved-preview-empty">
                 <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
-                <h3>Sign in to build your collection.</h3>
-                <p>Create an account and save the scenic routes you want to drive later.</p>
-                <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>Login →</button>
+                <h3>{t("mytrips.empty.signInTitle")}</h3>
+                <p>{t("mytrips.empty.signInText")}</p>
+                <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>{t("mytrips.empty.loginBtn")}</button>
               </div>
             ) : loading ? (
               <div className="saved-preview-empty">
@@ -726,9 +721,9 @@ export default function MyTripsPage() {
             ) : savedRoutes.length === 0 ? (
               <div className="saved-preview-empty">
                 <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
-                <h3>No saved routes yet.</h3>
-                <p>Explore the collection and save the routes that speak to you.</p>
-                <Link href="/explore" className="btn-gold-filled">Explore Routes →</Link>
+                <h3>{t("mytrips.empty.noRoutesTitle")}</h3>
+                <p>{t("mytrips.empty.noRoutesText")}</p>
+                <Link href="/explore" className="btn-gold-filled">{t("mytrips.empty.exploreBtn")}</Link>
               </div>
             ) : (
               <>
@@ -738,7 +733,7 @@ export default function MyTripsPage() {
                       <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
                     </Link>
                     <div className="mobile-route-info">
-                      <p className="mobile-route-country">{route.country || "Scenic Route"}</p>
+                      <p className="mobile-route-country">{route.country || t("home.popular.fallbackType")}</p>
                       <Link href={`/routedetail/${route.id}`}>
                         <h3 className="mobile-route-title">{route.title}</h3>
                       </Link>
@@ -748,8 +743,8 @@ export default function MyTripsPage() {
                       </div>
                     </div>
                     <div className="mobile-route-actions">
-                      <Link href={`/routedetail/${route.id}`} className="mobile-route-open" title="Open route"><ChevronRight size={15} strokeWidth={2} /></Link>
-                      <button className="mobile-route-remove" onClick={() => handleUnsave(route.id)} title="Remove"><X size={12} strokeWidth={2} /></button>
+                      <Link href={`/routedetail/${route.id}`} className="mobile-route-open" title={t("mytrips.openRoute")}><ChevronRight size={15} strokeWidth={2} /></Link>
+                      <button className="mobile-route-remove" onClick={() => handleUnsave(route.id)} title={t("mytrips.remove")}><X size={12} strokeWidth={2} /></button>
                     </div>
                   </div>
                 ))}
@@ -761,11 +756,11 @@ export default function MyTripsPage() {
                     className="mobile-load-more"
                     onClick={() => setVisibleCount((p) => p + MOBILE_PAGE_SIZE)}
                   >
-                    + Load more routes
+                    + {t("mytrips.loadMore")}
                   </button>
                 )}
                 <p className="mobile-showing-count">
-                  Showing {displayedRoutes.length} of {savedRoutes.length} routes
+                  {t("mytrips.showing")} {displayedRoutes.length} {t("common.of")} {savedRoutes.length} {t("common.routes")}
                 </p>
               </>
             )}
@@ -786,15 +781,14 @@ export default function MyTripsPage() {
                 </div>
 
                 <p className="footer-tagline">
-                  Thoughtfully curated road trips for people who value the
-                  journey as much as the destination
+                  {t("home.footer.tagline")}
                 </p>
 
                 {/* NEU (Mobile): Social-Icons */}
                 {/* Social-Icons wurden entfernt */}
               </div>
 
-              {FOOTER_COLUMNS.map(({ id, heading, links }) => {
+              {FOOTER_COLUMNS.map(({ id, headingKey, linkKeys }) => {
                 const isOpen = openFooterSection === id;
                 return (
                   <div className="footer-col" key={id}>
@@ -806,14 +800,14 @@ export default function MyTripsPage() {
                       className="footer-col-header"
                       onClick={() => setOpenFooterSection(isOpen ? null : id)}
                     >
-                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{heading}</p>
+                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{t(headingKey)}</p>
                       <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
                     </button>
 
                     <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
                       <div style={{ paddingTop: 14 }}>
-                        {links.map((link) => (
-                          <a href="#" key={link}>{link}</a>
+                        {linkKeys.map((linkKey) => (
+                          <a href="#" key={linkKey}>{t(linkKey)}</a>
                         ))}
                       </div>
                     </div>
@@ -824,7 +818,7 @@ export default function MyTripsPage() {
 
             <div className="footer-bottom">
               <p className="footer-copy">
-                © {new Date().getFullYear()} Explore Scenic Routes. All Rights Reserved.
+                © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
               </p>
 
               <div className="footer-controls">
@@ -833,23 +827,23 @@ export default function MyTripsPage() {
                     className="footer-lang-btn"
                     onClick={() => setShowLangMenu((p) => !p)}
                   >
-                    <Globe size={12} strokeWidth={2} /> {language}
+                    <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
                   </button>
 
                   {showLangMenu && (
                     <div className="footer-lang-menu">
-                      {LANGUAGES.map((lang) => (
-                        <button
-                          key={lang.code}
-                          className={`footer-lang-option ${lang.code === language ? "active" : ""}`}
-                          onClick={() => {
-                            setLanguage(lang.code);
-                            setShowLangMenu(false);
-                          }}
-                        >
-                          {lang.label}
-                        </button>
-                      ))}
+                      <button
+                        className={`footer-lang-option ${lang === "en" ? "active" : ""}`}
+                        onClick={() => { setLang("en"); setShowLangMenu(false); }}
+                      >
+                        English
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "de" ? "active" : ""}`}
+                        onClick={() => { setLang("de"); setShowLangMenu(false); }}
+                      >
+                        Deutsch
+                      </button>
                     </div>
                   )}
                 </div>
