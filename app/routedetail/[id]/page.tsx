@@ -159,8 +159,8 @@ export default function RouteDetailPage() {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     // NEU – nur für die Mobile-Ansicht: Navbar bekommt beim Scrollen Hintergrund/Blur/Border (wie auf der About-Page)
     const [mobileNavScrolled, setMobileNavScrolled] = useState(false);
-    // NEU – nur für die Mobile-Ansicht: Accordion-Footer (Discover/Company)
-    const [mobileFooterOpen, setMobileFooterOpen] = useState<'explore' | 'company' | 'support' | null>(null);
+    // NEU – nur für die Mobile-Ansicht: Accordion-Footer (Explore/About/Support/Legal)
+    const [mobileFooterOpen, setMobileFooterOpen] = useState<'explore' | 'about' | 'support' | 'legal' | null>(null);
     // NEU – nur für die Mobile-Ansicht: aktives Bild im Highlights-Slider
     const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
 
@@ -616,7 +616,7 @@ export default function RouteDetailPage() {
                             <Link href="/explore" className="nav-link">Explore Routes</Link>
                             <Link href="/about" className="nav-link">About</Link>
                             {user && (
-                                <Link href="/my-trips" className="nav-link nav-link-active">
+                                <Link href="/my-trips" className="nav-link">
                                     My Trips
                                 </Link>
                             )}
@@ -1248,9 +1248,10 @@ export default function RouteDetailPage() {
 
                     <div className="mt-10">
                         {([
-                            { key: 'explore' as const, heading: 'Explore', links: ['All Routes', 'Destinations', 'Experiences', 'Journal'] },
-                            { key: 'company' as const, heading: 'Company', links: ['About Us', 'Membership', 'Gift Cards', 'Careers'] },
-                            { key: 'support' as const, heading: 'Support', links: ['FAQ', 'Travel Policies', 'Contact Us', 'Privacy Policy'] },
+                            { key: 'explore' as const, heading: 'Explore', links: ['All Routes', 'My Trips', 'Profile'] },
+                            { key: 'about' as const, heading: 'About', links: ['Traveller Pass', 'About', 'Our Team'] },
+                            { key: 'support' as const, heading: 'Support', links: ['FAQ', 'Contact', 'Report a Problem', 'Report Route Issue'] },
+                            { key: 'legal' as const, heading: 'Legal', links: ['Terms of Use', 'Privacy Policy', 'Imprint'] },
                         ]).map(({ key, heading, links }) => (
                             <div key={key} className="border-t border-[var(--border)]">
                                 <button
@@ -1322,11 +1323,6 @@ export default function RouteDetailPage() {
 
                         <ThemeSwitch />
                     </div>
-
-                    <div className="flex items-center justify-center gap-6 pt-6 text-[10px] uppercase tracking-[0.08em] text-[var(--dim)]">
-                        <a href="#">Terms &amp; Conditions</a>
-                        <a href="#">Privacy</a>
-                    </div>
                 </footer>
 
                 {/* ── Footer (nur Desktop, unverändert) ── */}
@@ -1369,10 +1365,12 @@ export default function RouteDetailPage() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-5 grid grid-cols-2 gap-12">
+                            <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-12">
                                 {[
-                                    { heading: 'Discover', links: ['Explore Routes', 'Mountains', 'Coastal Roads', 'Forest Paths', 'Desert Drives'] },
-                                    { heading: 'Company', links: ['About Us', 'Blog', 'Careers', 'Press Kit', 'Contact'] },
+                                    { heading: 'Explore', links: ['All Routes', 'My Trips', 'Profile'] },
+                                    { heading: 'About', links: ['Traveller Pass', 'About', 'Our Team'] },
+                                    { heading: 'Support', links: ['FAQ', 'Contact', 'Report a Problem', 'Report Route Issue'] },
+                                    { heading: 'Legal', links: ['Terms of Use', 'Privacy Policy', 'Imprint'] },
                                 ].map(({ heading, links }) => (
                                     <div key={heading} className="space-y-6">
                                         <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">{heading}</h4>
@@ -1426,12 +1424,6 @@ export default function RouteDetailPage() {
                                 </div>
 
                                 <ThemeSwitch />
-
-                                <div className="flex gap-8">
-                                    {['Privacy Policy', 'Terms of Use', 'Cookie Settings', 'Impressum'].map(link => (
-                                        <a key={link} href="#" className="hover:text-[var(--cream)] transition-colors duration-300">{link}</a>
-                                    ))}
-                                </div>
                             </div>
                         </div>
                         <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />

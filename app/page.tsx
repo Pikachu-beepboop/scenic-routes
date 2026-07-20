@@ -150,21 +150,10 @@ const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
 
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
-  {
-    id: "explore",
-    heading: "Explore",
-    links: ["All Routes", "Destinations", "Experiences", "Journal"],
-  },
-  {
-    id: "company",
-    heading: "Company",
-    links: ["About Us", "Membership", "Gift Cards", "Careers"],
-  },
-  {
-    id: "support",
-    heading: "Support",
-    links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"],
-  },
+  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
+  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
+  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
 ];
 
 type Route = {
@@ -781,9 +770,6 @@ export default function HomePage() {
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
         .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
         .footer-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
-        .footer-legal { display:flex; gap:22px; }
-        .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
-        .footer-legal a:hover { color:var(--cream); }
 
         /* FOOTER — Sprachauswahl */
         .footer-lang-wrap { position:relative; }
@@ -799,7 +785,8 @@ export default function HomePage() {
           .builder-image-bg { display:none; }
           .builder-content { padding:60px 30px; grid-column:1; }
           .features-grid { grid-template-columns:repeat(2,1fr); }
-          .footer-top { grid-template-columns:1fr 1fr; }
+          .footer-top { grid-template-columns:1fr 1fr 1fr; }
+          .footer-top > div:first-child { grid-column:1 / -1; }
         }
 
         @media (max-width:760px) {
@@ -1523,11 +1510,6 @@ export default function HomePage() {
                 </div>
 
                 <ThemeSwitch />
-
-                <div className="footer-legal">
-                  <a href="#">Terms & Conditions</a>
-                  <a href="#">Privacy</a>
-                </div>
               </div>
             </div>
           </div>

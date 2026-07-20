@@ -57,11 +57,12 @@ const LANGUAGES = [
   { code: "RU", label: "Русский" },
 ];
 
-// NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
+// Footer-Linkdaten mit stabiler id fürs Akkordeon — gleiche Daten für Desktop-Grid und Mobile-Akkordeon
 const FOOTER_COLUMNS = [
-  { id: "explore", heading: "Explore", links: ["All Routes", "Destinations", "Experiences", "Journal"] },
-  { id: "company", heading: "Company", links: ["About Us", "Membership", "Gift Cards", "Careers"] },
-  { id: "support", heading: "Support", links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"] },
+  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
+  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
+  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
 ];
 
 export default function AboutPage() {
@@ -323,7 +324,7 @@ export default function AboutPage() {
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
         .footer-inner  { max-width:1200px; margin:0 auto; }
-        .footer-top    { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-top    { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand  { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
         .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
         .footer-logo-img { height:auto; display:block; }
@@ -331,8 +332,8 @@ export default function AboutPage() {
         .footer-logo-dark  { width:220px; filter:invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
         .footer-tagline{ font-size:12px; color:var(--dim); line-height:1.7; font-weight:300; margin-bottom:18px; max-width:200px; }
         .footer-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); margin-bottom:16px; }
-        .footer-col-link { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
-        .footer-col-link:hover { color:var(--cream); }
+        a.footer-col-link { display:block; font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:300; transition:color .2s; }
+        a.footer-col-link:hover { color:var(--cream); }
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
         .footer-copy   { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
         .footer-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
@@ -354,7 +355,8 @@ export default function AboutPage() {
           .mission-grid { grid-template-columns:1fr; }
           .team-grid    { grid-template-columns:1fr 1fr; }
           .stats-inner  { grid-template-columns:1fr 1fr; }
-          .footer-top   { grid-template-columns:1fr 1fr; }
+          .footer-top   { grid-template-columns:1fr 1fr 1fr; }
+          .footer-top > div:first-child { grid-column:1 / -1; }
           .team-header  { flex-direction:column; align-items:flex-start; }
           .team-sub     { text-align:left; }
         }
@@ -927,11 +929,6 @@ export default function AboutPage() {
                 </div>
 
                 <ThemeSwitch />
-
-                <div className="footer-legal">
-                  <a href="#">Terms & Conditions</a>
-                  <a href="#">Privacy</a>
-                </div>
               </div>
             </div>
           </div>

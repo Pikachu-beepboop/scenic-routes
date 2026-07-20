@@ -24,9 +24,10 @@ const LANGUAGES = [
 
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
-  { id: "explore", heading: "Explore", links: ["All Routes", "Destinations", "Experiences", "Journal"] },
-  { id: "company", heading: "Company", links: ["About Us", "Membership", "Gift Cards", "Careers"] },
-  { id: "support", heading: "Support", links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"] },
+  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
+  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
+  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
 ];
 
 // NEU (Mobile): wie viele Route-Einträge initial + pro "Load more"-Klick angezeigt werden
@@ -301,7 +302,7 @@ export default function MyTripsPage() {
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; transition:background .35s; }
         .footer-inner { max-width:1200px; margin:0 auto; }
-        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-top { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
         .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
         .footer-logo-img { height:auto; display:block; }
@@ -314,9 +315,6 @@ export default function MyTripsPage() {
         .footer-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
         .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
         .footer-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
-        .footer-legal { display:flex; gap:22px; }
-        .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
-        .footer-legal a:hover { color:var(--cream); }
 
         /* FOOTER — Sprachauswahl */
         .footer-lang-wrap { position:relative; }
@@ -331,7 +329,8 @@ export default function MyTripsPage() {
           .page-header { min-height:auto; padding-top:140px; }
           .page-header-inner { grid-template-columns:1fr; }
           .saved-preview-panel { max-width:780px; }
-          .footer-top { grid-template-columns:1fr 1fr; }
+          .footer-top { grid-template-columns:1fr 1fr 1fr; }
+          .footer-top > div:first-child { grid-column:1 / -1; }
         }
         @media (max-width:760px) {
           .nav-links { display:none; }
@@ -856,11 +855,6 @@ export default function MyTripsPage() {
                 </div>
 
                 <ThemeSwitch />
-
-                <div className="footer-legal">
-                  <a href="#">Terms & Conditions</a>
-                  <a href="#">Privacy</a>
-                </div>
               </div>
             </div>
           </div>

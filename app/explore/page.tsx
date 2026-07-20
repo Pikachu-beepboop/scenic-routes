@@ -35,9 +35,10 @@ const LANGUAGES = [
 
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
-  { id: "explore", heading: "Explore", links: ["All Routes", "Destinations", "Experiences", "Journal"] },
-  { id: "company", heading: "Company", links: ["About Us", "Membership", "Gift Cards", "Careers"] },
-  { id: "support", heading: "Support", links: ["FAQ", "Travel Policies", "Contact Us", "Privacy Policy"] },
+  { id: "explore", heading: "Explore", links: ["All Routes", "My Trips", "Profile"] },
+  { id: "about", heading: "About", links: ["Traveller Pass", "About", "Our Team"] },
+  { id: "support", heading: "Support", links: ["FAQ", "Contact", "Report a Problem", "Report Route Issue"] },
+  { id: "legal", heading: "Legal", links: ["Terms of Use", "Privacy Policy", "Imprint"] },
 ];
 
 // NEU (Mobile): wie viele Route-Cards initial + pro "Load more"-Klick angezeigt werden
@@ -595,7 +596,7 @@ function ExplorePageInner() {
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
         .footer-inner { max-width:1200px; margin:0 auto; }
-        .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+        .footer-top { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
         .footer-brand { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); line-height:1.2; margin-bottom:12px; }
         .footer-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
         .footer-logo-img { height:auto; display:block; }
