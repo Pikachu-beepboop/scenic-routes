@@ -225,10 +225,6 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
               {t("home.popular.headLine2")}
             </h2>
           </div>
-
-          <Link href="/explore" className="popular-view-all">
-            {t("home.popular.viewAll")} <ArrowRight size={14} strokeWidth={2.5} />
-          </Link>
         </div>
 
         <div
@@ -293,6 +289,12 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           </Link>
         </div>
 
+        <div className="popular-footer-link">
+          <Link href="/explore" className="popular-view-all">
+            {t("home.popular.viewAll")} <ArrowRight size={14} strokeWidth={2.5} />
+          </Link>
+        </div>
+
         {/* NEU (Mobile): Dot-Pagination unter der Karte, nur auf Mobile sichtbar */}
         <div className="popular-dots mobile-only">
           {items.map((_, i) => (
@@ -340,7 +342,7 @@ export default function HomePage() {
     setMounted(true);
   }, []);
 
-  const heroImage = mounted && theme === "light" ? "/hero2.jpg" : "/hero2.jpg";
+  const heroImage = mounted && theme === "light" ? "/hero.jpg" : "/hero.jpg";
 
   const displayRoutes = useMemo<Route[]>(
     () => (routes.length ? routes : FALLBACK_ROUTES),
@@ -600,13 +602,16 @@ export default function HomePage() {
         .btn-gold-filled:hover { background:#d8b978; border-color:#d8b978; transform:translateY(-1px); }
 
         /* POPULAR DESTINATIONS */
-        .popular-section { padding:clamp(90px,9vw,130px) clamp(24px,5vw,80px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+        .popular-section { padding:clamp(84px,8.4vw,116px) clamp(24px,5vw,80px) clamp(70px,8vw,110px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
         .popular-container { max-width:1500px; margin:0 auto; }
-        .popular-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:40px; }
+        .popular-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:38px; }
         .popular-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
         .popular-heading { font-family:var(--serif); font-size:clamp(42px,5vw,70px); font-weight:300; line-height:0.92; letter-spacing:-0.045em; color:var(--cream); }
         .popular-view-all { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:color .2s; }
         .popular-view-all:hover { color:var(--gold); }
+        .dest-explore-btn { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); display:inline-flex; align-items:center; gap:8px; transition:color .2s; }
+        .dest-explore-btn:hover { color:var(--gold); }
+        .popular-footer-link { display:flex; justify-content:flex-end; margin-top:24px; }
 
         .popular-card-wrap { position:relative; }
         .popular-card { position:relative; display:block; height:clamp(520px,58vw,680px); overflow:hidden; border-radius:34px; border:1px solid var(--border); background:var(--bg3); box-shadow:0 36px 110px rgba(0,0,0,0.52); isolation:isolate; }
@@ -1315,16 +1320,6 @@ export default function HomePage() {
             <Link
               href="/explore"
               className="dest-explore-btn"
-              style={{
-                fontSize: "9px",
-                fontWeight: 800,
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                color: "var(--gold)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
             >
               {t("home.popular.viewAll")} <ArrowRight size={13} strokeWidth={2.5} />
             </Link>

@@ -243,7 +243,7 @@ export default function AboutPage() {
         .light .about-hero-bg img { filter:brightness(0.78) contrast(1.05) saturate(0.9); }
         .about-hero-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(12,11,9,0.15) 0%, rgba(12,11,9,0.05) 35%, rgba(12,11,9,0.7) 70%, rgba(12,11,9,0.98) 100%), linear-gradient(to right, rgba(12,11,9,0.8) 0%, rgba(12,11,9,0.3) 50%, transparent 100%); }
         .light .about-hero-bg::after { display:none; }
-        .about-hero-content { position:relative; z-index:10; width:100%; max-width:1380px; margin:0 auto; padding:0 clamp(24px,5vw,80px) clamp(60px,8vh,100px); }
+        .about-hero-content { position:relative; z-index:10; width:100%; max-width:1380px; margin:0; padding:0 clamp(24px,5vw,80px) clamp(60px,8vh,100px) clamp(24px,3vw,48px); }
         .about-eyebrow { font-size:11px; font-weight:800; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; }
         .light .about-eyebrow { text-shadow:0 2px 10px rgba(0,0,0,0.3); }
         .about-h1 { font-family:var(--serif); font-size:clamp(56px,8vw,110px); font-weight:300; line-height:1; letter-spacing:-0.045em; color:var(--cream); margin-bottom:32px; text-shadow:0 20px 60px rgba(0,0,0,0.5); max-width:900px; }
@@ -668,7 +668,6 @@ export default function AboutPage() {
             </p>
             <div className="about-hero-actions">
               <Link href="/explore" className="btn-gold-filled">{t("about.hero.explore")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
-              <a href="mailto:hello@scenicroutes.app" className="btn-outline">{t("about.hero.sayHello")} <ArrowRight size={13} strokeWidth={2.5} /></a>
             </div>
           </div>
         </section>
