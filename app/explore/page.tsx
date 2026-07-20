@@ -27,6 +27,14 @@ type Route = {
   rating?: number;
 };
 
+// Feste, logische Reihenfolge (kurz → lang) statt alphabetischer Sortierung
+const DURATION_ORDER = ["Half day", "Full day", "Weekend trip", "Multi-day journey"];
+function sortByDurationLength(a: string, b: string) {
+  const idxA = DURATION_ORDER.findIndex((d) => a.startsWith(d));
+  const idxB = DURATION_ORDER.findIndex((d) => b.startsWith(d));
+  return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+}
+
 const LANGUAGES = [
   { code: "DE", label: "Deutsch" },
   { code: "EN", label: "English" },
@@ -90,12 +98,10 @@ function ExplorePageInner() {
   const [appliedSelectedDate, setAppliedSelectedDate] = useState(selectedDate);
   const [filters, setFilters] = useState<{
     difficulty: string[];
-    duration: string;
     minRating: number;
     countries: string[];
   }>({
     difficulty: searchParams.get("terrain")?.split(",").filter(Boolean) || [],
-    duration: searchParams.get("dur") || "any",
     minRating: Number(searchParams.get("rating") || 0),
     countries: searchParams.get("countries")?.split(",").filter(Boolean) || [],
   });
@@ -108,7 +114,6 @@ function ExplorePageInner() {
     if (appliedSelected) params.set("destination", appliedSelected);
     if (appliedSelectedDate) params.set("duration", appliedSelectedDate);
     if (filters.difficulty.length > 0) params.set("terrain", filters.difficulty.join(","));
-    if (filters.duration !== "any") params.set("dur", filters.duration);
     if (filters.minRating > 0) params.set("rating", String(filters.minRating));
     if (filters.countries.length > 0) params.set("countries", filters.countries.join(","));
     const query = params.toString();
@@ -184,12 +189,12 @@ function ExplorePageInner() {
 
   const clearAllFilters = () => {
     setSelected(""); setSelectedDate(""); setAppliedSelected(""); setAppliedSelectedDate("");
-    setFilters({ difficulty: [], duration: "any", minRating: 0, countries: [] });
+    setFilters({ difficulty: [], minRating: 0, countries: [] });
   };
 
   const activeFilterCount =
     filters.difficulty.length + filters.countries.length +
-    (filters.duration !== "any" ? 1 : 0) + (filters.minRating > 0 ? 1 : 0) +
+    (filters.minRating > 0 ? 1 : 0) +
     (appliedSelected ? 1 : 0) + (appliedSelectedDate ? 1 : 0);
 
   const filteredCountries = countrySearch.trim()
@@ -303,7 +308,7 @@ function ExplorePageInner() {
       const uniqueDurations = Array.from(new Set(
         data.map((r: any) => r.duration)
           .filter((d: unknown): d is string => typeof d === "string" && d.trim() !== "")
-      )).sort();
+      )).sort(sortByDurationLength);
       setDurations(uniqueDurations);
     }
   }
@@ -1223,10 +1228,24 @@ function ExplorePageInner() {
                     <div className="filter-section">
                       <p className="filter-section-title">Duration</p>
                       <div className="filter-radio">
-                        {[{v:"any",l:"Any duration"},{v:"half",l:"Half day (< 4h)"},{v:"full",l:"Full day (4–8h)"},{v:"weekend",l:"Weekend trip"},{v:"multiday",l:"Multi-day journey"}].map(({v,l}) => (
-                          <label key={v} className="filter-radio-item">
-                            <input type="radio" name="duration" checked={filters.duration === v} onChange={() => setFilters((p) => ({...p, duration: v}))} />
-                            <span>{l}</span>
+                        <label className="filter-radio-item">
+                          <input
+                            type="radio"
+                            name="duration"
+                            checked={!appliedSelectedDate}
+                            onChange={() => { setSelectedDate(""); setAppliedSelectedDate(""); }}
+                          />
+                          <span>Any duration</span>
+                        </label>
+                        {durations.map((d) => (
+                          <label key={d} className="filter-radio-item">
+                            <input
+                              type="radio"
+                              name="duration"
+                              checked={appliedSelectedDate === d}
+                              onChange={() => { setSelectedDate(""); setAppliedSelectedDate(d); }}
+                            />
+                            <span>{d}</span>
                           </label>
                         ))}
                       </div>
