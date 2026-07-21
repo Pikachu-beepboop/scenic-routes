@@ -8,7 +8,8 @@ import {
     Clock, MapPin, Navigation, Star, ChevronDown, ChevronRight,
     Heart, ArrowLeft, User, ArrowRight, Send, Globe,
     Map as MapIcon, Compass, LogOut, Menu, X,
-    Route as RouteIcon
+    Route as RouteIcon, Mountain, Waves, Droplets, Ticket, Car,
+    CloudRain, Fuel, Users, Sun, ExternalLink, Bookmark, Gauge, TreePine
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
@@ -29,6 +30,31 @@ interface Route {
     'route_highlights'?: string;
     'maps_URL'?: string;
     'google_maps'?: string;
+    // NEU – für das neue Route-Detail-Design (noch nicht in Supabase, Dummy-Fallback)
+    'scenic_score'?: number;
+    'elevation_gain_m'?: number;
+    'road_surface'?: string;
+    'traffic_level'?: string;
+    'best_time_of_day'?: string;
+    'route_notes'?: string;
+    'best_season'?: string;
+    'must_see_stops'?: string; // Format: "Titel|Beschreibung\nTitel|Beschreibung..."
+    'access_fees'?: string;    // Format: "Zeile1\nZeile2..."
+    'season_timing'?: string;
+    'practical_notes'?: string;
+    'start_elevation_m'?: number;
+    'end_elevation_m'?: number;
+    // NEU – für die "Access & Fees" / "Driving Notes" / "Route Insights" Karten (Dummy-Fallback)
+    'toll_fee'?: string;
+    'access_season'?: string;
+    'opening_access'?: string;
+    'vehicle_restrictions'?: string;
+    'closure_period'?: string;
+    'difficulty'?: string;
+    'fuel_services'?: string;
+    'weather_advice'?: string;
+    // Optional pro Kapitel: `${chapterKey}_elevation_m` (z. B. "chapter2_elevation_m") — echte Höhe
+    // dieses Wegpunkts über dem Meeresspiegel, fließt ins Elevation-Profil ein statt einer Schätzung.
     [key: string]: unknown;
 }
 
@@ -138,6 +164,178 @@ function ImpressionSlideshow({
     );
 }
 
+// Dummy-Werte solange die Felder noch nicht in Supabase existieren – nur zum Design-Preview
+const DUMMY = {
+    scenicScore: 9.7,
+    elevationGain: 1220,
+    roadSurface: 'Well Sealed',
+    trafficLevel: 'Low',
+    bestTimeOfDay: 'Morning',
+    bestSeason: 'Nov – Apr',
+    routeNotes: 'Weather can change rapidly. Allow extra time and check conditions before you go.',
+    mustSeeStops: [
+        { title: 'Eglinton Valley Viewpoint', desc: 'Sweeping views across the glacier-carved Eglinton Valley.' },
+        { title: 'Mirror Lakes', desc: 'Short walk to serene lakes that mirror the surrounding peaks.' },
+        { title: 'The Chasm', desc: 'Powerful waterfalls and dramatic rock formations.' },
+        { title: 'Homer Tunnel', desc: '1.2 km tunnel carved through solid rock.' },
+        { title: 'Milford Sound', desc: 'The grand finale – towering cliffs and cascading waterfalls.' },
+    ],
+    startElevation: 210,
+    endElevation: 10,
+    // Access & Fees
+    tollFee: 'NZD $95 per vehicle',
+    accessSeason: 'Year-round',
+    openingAccess: '24 hours',
+    vehicleRestrictions: 'No trailers over 7.5m, no caravans',
+    closurePeriod: 'Road closed in severe weather conditions',
+    // Driving Notes
+    difficulty: 'Moderate',
+    fuelServices: 'No fuel along route. Fill up in the nearest town.',
+    weatherAdvice: 'Check conditions – expect rain in all seasons',
+};
+
+// Icon + Label für die "Route Highlights"-Boxen (Icon anhand von Stichworten im Highlight-Text gewählt)
+const HIGHLIGHT_ICONS: { match: RegExp; icon: React.ReactNode }[] = [
+    { match: /alpine|mountain|scenery/i, icon: <Mountain size={22} strokeWidth={1.4} /> },
+    { match: /lake|mirror/i, icon: <TreePine size={22} strokeWidth={1.4} /> },
+    { match: /valley|drive|winding|road/i, icon: <RouteIcon size={22} strokeWidth={1.4} /> },
+    { match: /waterfall|chasm/i, icon: <Droplets size={22} strokeWidth={1.4} /> },
+    { match: /tunnel/i, icon: <Compass size={22} strokeWidth={1.4} /> },
+];
+function highlightIcon(label: string) {
+    return HIGHLIGHT_ICONS.find((h) => h.match.test(label))?.icon ?? <Mountain size={22} strokeWidth={1.4} />;
+}
+
+// Simple Elevation-Profil SVG (Platzhalter-Kurve, später mit echten Höhendaten pro Kapitel ersetzbar)
+// Kleiner deterministischer Hash + PRNG (mulberry32) — erzeugt aus einem String (z. B. der Route-ID)
+// eine reproduzierbare, aber pro Route unterschiedliche Zufallsfolge (kein Math.random(), daher stabil
+// zwischen Server- und Client-Rendering).
+function seededRng(seedStr: string) {
+    let h = 1779033703 ^ seedStr.length;
+    for (let i = 0; i < seedStr.length; i++) {
+        h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+    }
+    let seed = h >>> 0;
+    return function rng() {
+        seed |= 0;
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+// Erzeugt eine monoton ansteigende, aber leicht "welligere" Fraktions-Reihe (0 → 1) mit pro-Route
+// individueller Wellenform (Amplitude/Phase aus dem Seed), damit nicht jede Route-Karte identisch aussieht.
+function generateProfileFractions(rng: () => number, steps: number, rising: boolean) {
+    const amplitude = 0.12 + rng() * 0.14;
+    const freq = 2 + rng() * 2.5;
+    const phase = rng() * Math.PI * 2;
+
+    const raw = Array.from({ length: steps }, (_, i) => {
+        const base = i / (steps - 1);
+        const wiggle = Math.sin(base * Math.PI * freq + phase) * amplitude * Math.sin(base * Math.PI); // an den Enden gedämpft
+        return base + wiggle;
+    });
+
+    const min = Math.min(...raw);
+    const max = Math.max(...raw);
+    const norm = raw.map((v) => (v - min) / (max - min || 1));
+
+    return rising ? norm : norm.map((v) => 1 - v);
+}
+
+function ElevationProfile({ startLabel, endLabel, startElevation, endElevation, elevationGain, waypoints, waypointElevations, seedKey, isLight }: {
+    startLabel?: string; endLabel?: string; startElevation: number; endElevation: number; elevationGain: number;
+    waypoints: string[]; waypointElevations: (number | undefined)[]; seedKey: string; isLight: boolean;
+}) {
+    const width = 400;
+    const height = 90;
+    const topPad = 12;
+    const bottomPad = 12;
+
+    // Fallback-Höhenprofil (falls für einzelne Wegpunkte keine echte Höhe in Supabase gepflegt ist):
+    // Anstieg von Start zum Pass, dann Abstieg zum Ziel, aus Elevation Gain abgeleitet.
+    const peakElevation = startElevation + elevationGain;
+    const climbFractions = [0, 0.04, 0.14, 0.10, 0.24, 0.19, 0.36, 0.30, 0.50, 0.44, 0.63, 0.56, 0.78, 0.70, 0.90, 0.82, 1];
+    const descentFractions = [1, 0.84, 0.92, 0.60, 0.68, 0.34, 0.42, 0.16, 0.06, 0];
+    const climbElevations = climbFractions.map((f) => startElevation + f * elevationGain);
+    const descentElevations = descentFractions.map((f) => endElevation + f * (peakElevation - endElevation));
+    const elevations = [...climbElevations, ...descentElevations.slice(1)];
+
+    const minE = Math.min(...elevations);
+    const maxE = Math.max(...elevations);
+    const range = maxE - minE || 1;
+    const stepX = width / (elevations.length - 1);
+
+    const points = elevations.map((e, i) => ({
+        x: i * stepX,
+        y: height - bottomPad - ((e - minE) / range) * (height - topPad - bottomPad),
+    }));
+
+    // Catmull-Rom → Bézier: verbindet die Höhenpunkte mit einer sanften, organischen Kurve.
+    const smoothPath = (() => {
+        let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        for (let i = 0; i < points.length - 1; i++) {
+            const p0 = points[i - 1] ?? points[i];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const p3 = points[i + 2] ?? p2;
+            const cp1x = p1.x + (p2.x - p0.x) / 6;
+            const cp1y = p1.y + (p2.y - p0.y) / 6;
+            const cp2x = p2.x - (p3.x - p1.x) / 6;
+            const cp2y = p2.y - (p3.y - p1.y) / 6;
+            d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+        }
+        return d;
+    })();
+
+    // Ein Zwischenpunkt (ca. bei der zweiten Wegmarke) bekommt einen hohlen Ring-Marker.
+    const midIndex = Math.round(points.length * 0.42);
+    const midPoint = points[midIndex];
+
+    return (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] px-8 py-6">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--dim)] mb-1">
+                <div>
+                    <p>Start</p>
+                    <p className="text-[var(--cream)] text-xs font-bold mt-0.5">{startLabel}</p>
+                    <p className="text-[var(--dim)] font-semibold">{startElevation} m</p>
+                </div>
+                <div className="text-right">
+                    <p>End</p>
+                    <p className="text-[var(--cream)] text-xs font-bold mt-0.5">{endLabel}</p>
+                    <p className="text-[var(--dim)] font-semibold">{endElevation} m</p>
+                </div>
+            </div>
+
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-20 mt-3" preserveAspectRatio="none">
+                <path d={smoothPath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+                <circle cx={points[0].x} cy={points[0].y} r="3.5" fill={isLight ? '#2B2620' : '#EDE5D4'} />
+                {midPoint && (
+                    <circle cx={midPoint.x} cy={midPoint.y} r="3.5" fill={isLight ? '#F4F0E8' : '#111009'} stroke="#10b981" strokeWidth="1.5" />
+                )}
+                <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="3.5" fill={isLight ? '#2B2620' : '#EDE5D4'} />
+            </svg>
+
+            {waypoints.length > 0 && (
+                <div className="flex justify-between mt-2 px-1">
+                    {waypoints.map((w) => (
+                        <span
+                            key={w}
+                            className="text-[10px] text-[var(--dim)] text-center px-1"
+                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                        >
+                            {w}
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function RouteDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -152,6 +350,7 @@ export default function RouteDetailPage() {
     const [avatarUrl, setAvatarUrl] = useState('');
     const [username, setUsername] = useState('');
     const [activeChapter, setActiveChapter] = useState(0);
+    const [openStopIndex, setOpenStopIndex] = useState<number | null>(null);
     const [language, setLanguage] = useState("DE");
     const [showLangMenu, setShowLangMenu] = useState(false);
 
@@ -190,7 +389,10 @@ export default function RouteDetailPage() {
 
     const navOpacity = useTransform(scrollY, [250, 450], [0, 1]);
     const navY = useTransform(scrollY, [250, 450], [-20, 0]);
-    const navBg = useTransform(scrollY, [250, 450], ['rgba(0,0,0,0)', 'var(--nav-scrolled-bg)']);
+    // Motion kann CSS-Variablen nicht animieren/interpolieren (siehe motion.dev/troubleshooting/color-not-animatable),
+    // daher hier den tatsächlichen RGBA-Wert je nach Theme verwenden statt 'var(--nav-scrolled-bg)'.
+    const scrolledBgColor = isLight ? 'rgba(244,240,232,0.85)' : 'rgba(12,11,9,0.85)';
+    const navBg = useTransform(scrollY, [250, 450], ['rgba(0,0,0,0)', scrolledBgColor]);
     const navBlur = useTransform(scrollY, [250, 450], ['blur(0px)', 'blur(20px)']);
     const heroY = useTransform(scrollY, [0, 1000], [0, 300]);
     const heroOpacity = useTransform(scrollY, [0, 800], [1, 0.2]);
@@ -325,7 +527,12 @@ export default function RouteDetailPage() {
         .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
         .map(([key, value]) => {
             const lines = (value as string).split('\n');
-            return { key, title: lines[0], body: lines.slice(1).join('\n') };
+            return {
+                key,
+                title: lines[0] ?? '',       // Zeile 1: Titel
+                short: lines[1] ?? '',       // Zeile 2: Kurztext (in der eingeklappten Zeile sichtbar)
+                body: lines.slice(2).join('\n'), // Zeile 3+: Volltext (nur beim Aufklappen sichtbar)
+            };
         });
 
     const highlights: string[] = (route?.['route_highlights'] ?? '')
@@ -773,7 +980,7 @@ export default function RouteDetailPage() {
 
                         <div className="flex items-center gap-3">
                             <a
-                                href="#route-map"
+                                href="#route-map-mobile"
                                 className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-emerald-400 text-[13px] font-bold uppercase tracking-[0.1em] active:scale-[0.98] transition-transform"
                             >
                                 <MapIcon size={15} strokeWidth={1.8} /> View Map
@@ -791,310 +998,487 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── 1. Hero (nur Desktop, unverändert) ── */}
-                <section className="hidden lg:flex relative h-screen w-full overflow-hidden items-end justify-start px-12 pb-24 md:px-20 md:pb-32">
-                    <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
-                        <img
-                            src={route?.image_url}
-                            alt={route?.title ?? 'Route'}
-                            className="w-full h-full object-cover scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-tr from-black/90 via-black/20 to-transparent" />
-                    </motion.div>
+                {/* ── 1. Hero (volle Höhe, neues Design) ── */}
+                <section className="hidden lg:block relative h-screen w-full overflow-hidden">
+                    <img
+                        src={route?.image_url}
+                        alt={route?.title ?? 'Route'}
+                        className="w-full h-full object-cover object-[center_75%]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
 
-                    <div className="relative z-10 w-full max-w-7xl">
-                        <motion.h1
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 1.2, ease: 'easeOut' }}
-                            className="text-5xl md:text-7xl lg:text-[6rem] font-black italic uppercase leading-[0.9] tracking-tighter text-white drop-shadow-2xl"
-                        >
-                            <HighlightedTitle title={route?.title ?? ''} />
-                        </motion.h1>
-
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.5 }}
-                            transition={{ delay: 2, duration: 1 }}
-                            className="absolute -bottom-16 left-0 flex flex-row items-center gap-3 text-white"
-                        >
-                            <span className="text-[10px] font-bold uppercase tracking-[0.4em]">Scroll</span>
-                            <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}>
-                                <ChevronDown size={16} />
-                            </motion.div>
-                        </motion.div>
+                    <div className="absolute bottom-24 left-0 w-full pl-16 pr-12">
+                        <div className="flex items-end justify-between">
+                            <div>
+                                <h1 className="text-7xl lg:text-8xl font-black italic uppercase leading-[0.9] tracking-tighter text-white drop-shadow-2xl">
+                                    <HighlightedTitle title={route?.title ?? ''} />
+                                </h1>
+                                <div className="mt-4 flex items-center gap-1.5">
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70">
+                                        Scroll
+                                    </span>
+                                    <motion.div
+                                        animate={{ y: [0, 4, 0] }}
+                                        transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+                                    >
+                                        <ChevronDown size={14} className="text-white/70" />
+                                    </motion.div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                {/* ── 2. Quick Stats Bar (nur Desktop, unverändert) ── */}
-                <div className="hidden lg:block sticky top-0 z-40 w-full backdrop-blur-3xl bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] border-y border-[var(--border)] shadow-2xl">
-                    <div className="max-w-7xl mx-auto px-12 py-10 grid grid-cols-2 md:grid-cols-5 gap-8 text-[10px] font-bold uppercase tracking-[0.6em] opacity-90">
-                        {[
-                            { icon: <Clock size={18} strokeWidth={1} />, label: route?.duration },
-                            { icon: <Navigation size={18} strokeWidth={1} />, label: formatDistance(route?.distance_km, unit) },
-                            { icon: <MapPin size={18} strokeWidth={1} />, label: route?.country, truncate: true },
-                            { icon: <Star size={18} className="fill-emerald-500 text-emerald-500" />, label: '4.9 Rating' },
-                        ].map(({ icon, label, truncate }, i) => (
-                            <div
-                                key={i}
-                                className={`flex items-center gap-4 justify-center md:justify-start text-[var(--cream)] hover:text-emerald-400 transition-all${truncate ? ' truncate' : ''}`}
-                            >
-                                {icon} {label}
-                            </div>
-                        ))}
+                {/* ── 2. Quick Facts Bar (neues Design) ── */}
+                <div className="hidden lg:block w-full bg-[var(--bg)] border-b border-[var(--border)]">
+                    <div className="max-w-7xl mx-auto px-12 py-8 flex items-center justify-between gap-8">
+                        <div className="grid grid-cols-5 gap-8 flex-1">
+                            {[
+                                { icon: <Clock size={18} strokeWidth={1.4} />, label: 'Drive Time', value: route?.duration },
+                                { icon: <Navigation size={18} strokeWidth={1.4} />, label: 'Distance', value: formatDistance(route?.distance_km, unit) },
+                                { icon: <Globe size={18} strokeWidth={1.4} />, label: 'Country', value: route?.country },
+                                { icon: <MapPin size={18} strokeWidth={1.4} />, label: 'Best Season', value: (route?.['best_season'] as string) ?? DUMMY.bestSeason },
+                                { icon: <Star size={18} strokeWidth={1.4} />, label: 'Scenic Score', value: `${(route?.['scenic_score'] as number) ?? DUMMY.scenicScore} / 10`, accent: true },
+                            ].map(({ icon, label, value, accent }, i) => (
+                                <div key={i} className="flex items-start gap-3">
+                                    <span className="text-[var(--dim)] mt-0.5">{icon}</span>
+                                    <div>
+                                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--dim)]">{label}</p>
+                                        <p className={`text-lg font-bold mt-0.5 ${accent ? 'text-emerald-500' : 'text-[var(--cream)]'}`}>{value}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
                         <a
-                            href="#route-map"
-                            className="flex items-center gap-3 justify-center md:justify-center text-emerald-400 border border-emerald-500/60 rounded-full px-6 py-3 bg-emerald-500/10 hover:bg-emerald-500 hover:text-black hover:border-emerald-400 transition-all duration-300 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
+                            href="#route-map-desktop"
+                            className="shrink-0 flex items-center gap-2 border border-emerald-500/50 text-emerald-500 font-bold text-[11px] uppercase tracking-[0.12em] px-6 py-3 rounded-full hover:bg-emerald-500 hover:text-black transition-colors"
                         >
-                            <MapPin size={18} strokeWidth={1.6} />
-                            <span>Map</span>
+                            <MapIcon size={15} strokeWidth={1.8} /> View Map
                         </a>
                     </div>
                 </div>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE STORY / CHAPTERS / IMPRESSIONS — NEU
-                   ══════════════════════════════════════════════════════════ */}
-                <section className="lg:hidden px-5 pt-10 pb-4 space-y-10">
-                    <div className="space-y-4">
-                        <h2 className="text-[26px] leading-[1.1] font-serif italic text-[var(--cream)]">
-                            The <br /> Untold Story.
-                        </h2>
-                        <div className="h-px w-14 bg-emerald-500/40" />
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="w-full h-[200px] rounded-2xl overflow-hidden border border-[var(--border)]">
-                            <img src={route?.image_url} className="w-full h-full object-cover" alt="Story visual" />
+                {/* ── 2b. Overview (neues Design) ── */}
+                <section className="hidden lg:block max-w-7xl mx-auto px-12 py-24">
+                    <div className="space-y-8">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-emerald-500">About the Route</p>
+                                <div className="h-px w-10 bg-emerald-500/50" />
+                            </div>
+                            <h2 className="text-5xl font-serif text-[var(--cream)] leading-tight">
+                                An Iconic {route?.country ? `${route.country} ` : ''}Journey
+                            </h2>
                         </div>
-                        <p className="text-[13px] leading-relaxed text-[var(--muted)] font-light">
+                        <p className="text-lg leading-relaxed text-[var(--muted)] font-light max-w-3xl">
                             {route?.description}
                         </p>
-                    </div>
 
-                    {chapters.length > 0 && (
-                        <div className="space-y-4">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">The Route</p>
+                        {highlights.length > 0 && (
+                            <div className="space-y-4">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Route Highlights</p>
+                                <div className="flex flex-wrap gap-4">
+                                    {highlights.map((h, i) => (
+                                        <div
+                                            key={i}
+                                            className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-[var(--border)] bg-[var(--bg2)] text-[var(--cream)]"
+                                        >
+                                            <span className="text-emerald-500 shrink-0">{highlightIcon(h)}</span>
+                                            <span className="text-sm font-medium whitespace-nowrap">{h}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
-                            <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
-                                {chapters.map((chapter, index) => (
-                                    <button
-                                        key={chapter.key}
-                                        type="button"
-                                        onClick={() => setActiveChapter(index)}
-                                        className={`shrink-0 px-4 py-2 rounded-full border text-[13px] font-bold tracking-wider transition-all duration-300
-                                            ${activeChapter === index
-                                                ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-                                                : 'border-[var(--border)] text-[var(--dim)]'
-                                            }`}
-                                    >
-                                        {String(index + 1).padStart(2, '0')}
-                                    </button>
-                                ))}
+                        {/* ── Access & Fees / Driving Notes / Route Insights (neues 3-Karten-Design) ── */}
+                        <div className="grid grid-cols-3 gap-8 pt-4">
+                            {/* Access & Fees */}
+                            <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] p-7 flex flex-col">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <span className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
+                                        <Ticket size={20} strokeWidth={1.4} />
+                                    </span>
+                                    <h3 className="font-serif text-xl text-[var(--cream)]">Access & Fees</h3>
+                                </div>
+
+                                <div className="space-y-4 flex-1">
+                                    {[
+                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: (route?.['toll_fee'] as string) ?? DUMMY.tollFee },
+                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Season', value: (route?.['access_season'] as string) ?? DUMMY.accessSeason },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: (route?.['opening_access'] as string) ?? DUMMY.openingAccess },
+                                        { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: (route?.['vehicle_restrictions'] as string) ?? DUMMY.vehicleRestrictions },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: (route?.['closure_period'] as string) ?? DUMMY.closurePeriod },
+                                    ].map(({ icon, label, value }) => (
+                                        <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                            <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-[var(--dim)]">{label}</p>
+                                                <p className="text-sm font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
-                            <motion.div
-                                key={chapters[activeChapter].key}
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4 }}
-                                className="border border-[var(--border)] rounded-[1.5rem] bg-[var(--bg2)] p-6 space-y-3"
-                            >
-                                <span className="font-serif text-2xl text-emerald-400 italic leading-none">
-                                    {String(activeChapter + 1).padStart(2, '0')}
-                                </span>
+                            {/* Driving Notes */}
+                            <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] p-7 flex flex-col">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <span className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
+                                        <Car size={20} strokeWidth={1.4} />
+                                    </span>
+                                    <h3 className="font-serif text-xl text-[var(--cream)]">Driving Notes</h3>
+                                </div>
 
-                                <h3 className="text-lg font-serif italic text-[var(--cream)] leading-snug">
-                                    {chapters[activeChapter].title}
-                                </h3>
+                                <div className="space-y-4 flex-1">
+                                    {[
+                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
+                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: (route?.['difficulty'] as string) ?? DUMMY.difficulty },
+                                        { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Best Time of Day', value: (route?.['best_time_of_day'] as string) ?? DUMMY.bestTimeOfDay },
+                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: (route?.['fuel_services'] as string) ?? DUMMY.fuelServices },
+                                        { icon: <CloudRain size={15} strokeWidth={1.6} />, label: 'Weather Advice', value: (route?.['weather_advice'] as string) ?? DUMMY.weatherAdvice },
+                                    ].map(({ icon, label, value }) => (
+                                        <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                            <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-[var(--dim)]">{label}</p>
+                                                <p className="text-sm font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
 
-                                <p className="text-[var(--muted)] text-[13px] leading-relaxed font-light whitespace-pre-line">
-                                    {chapters[activeChapter].body}
+                            {/* Route Insights */}
+                            <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] overflow-hidden flex flex-col">
+                                <div className="p-7 pb-0 relative">
+                                    <span className="absolute top-0 right-6 w-8 h-10 bg-emerald-500 flex items-start justify-center pt-2" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)' }}>
+                                        <Star size={13} className="text-black fill-black" />
+                                    </span>
+
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <span className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
+                                            <Mountain size={20} strokeWidth={1.4} />
+                                        </span>
+                                        <div>
+                                            <h3 className="font-serif text-xl text-[var(--cream)] leading-tight">Route Insights</h3>
+                                            <p className="text-xs text-[var(--dim)] mt-0.5">{route?.title}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+                                            <span className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                                                <Star size={14} strokeWidth={1.6} className="text-[var(--dim)]" /> Scenic Score
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                    <Star
+                                                        key={i}
+                                                        size={12}
+                                                        className={i < Math.round(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
+                                                    />
+                                                ))}
+                                                <span className="text-xs font-bold text-[var(--cream)] ml-1">
+                                                    {(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2).toFixed(1)} / 5
+                                                </span>
+                                            </span>
+                                        </div>
+                                        {[
+                                            { icon: <Mountain size={14} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${(route?.['elevation_gain_m'] as number) ?? DUMMY.elevationGain} m` },
+                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
+                                            { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                        ].map(({ icon, label, value }) => (
+                                            <div key={label} className="flex items-center justify-between text-sm border-b border-[var(--border)] pb-4">
+                                                <span className="flex items-center gap-2 text-[var(--muted)]">
+                                                    <span className="text-[var(--dim)]">{icon}</span> {label}
+                                                </span>
+                                                <span className="font-bold text-[var(--cream)]">{value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="pt-5 pb-7">
+                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--dim)] mb-1.5">Route Note</p>
+                                        <p className="text-sm text-[var(--cream)] leading-relaxed font-light">
+                                            {(route?.['route_notes'] as string) ?? DUMMY.routeNotes}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── 2c. Route Overview / Karte (neues Design, an Mockup-Position) ── */}
+                <section id="route-map-desktop" className="hidden lg:block max-w-7xl mx-auto px-12 pb-24 scroll-mt-32">
+                    <div className="space-y-4 mb-8">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)]">
+                            Route Overview
+                        </p>
+                        <h2 className="text-5xl font-serif italic text-[var(--cream)] leading-tight">
+                            Route <span className="text-emerald-500">Overview</span>
+                        </h2>
+                    </div>
+
+                    <div className={`rounded-[2rem] overflow-hidden ${isLight ? 'border border-[var(--border)] shadow-[0_20px_60px_rgba(43,38,32,0.12)]' : 'shadow-[0_30px_100px_rgba(0,0,0,0.8)]'}`}>
+                        <div className={`relative h-[620px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
+                            {route?.['google_maps'] && (
+                                <iframe
+                                    src={route['google_maps']}
+                                    width="100%"
+                                    height="100%"
+                                    style={{
+                                        border: 0,
+                                        filter: isLight
+                                            ? 'none'
+                                            : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
+                                    }}
+                                    allowFullScreen
+                                    loading="lazy"
+                                    title="Route Map"
+                                    className="w-full h-full outline-none border-none"
+                                />
+                            )}
+
+                            {!isLight && (
+                                <>
+                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
+                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
+                                </>
+                            )}
+                        </div>
+
+                        <div className={`flex items-center justify-between gap-6 px-8 py-7 ${isLight ? 'bg-[#ffffff]' : 'bg-[#0d1626]'}`}>
+                            <div className="space-y-1.5 min-w-0">
+                                <p className={`font-bold text-lg md:text-xl truncate ${isLight ? 'text-[#1a1a1a]' : 'text-white'}`}>
+                                    {route?.['start_point']}
+                                    <span className="text-emerald-500 mx-2">→</span>
+                                    {route?.['end_point']}
                                 </p>
-                            </motion.div>
+                                <p className={`text-xs md:text-sm flex items-center gap-2 flex-wrap ${isLight ? 'text-[#6b6b6b]' : 'text-zinc-400'}`}>
+                                    <span className="text-emerald-500">One way</span>
+                                    <span className="opacity-40">·</span>
+                                    <span>{formatDistance(route?.distance_km, unit)}</span>
+                                </p>
+                            </div>
+
+                            <a
+                                href={route?.['maps_URL']}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`shrink-0 flex items-center gap-2 font-bold text-xs uppercase tracking-wider px-5 py-3.5 rounded-full transition-all duration-300 active:scale-95 shadow-lg hover:bg-emerald-400 hover:text-black ${isLight ? 'bg-[#1a1a1a] text-white' : 'bg-white text-black'}`}
+                            >
+                                <Navigation size={14} />
+                                View Route
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── 2d. Must-See Stops (neues Design) — nutzt echte Kapitel-Daten, sonst Dummy-Fallback ── */}
+                <section className="hidden lg:block max-w-7xl mx-auto px-12 pb-24">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)] mb-8">Must-See Stops</p>
+                    <div className="border border-[var(--border)] rounded-[1.5rem] overflow-hidden">
+                        {(chapters.length > 0
+                            ? chapters.map((c) => ({ title: c.title, short: c.short, full: c.body || c.short }))
+                            : DUMMY.mustSeeStops.map((s) => ({ title: s.title, short: s.desc, full: s.desc }))
+                        ).map((stop, i) => {
+                            const isOpen = openStopIndex === i;
+                            return (
+                                <div key={stop.title + i} className={i !== 0 ? 'border-t border-[var(--border)]' : ''}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenStopIndex(isOpen ? null : i)}
+                                        className="w-full flex items-center gap-6 px-8 py-5 text-left"
+                                    >
+                                        <span className="text-emerald-500 font-bold text-sm w-8 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                                        <span className="font-bold text-[var(--cream)] w-56 shrink-0">{stop.title}</span>
+                                        <span className="text-sm text-[var(--muted)] font-light flex-1 truncate">{stop.short}</span>
+                                        <ChevronDown
+                                            size={16}
+                                            className={`text-[var(--dim)] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-500' : ''}`}
+                                        />
+                                    </button>
+                                    <AnimatePresence>
+                                        {isOpen && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <p className="px-8 pb-6 pl-[104px] text-sm text-[var(--muted)] font-light leading-relaxed whitespace-pre-line">
+                                                    {stop.full}
+                                                </p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE ABOUT THE ROUTE — NEU
+                   ══════════════════════════════════════════════════════════ */}
+                <section className="lg:hidden px-5 pt-10 pb-8 space-y-8">
+                    <div className="space-y-3">
+                        <div className="space-y-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-emerald-500">About the Route</p>
+                            <div className="h-px w-8 bg-emerald-500/50" />
+                        </div>
+                        <h2 className="text-[26px] leading-[1.1] font-serif text-[var(--cream)]">
+                            An Iconic {route?.country ? `${route.country} ` : ''}Journey
+                        </h2>
+                    </div>
+
+                    <p className="text-[13px] leading-relaxed text-[var(--muted)] font-light">
+                        {route?.description}
+                    </p>
+
+                    {highlights.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[var(--dim)]">Route Highlights</p>
+                            <div className="flex flex-wrap gap-2.5">
+                                {highlights.map((h, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex items-center gap-2 px-3.5 py-3 rounded-xl border border-[var(--border)] bg-[var(--bg2)] text-[var(--cream)]"
+                                    >
+                                        <span className="text-emerald-500 shrink-0">{highlightIcon(h)}</span>
+                                        <span className="text-[12px] font-medium whitespace-nowrap">{h}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </section>
 
                 {/* ══════════════════════════════════════════════════════════
-                    MOBILE HIGHLIGHTS — NEU (Slider + Icon-Liste + Merken-Button)
+                    MOBILE ACCESS & FEES / DRIVING NOTES / ROUTE INSIGHTS — NEU
                    ══════════════════════════════════════════════════════════ */}
-                <section className="lg:hidden relative px-5 pt-6 pb-20 space-y-6">
-                    {impressionImages.length > 0 && (
-                        <div className="space-y-3">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Scenic Highlights</p>
-
-                            <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--border)]">
-                                <AnimatePresence mode="sync">
-                                    <motion.img
-                                        key={`${impressionImages[mobileSlideIndex % impressionImages.length]}-${mobileSlideIndex}`}
-                                        src={impressionImages[mobileSlideIndex % impressionImages.length]}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.6 }}
-                                        className="absolute inset-0 w-full h-full object-cover"
-                                        alt="Impression"
-                                    />
-                                </AnimatePresence>
-                            </div>
-
-                            {impressionImages.length > 1 && (
-                                <div className="flex items-center justify-center gap-1.5">
-                                    {impressionImages.map((_, i) => (
-                                        <button
-                                            key={i}
-                                            type="button"
-                                            onClick={() => setMobileSlideIndex(i)}
-                                            aria-label={`Bild ${i + 1} anzeigen`}
-                                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                                                i === mobileSlideIndex % impressionImages.length ? 'w-5 bg-emerald-400' : 'w-1.5 bg-[var(--border)]'
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                <section className="lg:hidden px-5 pb-10 space-y-5">
+                    {/* Access & Fees */}
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
+                                <Ticket size={17} strokeWidth={1.4} />
+                            </span>
+                            <h3 className="font-serif text-lg text-[var(--cream)]">Access & Fees</h3>
                         </div>
-                    )}
-                </section>
-
-                {/* ── 3. Story Section (nur Desktop, unverändert) ── */}
-                <section className="hidden lg:block max-w-7xl mx-auto px-12 pt-12 pb-24 md:pt-16 md:pb-32 space-y-32">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-48 items-center mb-32">
-                        <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 1.2 }}
-                            viewport={{ once: true }}
-                            className="space-y-12"
-                        >
-                            <div className="space-y-6">
-                                <h2 className="text-6xl md:text-7xl font-serif italic text-[var(--cream)] leading-tight">
-                                    The <br /> Untold Story.
-                                </h2>
-                                <div className="h-px w-32 bg-emerald-500/30" />
-                            </div>
-                            <p className="text-2xl leading-relaxed text-[var(--muted)] font-light italic border-l-2 border-emerald-500/40 pl-8">
-                                {route?.description}
-                            </p>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            whileInView={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 1.5 }}
-                            viewport={{ once: true }}
-                            className="relative aspect-[4/5] rounded-[3rem] overflow-hidden border border-[var(--border)] shadow-2xl group"
-                        >
-                            <img
-                                src={route?.image_url}
-                                className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110"
-                                alt="Story visual"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        </motion.div>
+                        <div className="space-y-3">
+                            {[
+                                { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: (route?.['toll_fee'] as string) ?? DUMMY.tollFee },
+                                { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: (route?.['access_season'] as string) ?? DUMMY.accessSeason },
+                                { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: (route?.['opening_access'] as string) ?? DUMMY.openingAccess },
+                                { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: (route?.['vehicle_restrictions'] as string) ?? DUMMY.vehicleRestrictions },
+                                { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: (route?.['closure_period'] as string) ?? DUMMY.closurePeriod },
+                            ].map(({ icon, label, value }) => (
+                                <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                    <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] text-[var(--dim)]">{label}</p>
+                                        <p className="text-[12.5px] font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    {chapters.length > 0 && (
-                        <div className="space-y-12">
-                            {/* Kapitel-Label + Tabs */}
-                            <div className="space-y-6">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)]">
-                                    Kapitel der Route
-                                </p>
-                                <div className="flex flex-wrap gap-3">
-                                    {chapters.map((chapter, index) => (
-                                        <button
-                                            key={chapter.key}
-                                            type="button"
-                                            onClick={() => setActiveChapter(index)}
-                                            className={`px-5 py-3 rounded-xl border text-sm font-bold tracking-wider transition-all duration-300
-                                                ${activeChapter === index
-                                                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
-                                                    : 'border-[var(--border)] text-[var(--dim)] hover:text-[var(--cream)] hover:border-[var(--muted)]'
-                                                }`}
-                                        >
-                                            {String(index + 1).padStart(2, '0')}
-                                        </button>
-                                    ))}
+                    {/* Driving Notes */}
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
+                                <Car size={17} strokeWidth={1.4} />
+                            </span>
+                            <h3 className="font-serif text-lg text-[var(--cream)]">Driving Notes</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {[
+                                { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
+                                { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: (route?.['difficulty'] as string) ?? DUMMY.difficulty },
+                                { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Best Time of Day', value: (route?.['best_time_of_day'] as string) ?? DUMMY.bestTimeOfDay },
+                                { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: (route?.['fuel_services'] as string) ?? DUMMY.fuelServices },
+                                { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: (route?.['weather_advice'] as string) ?? DUMMY.weatherAdvice },
+                            ].map(({ icon, label, value }) => (
+                                <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                    <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] text-[var(--dim)]">{label}</p>
+                                        <p className="text-[12.5px] font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Route Insights */}
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5 relative">
+                        <span className="absolute top-0 right-5 w-7 h-9 bg-emerald-500 flex items-start justify-center pt-1.5" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)' }}>
+                            <Star size={11} className="text-black fill-black" />
+                        </span>
+
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
+                                <Mountain size={17} strokeWidth={1.4} />
+                            </span>
+                            <div>
+                                <h3 className="font-serif text-lg text-[var(--cream)] leading-tight">Route Insights</h3>
+                                <p className="text-[11px] text-[var(--dim)] mt-0.5">{route?.title}</p>
                             </div>
+                        </div>
 
-                            {/* Aktives Kapitel */}
-                            <motion.div
-                                key={chapters[activeChapter].key}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                                className="relative flex border border-[var(--border)] rounded-[2rem] overflow-hidden bg-[var(--bg2)]"
-                            >
-                                {/* Linker Gradient-Rand mit Nummer */}
-                                <div className="relative flex items-start justify-center w-28 md:w-36 shrink-0 pt-10">
-                                    <span className="font-serif text-5xl md:text-6xl text-emerald-400 italic leading-none">
-                                        {String(activeChapter + 1).padStart(2, '0')}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                                <span className="flex items-center gap-2 text-[12.5px] text-[var(--muted)]">
+                                    <Star size={13} strokeWidth={1.6} className="text-[var(--dim)]" /> Scenic Score
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star
+                                            key={i}
+                                            size={11}
+                                            className={i < Math.round(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
+                                        />
+                                    ))}
+                                    <span className="text-[11px] font-bold text-[var(--cream)] ml-1">
+                                        {(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2).toFixed(1)} / 5
                                     </span>
-                                    {/* Mittige Trennlinie */}
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 h-50 w-px bg-[var(--border)]" />
+                                </span>
+                            </div>
+                            {[
+                                { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${(route?.['elevation_gain_m'] as number) ?? DUMMY.elevationGain} m` },
+                                { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
+                                { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                            ].map(({ icon, label, value }) => (
+                                <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3">
+                                    <span className="flex items-center gap-2 text-[var(--muted)]">
+                                        <span className="text-[var(--dim)]">{icon}</span> {label}
+                                    </span>
+                                    <span className="font-bold text-[var(--cream)]">{value}</span>
                                 </div>
-
-                                {/* Inhalt */}
-                                <div className="flex-1 p-10 md:p-12">
-                                    <h3 className="text-2xl md:text-3xl font-serif italic text-[var(--cream)] leading-snug mb-6">
-                                        {chapters[activeChapter].title}
-                                    </h3>
-
-                                    <p className="text-[var(--muted)] text-lg leading-relaxed font-light max-w-3xl whitespace-pre-line">
-                                        {chapters[activeChapter].body}
-                                    </p>
-
-                                    {/* Optionale Etappe/Höhe-Felder, falls in der DB vorhanden */}
-                                    {(Boolean(route?.[`${chapters[activeChapter].key}_distance`]) || Boolean(route?.[`${chapters[activeChapter].key}_elevation`])) && (
-                                        <div className="flex gap-10 mt-8 pt-8 border-t border-[var(--border)] text-xs uppercase tracking-[0.2em] text-[var(--dim)]">
-                                            {Boolean(route?.[`${chapters[activeChapter].key}_distance`]) && (
-                                                <span>
-                                                    Etappe
-                                                    <span className="text-emerald-400 font-bold ml-2">
-                                                        {String(route?.[`${chapters[activeChapter].key}_distance`] ?? '')}
-                                                    </span>
-                                                </span>
-                                            )}
-                                            {Boolean(route?.[`${chapters[activeChapter].key}_elevation`]) && (
-                                                <span>
-                                                    Höhe
-                                                    <span className="text-emerald-400 font-bold ml-2">
-                                                        {String(route?.[`${chapters[activeChapter].key}_elevation`] ?? '')}
-                                                    </span>
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
+                            ))}
                         </div>
-                    )}
 
-                    {/* Impressionen — eigenständiger Bereich, unabhängig von den Kapiteln */}
-                    {impressionImages.length > 0 && (
-                        <div className="space-y-4">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)]">
-                                Impressionen
+                        <div className="pt-4">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--dim)] mb-1.5">Route Note</p>
+                            <p className="text-[12.5px] text-[var(--cream)] leading-relaxed font-light">
+                                {(route?.['route_notes'] as string) ?? DUMMY.routeNotes}
                             </p>
-                            <ImpressionSlideshow
-                                images={impressionImages}
-                                intervalMs={4000}
-                            />
                         </div>
-                    )}
+                    </div>
                 </section>
-
-                {/* Anker-Marker für "View Map" / "Karte" – vermeidet doppelte id="route-map" bei zwei Sektionen */}
-                <div id="route-map" className="scroll-mt-16 lg:scroll-mt-0" />
 
                 {/* ══════════════════════════════════════════════════════════
                     MOBILE MAP — NEU
                    ══════════════════════════════════════════════════════════ */}
-                <section className="lg:hidden px-5 pt-4 pb-10">
+                <section id="route-map-mobile" className="lg:hidden px-5 pt-4 pb-10 scroll-mt-20">
                     <div className="space-y-3 mb-5">
                         <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Navigation</p>
                         <h2 className="text-[26px] font-serif italic text-[var(--cream)] leading-tight">
@@ -1158,70 +1542,52 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── 4. Map Section (nur Desktop, unverändert) ── */}
-                <section className="hidden lg:block max-w-7xl mx-auto px-6 md:px-12 pt-32 pb-10">
-                    <div className="space-y-6 mb-10 px-2">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)]">
-                            Navigation
-                        </p>
-                        <h2 className="text-5xl md:text-6xl font-serif italic text-[var(--cream)] leading-tight">
-                            Route <span className="text-emerald-500">Overview</span>
-                        </h2>
-                        <div className="h-px w-32 bg-emerald-500/30" />
-                    </div>
-
-                    <div className={`bg-[color-mix(in_srgb,var(--bg2)_80%,transparent)] rounded-[3rem] overflow-hidden backdrop-blur-md ${isLight ? 'shadow-[0_20px_60px_rgba(43,38,32,0.12)] border border-[var(--border)]' : 'shadow-[0_30px_100px_rgba(0,0,0,0.8)]'}`}>
-                        <div className={`relative h-[600px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
-                            {route?.['google_maps'] && (
-                                <iframe
-                                    src={route['google_maps']}
-                                    width="100%"
-                                    height="100%"
-                                    style={{
-                                        border: 0,
-                                        filter: isLight
-                                            ? 'none'
-                                            : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
-                                    }}
-                                    allowFullScreen
-                                    loading="lazy"
-                                    title="Route Map"
-                                    className="w-full h-full outline-none border-none"
-                                />
-                            )}
-
-                            {!isLight && (
-                                <>
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
-                                </>
-                            )}
-                        </div>
-
-                        <div className={`flex items-center justify-between gap-6 px-8 py-7 ${isLight ? 'bg-[#ffffff]' : 'bg-[#0d1626]'}`}>
-                            <div className="space-y-1.5 min-w-0">
-                                <p className={`font-bold text-lg md:text-xl truncate ${isLight ? 'text-[#1a1a1a]' : 'text-white'}`}>
-                                    {route?.['start_point']}
-                                    <span className="text-emerald-500 mx-2">→</span>
-                                    {route?.['end_point']}
-                                </p>
-                                <p className={`text-xs md:text-sm flex items-center gap-2 flex-wrap ${isLight ? 'text-[#6b6b6b]' : 'text-zinc-400'}`}>
-                                    <span className="text-emerald-500">{route?.duration}</span>
-                                    <span className="opacity-40">·</span>
-                                    <span>{formatDistance(route?.distance_km, unit)}</span>
-                                </p>
-                            </div>
-
-                            <a
-                                href={route?.['maps_URL']}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`shrink-0 flex items-center gap-2 font-bold text-xs uppercase tracking-wider px-5 py-3.5 rounded-full transition-all duration-300 active:scale-95 shadow-lg hover:bg-emerald-400 hover:text-black ${isLight ? 'bg-[#1a1a1a] text-white' : 'bg-white text-black'}`}
-                            >
-                                <Navigation size={14} />
-                                Route
-                            </a>
-                        </div>
+                {/* ══════════════════════════════════════════════════════════
+                    MOBILE MUST-SEE STOPS — NEU
+                   ══════════════════════════════════════════════════════════ */}
+                <section className="lg:hidden px-5 pt-8 pb-8">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[var(--dim)] mb-4">Must-See Stops</p>
+                    <div className="border border-[var(--border)] rounded-2xl overflow-hidden">
+                        {(chapters.length > 0
+                            ? chapters.map((c) => ({ title: c.title, short: c.short, full: c.body || c.short }))
+                            : DUMMY.mustSeeStops.map((s) => ({ title: s.title, short: s.desc, full: s.desc }))
+                        ).map((stop, i) => {
+                            const isOpen = openStopIndex === i;
+                            return (
+                                <div key={stop.title + i} className={i !== 0 ? 'border-t border-[var(--border)]' : ''}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenStopIndex(isOpen ? null : i)}
+                                        className="w-full flex items-start gap-3 px-4 py-4 text-left"
+                                    >
+                                        <span className="text-emerald-500 font-bold text-xs mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-[var(--cream)] text-[13px]">{stop.title}</p>
+                                            <p className="text-[12px] text-[var(--muted)] font-light truncate">{stop.short}</p>
+                                        </div>
+                                        <ChevronDown
+                                            size={15}
+                                            className={`text-[var(--dim)] shrink-0 mt-0.5 transition-transform duration-300 ${isOpen ? 'rotate-180 text-emerald-500' : ''}`}
+                                        />
+                                    </button>
+                                    <AnimatePresence>
+                                        {isOpen && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <p className="px-4 pb-4 pl-[38px] text-[12.5px] text-[var(--muted)] font-light leading-relaxed whitespace-pre-line">
+                                                    {stop.full}
+                                                </p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            );
+                        })}
                     </div>
                 </section>
 
@@ -1430,7 +1796,7 @@ export default function RouteDetailPage() {
                     </div>
                 </footer>
 
-                {/* ── Floating Heart (nur Desktop, unverändert — auf Mobile übernimmt der Herz-Button in der Top-Bar) ── */}
+                {/* ── Floating Heart (nur Desktop) ── */}
                 <div className="hidden lg:block fixed bottom-16 right-16 z-50">
                     <motion.button
                         whileHover={{ scale: 1.12 }}
