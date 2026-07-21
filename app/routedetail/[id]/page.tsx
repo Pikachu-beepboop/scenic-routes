@@ -360,6 +360,8 @@ export default function RouteDetailPage() {
     const [mobileNavScrolled, setMobileNavScrolled] = useState(false);
     // NEU – nur für die Mobile-Ansicht: Accordion-Footer (Explore/About/Support/Legal)
     const [mobileFooterOpen, setMobileFooterOpen] = useState<'explore' | 'about' | 'support' | 'legal' | null>(null);
+    // NEU – nur für die Mobile-Ansicht: aufklappbare Info-Karten (Access & Fees / Driving Notes / Route Insights)
+    const [mobileInfoOpen, setMobileInfoOpen] = useState<'access' | 'driving' | 'insights' | null>(null);
     // NEU – nur für die Mobile-Ansicht: aktives Bild im Highlights-Slider
     const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
 
@@ -1365,57 +1367,97 @@ export default function RouteDetailPage() {
                 <section className="lg:hidden px-5 pb-10 space-y-5">
                     {/* Access & Fees */}
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5">
-                        <div className="flex items-center gap-3 mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setMobileInfoOpen(mobileInfoOpen === 'access' ? null : 'access')}
+                            className="w-full flex items-center gap-3"
+                        >
                             <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                 <Ticket size={17} strokeWidth={1.4} />
                             </span>
-                            <h3 className="font-serif text-lg text-[var(--cream)]">Access & Fees</h3>
-                        </div>
-                        <div className="space-y-3">
-                            {[
-                                { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: (route?.['toll_fee'] as string) ?? DUMMY.tollFee },
-                                { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: (route?.['access_season'] as string) ?? DUMMY.accessSeason },
-                                { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: (route?.['opening_access'] as string) ?? DUMMY.openingAccess },
-                                { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: (route?.['vehicle_restrictions'] as string) ?? DUMMY.vehicleRestrictions },
-                                { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: (route?.['closure_period'] as string) ?? DUMMY.closurePeriod },
-                            ].map(({ icon, label, value }) => (
-                                <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
-                                    <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] text-[var(--dim)]">{label}</p>
-                                        <p className="text-[12.5px] font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                            <h3 className="font-serif text-lg text-[var(--cream)] flex-1 text-left">Access & Fees</h3>
+                            <ChevronDown
+                                size={17}
+                                className={`text-[var(--dim)] shrink-0 transition-transform duration-300 ${mobileInfoOpen === 'access' ? 'rotate-180 text-emerald-500' : ''}`}
+                            />
+                        </button>
+                        <AnimatePresence>
+                            {mobileInfoOpen === 'access' && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="space-y-3 pt-4">
+                                        {[
+                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: (route?.['toll_fee'] as string) ?? DUMMY.tollFee },
+                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: (route?.['access_season'] as string) ?? DUMMY.accessSeason },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: (route?.['opening_access'] as string) ?? DUMMY.openingAccess },
+                                            { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: (route?.['vehicle_restrictions'] as string) ?? DUMMY.vehicleRestrictions },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: (route?.['closure_period'] as string) ?? DUMMY.closurePeriod },
+                                        ].map(({ icon, label, value }) => (
+                                            <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                                <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-[var(--dim)]">{label}</p>
+                                                    <p className="text-[12.5px] font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     {/* Driving Notes */}
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5">
-                        <div className="flex items-center gap-3 mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setMobileInfoOpen(mobileInfoOpen === 'driving' ? null : 'driving')}
+                            className="w-full flex items-center gap-3"
+                        >
                             <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                 <Car size={17} strokeWidth={1.4} />
                             </span>
-                            <h3 className="font-serif text-lg text-[var(--cream)]">Driving Notes</h3>
-                        </div>
-                        <div className="space-y-3">
-                            {[
-                                { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
-                                { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: (route?.['difficulty'] as string) ?? DUMMY.difficulty },
-                                { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
-                                { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Best Time of Day', value: (route?.['best_time_of_day'] as string) ?? DUMMY.bestTimeOfDay },
-                                { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: (route?.['fuel_services'] as string) ?? DUMMY.fuelServices },
-                                { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: (route?.['weather_advice'] as string) ?? DUMMY.weatherAdvice },
-                            ].map(({ icon, label, value }) => (
-                                <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
-                                    <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] text-[var(--dim)]">{label}</p>
-                                        <p className="text-[12.5px] font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                            <h3 className="font-serif text-lg text-[var(--cream)] flex-1 text-left">Driving Notes</h3>
+                            <ChevronDown
+                                size={17}
+                                className={`text-[var(--dim)] shrink-0 transition-transform duration-300 ${mobileInfoOpen === 'driving' ? 'rotate-180 text-emerald-500' : ''}`}
+                            />
+                        </button>
+                        <AnimatePresence>
+                            {mobileInfoOpen === 'driving' && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="space-y-3 pt-4">
+                                        {[
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
+                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: (route?.['difficulty'] as string) ?? DUMMY.difficulty },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Best Time of Day', value: (route?.['best_time_of_day'] as string) ?? DUMMY.bestTimeOfDay },
+                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: (route?.['fuel_services'] as string) ?? DUMMY.fuelServices },
+                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: (route?.['weather_advice'] as string) ?? DUMMY.weatherAdvice },
+                                        ].map(({ icon, label, value }) => (
+                                            <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                                <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-[var(--dim)]">{label}</p>
+                                                    <p className="text-[12.5px] font-semibold text-[var(--cream)] mt-0.5">{value}</p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     {/* Route Insights */}
@@ -1424,54 +1466,73 @@ export default function RouteDetailPage() {
                             <Star size={11} className="text-black fill-black" />
                         </span>
 
-                        <div className="flex items-center gap-3 mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setMobileInfoOpen(mobileInfoOpen === 'insights' ? null : 'insights')}
+                            className="w-full flex items-center gap-3"
+                        >
                             <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                 <Mountain size={17} strokeWidth={1.4} />
                             </span>
-                            <div>
+                            <div className="flex-1 text-left">
                                 <h3 className="font-serif text-lg text-[var(--cream)] leading-tight">Route Insights</h3>
                                 <p className="text-[11px] text-[var(--dim)] mt-0.5">{route?.title}</p>
                             </div>
-                        </div>
+                            <ChevronDown
+                                size={17}
+                                className={`text-[var(--dim)] shrink-0 transition-transform duration-300 ${mobileInfoOpen === 'insights' ? 'rotate-180 text-emerald-500' : ''}`}
+                            />
+                        </button>
 
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-                                <span className="flex items-center gap-2 text-[12.5px] text-[var(--muted)]">
-                                    <Star size={13} strokeWidth={1.6} className="text-[var(--dim)]" /> Scenic Score
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star
-                                            key={i}
-                                            size={11}
-                                            className={i < Math.round(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
-                                        />
-                                    ))}
-                                    <span className="text-[11px] font-bold text-[var(--cream)] ml-1">
-                                        {(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2).toFixed(1)} / 5
-                                    </span>
-                                </span>
-                            </div>
-                            {[
-                                { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${(route?.['elevation_gain_m'] as number) ?? DUMMY.elevationGain} m` },
-                                { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
-                                { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
-                            ].map(({ icon, label, value }) => (
-                                <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3">
-                                    <span className="flex items-center gap-2 text-[var(--muted)]">
-                                        <span className="text-[var(--dim)]">{icon}</span> {label}
-                                    </span>
-                                    <span className="font-bold text-[var(--cream)]">{value}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="pt-4">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--dim)] mb-1.5">Route Note</p>
-                            <p className="text-[12.5px] text-[var(--cream)] leading-relaxed font-light">
-                                {(route?.['route_notes'] as string) ?? DUMMY.routeNotes}
-                            </p>
-                        </div>
+                        <AnimatePresence>
+                            {mobileInfoOpen === 'insights' && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="space-y-3 pt-4">
+                                        <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                                            <span className="flex items-center gap-2 text-[12.5px] text-[var(--muted)]">
+                                                <Star size={13} strokeWidth={1.6} className="text-[var(--dim)]" /> Scenic Score
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                    <Star
+                                                        key={i}
+                                                        size={11}
+                                                        className={i < Math.round(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
+                                                    />
+                                                ))}
+                                                <span className="text-[11px] font-bold text-[var(--cream)] ml-1">
+                                                    {(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2).toFixed(1)} / 5
+                                                </span>
+                                            </span>
+                                        </div>
+                                        {[
+                                            { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${(route?.['elevation_gain_m'] as number) ?? DUMMY.elevationGain} m` },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                        ].map(({ icon, label, value }) => (
+                                            <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3">
+                                                <span className="flex items-center gap-2 text-[var(--muted)]">
+                                                    <span className="text-[var(--dim)]">{icon}</span> {label}
+                                                </span>
+                                                <span className="font-bold text-[var(--cream)]">{value}</span>
+                                            </div>
+                                        ))}
+                                        <div className="pt-1">
+                                            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--dim)] mb-1.5">Route Note</p>
+                                            <p className="text-[12.5px] text-[var(--cream)] leading-relaxed font-light">
+                                                {(route?.['route_notes'] as string) ?? DUMMY.routeNotes}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </section>
 
