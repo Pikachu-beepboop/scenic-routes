@@ -206,6 +206,28 @@ function highlightIcon(label: string) {
     return HIGHLIGHT_ICONS.find((h) => h.match.test(label))?.icon ?? <Mountain size={22} strokeWidth={1.4} />;
 }
 
+// Liest ein Text-Feld robust aus dem Route-Objekt: null/undefined/leerer String/das literale
+// Wort "NULL" (kommt so in eurer Excel/Supabase-Tabelle vor, z. B. bei elevation_gain_m) zählen
+// als "nicht gepflegt" und fallen auf den Dummy-Wert zurück, statt "NULL" auf der Seite anzuzeigen.
+function routeText(value: unknown, fallback: string): string {
+    if (typeof value !== 'string') return fallback;
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed.toUpperCase() === 'NULL') return fallback;
+    return trimmed;
+}
+
+// Gleiches Prinzip für Zahlenfelder — parst auch Zahlen, die (fälschlich) als Text abgelegt wurden.
+function routeNum(value: unknown, fallback: number): number {
+    if (typeof value === 'number' && !Number.isNaN(value)) return value;
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed === '' || trimmed.toUpperCase() === 'NULL') return fallback;
+        const parsed = Number(trimmed);
+        if (!Number.isNaN(parsed)) return parsed;
+    }
+    return fallback;
+}
+
 // Simple Elevation-Profil SVG (Platzhalter-Kurve, später mit echten Höhendaten pro Kapitel ersetzbar)
 // Kleiner deterministischer Hash + PRNG (mulberry32) — erzeugt aus einem String (z. B. der Route-ID)
 // eine reproduzierbare, aber pro Route unterschiedliche Zufallsfolge (kein Math.random(), daher stabil
@@ -529,12 +551,14 @@ export default function RouteDetailPage() {
         .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
         .map(([key, value]) => {
             const lines = (value as string).split('\n');
-            return {
-                key,
-                title: lines[0] ?? '',       // Zeile 1: Titel
-                short: lines[1] ?? '',       // Zeile 2: Kurztext (in der eingeklappten Zeile sichtbar)
-                body: lines.slice(2).join('\n'), // Zeile 3+: Volltext (nur beim Aufklappen sichtbar)
-            };
+            const title = lines[0] ?? '';
+            // Euer echtes Format ist 2-zeilig (Titel + Fließtext) — dann ist "short" (Vorschau in der
+            // eingeklappten Zeile) und "full" (Text beim Aufklappen) derselbe Text. Falls doch mal 3
+            // Zeilen gepflegt werden (Titel / Kurztext / Volltext), wird das ebenfalls unterstützt.
+            const rest = lines.slice(1).join('\n');
+            const short = lines.length >= 3 ? (lines[1] ?? '') : rest;
+            const full = lines.length >= 3 ? lines.slice(2).join('\n') : rest;
+            return { key, title, short, body: full };
         });
 
     const highlights: string[] = (route?.['route_highlights'] ?? '')
@@ -1039,8 +1063,8 @@ export default function RouteDetailPage() {
                                 { icon: <Clock size={18} strokeWidth={1.4} />, label: 'Drive Time', value: route?.duration },
                                 { icon: <Navigation size={18} strokeWidth={1.4} />, label: 'Distance', value: formatDistance(route?.distance_km, unit) },
                                 { icon: <Globe size={18} strokeWidth={1.4} />, label: 'Country', value: route?.country },
-                                { icon: <MapPin size={18} strokeWidth={1.4} />, label: 'Best Season', value: (route?.['best_season'] as string) ?? DUMMY.bestSeason },
-                                { icon: <Star size={18} strokeWidth={1.4} />, label: 'Scenic Score', value: `${(route?.['scenic_score'] as number) ?? DUMMY.scenicScore} / 10`, accent: true },
+                                { icon: <MapPin size={18} strokeWidth={1.4} />, label: 'Best Season', value: routeText(route?.['season'], DUMMY.bestSeason) },
+                                { icon: <Star size={18} strokeWidth={1.4} />, label: 'Scenic Score', value: `${routeNum(route?.['scenic_score'], DUMMY.scenicScore)} / 10`, accent: true },
                             ].map(({ icon, label, value, accent }, i) => (
                                 <div key={i} className="flex items-start gap-3">
                                     <span className="text-[var(--dim)] mt-0.5">{icon}</span>
@@ -1077,23 +1101,6 @@ export default function RouteDetailPage() {
                             {route?.description}
                         </p>
 
-                        {highlights.length > 0 && (
-                            <div className="space-y-4">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Route Highlights</p>
-                                <div className="flex flex-wrap gap-4">
-                                    {highlights.map((h, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-[var(--border)] bg-[var(--bg2)] text-[var(--cream)]"
-                                        >
-                                            <span className="text-emerald-500 shrink-0">{highlightIcon(h)}</span>
-                                            <span className="text-sm font-medium whitespace-nowrap">{h}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         {/* ── Access & Fees / Driving Notes / Route Insights (neues 3-Karten-Design) ── */}
                         <div className="grid grid-cols-3 gap-8 pt-4">
                             {/* Access & Fees */}
@@ -1107,11 +1114,11 @@ export default function RouteDetailPage() {
 
                                 <div className="space-y-4 flex-1">
                                     {[
-                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: (route?.['toll_fee'] as string) ?? DUMMY.tollFee },
-                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Season', value: (route?.['access_season'] as string) ?? DUMMY.accessSeason },
-                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: (route?.['opening_access'] as string) ?? DUMMY.openingAccess },
-                                        { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: (route?.['vehicle_restrictions'] as string) ?? DUMMY.vehicleRestrictions },
-                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: (route?.['closure_period'] as string) ?? DUMMY.closurePeriod },
+                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(route?.['toll_fee'], DUMMY.tollFee) },
+                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(route?.['opening_access'], DUMMY.openingAccess) },
+                                        { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(route?.['vehicle_restrictions'], DUMMY.vehicleRestrictions) },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(route?.['closure_period'], DUMMY.closurePeriod) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
                                             <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1135,12 +1142,10 @@ export default function RouteDetailPage() {
 
                                 <div className="space-y-4 flex-1">
                                     {[
-                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
-                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: (route?.['difficulty'] as string) ?? DUMMY.difficulty },
-                                        { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
-                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Best Time of Day', value: (route?.['best_time_of_day'] as string) ?? DUMMY.bestTimeOfDay },
-                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: (route?.['fuel_services'] as string) ?? DUMMY.fuelServices },
-                                        { icon: <CloudRain size={15} strokeWidth={1.6} />, label: 'Weather Advice', value: (route?.['weather_advice'] as string) ?? DUMMY.weatherAdvice },
+                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
+                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(route?.['difficulty'], DUMMY.difficulty) },
+                                        { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(route?.['fuel_services'], DUMMY.fuelServices) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
                                             <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1155,7 +1160,7 @@ export default function RouteDetailPage() {
 
                             {/* Route Insights */}
                             <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] overflow-hidden flex flex-col">
-                                <div className="p-7 pb-0 relative">
+                                <div className="p-7 relative">
                                     <span className="absolute top-0 right-6 w-8 h-10 bg-emerald-500 flex items-start justify-center pt-2" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)' }}>
                                         <Star size={13} className="text-black fill-black" />
                                     </span>
@@ -1180,33 +1185,27 @@ export default function RouteDetailPage() {
                                                     <Star
                                                         key={i}
                                                         size={12}
-                                                        className={i < Math.round(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
+                                                        className={i < Math.round((routeNum(route?.['scenic_score'], DUMMY.scenicScore)) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
                                                     />
                                                 ))}
                                                 <span className="text-xs font-bold text-[var(--cream)] ml-1">
-                                                    {(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2).toFixed(1)} / 5
+                                                    {((routeNum(route?.['scenic_score'], DUMMY.scenicScore)) / 2).toFixed(1)} / 5
                                                 </span>
                                             </span>
                                         </div>
                                         {[
-                                            { icon: <Mountain size={14} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${(route?.['elevation_gain_m'] as number) ?? DUMMY.elevationGain} m` },
-                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
-                                            { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                            { icon: <Mountain size={14} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
+                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
+                                            { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                            { icon: <CloudRain size={14} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(route?.['weather_advice'], DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
-                                            <div key={label} className="flex items-center justify-between text-sm border-b border-[var(--border)] pb-4">
+                                            <div key={label} className="flex items-center justify-between text-sm border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
                                                 <span className="flex items-center gap-2 text-[var(--muted)]">
                                                     <span className="text-[var(--dim)]">{icon}</span> {label}
                                                 </span>
                                                 <span className="font-bold text-[var(--cream)]">{value}</span>
                                             </div>
                                         ))}
-                                    </div>
-
-                                    <div className="pt-5 pb-7">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--dim)] mb-1.5">Route Note</p>
-                                        <p className="text-sm text-[var(--cream)] leading-relaxed font-light">
-                                            {(route?.['route_notes'] as string) ?? DUMMY.routeNotes}
-                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1342,23 +1341,6 @@ export default function RouteDetailPage() {
                     <p className="text-[13px] leading-relaxed text-[var(--muted)] font-light">
                         {route?.description}
                     </p>
-
-                    {highlights.length > 0 && (
-                        <div className="space-y-3">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[var(--dim)]">Route Highlights</p>
-                            <div className="flex flex-wrap gap-2.5">
-                                {highlights.map((h, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex items-center gap-2 px-3.5 py-3 rounded-xl border border-[var(--border)] bg-[var(--bg2)] text-[var(--cream)]"
-                                    >
-                                        <span className="text-emerald-500 shrink-0">{highlightIcon(h)}</span>
-                                        <span className="text-[12px] font-medium whitespace-nowrap">{h}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </section>
 
                 {/* ══════════════════════════════════════════════════════════
@@ -1392,11 +1374,11 @@ export default function RouteDetailPage() {
                                 >
                                     <div className="space-y-3 pt-4">
                                         {[
-                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: (route?.['toll_fee'] as string) ?? DUMMY.tollFee },
-                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: (route?.['access_season'] as string) ?? DUMMY.accessSeason },
-                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: (route?.['opening_access'] as string) ?? DUMMY.openingAccess },
-                                            { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: (route?.['vehicle_restrictions'] as string) ?? DUMMY.vehicleRestrictions },
-                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: (route?.['closure_period'] as string) ?? DUMMY.closurePeriod },
+                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(route?.['toll_fee'], DUMMY.tollFee) },
+                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(route?.['opening_access'], DUMMY.openingAccess) },
+                                            { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(route?.['vehicle_restrictions'], DUMMY.vehicleRestrictions) },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(route?.['closure_period'], DUMMY.closurePeriod) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
                                                 <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1439,12 +1421,10 @@ export default function RouteDetailPage() {
                                 >
                                     <div className="space-y-3 pt-4">
                                         {[
-                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
-                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: (route?.['difficulty'] as string) ?? DUMMY.difficulty },
-                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
-                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Best Time of Day', value: (route?.['best_time_of_day'] as string) ?? DUMMY.bestTimeOfDay },
-                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: (route?.['fuel_services'] as string) ?? DUMMY.fuelServices },
-                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: (route?.['weather_advice'] as string) ?? DUMMY.weatherAdvice },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
+                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(route?.['difficulty'], DUMMY.difficulty) },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(route?.['fuel_services'], DUMMY.fuelServices) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
                                                 <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1503,32 +1483,27 @@ export default function RouteDetailPage() {
                                                     <Star
                                                         key={i}
                                                         size={11}
-                                                        className={i < Math.round(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
+                                                        className={i < Math.round((routeNum(route?.['scenic_score'], DUMMY.scenicScore)) / 2) ? 'fill-emerald-500 text-emerald-500' : 'text-[var(--border)]'}
                                                     />
                                                 ))}
                                                 <span className="text-[11px] font-bold text-[var(--cream)] ml-1">
-                                                    {(((route?.['scenic_score'] as number) ?? DUMMY.scenicScore) / 2).toFixed(1)} / 5
+                                                    {((routeNum(route?.['scenic_score'], DUMMY.scenicScore)) / 2).toFixed(1)} / 5
                                                 </span>
                                             </span>
                                         </div>
                                         {[
-                                            { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${(route?.['elevation_gain_m'] as number) ?? DUMMY.elevationGain} m` },
-                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: (route?.['road_surface'] as string) ?? DUMMY.roadSurface },
-                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: (route?.['traffic_level'] as string) ?? DUMMY.trafficLevel },
+                                            { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(route?.['weather_advice'], DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
-                                            <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3">
+                                            <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
                                                 <span className="flex items-center gap-2 text-[var(--muted)]">
                                                     <span className="text-[var(--dim)]">{icon}</span> {label}
                                                 </span>
                                                 <span className="font-bold text-[var(--cream)]">{value}</span>
                                             </div>
                                         ))}
-                                        <div className="pt-1">
-                                            <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--dim)] mb-1.5">Route Note</p>
-                                            <p className="text-[12.5px] text-[var(--cream)] leading-relaxed font-light">
-                                                {(route?.['route_notes'] as string) ?? DUMMY.routeNotes}
-                                            </p>
-                                        </div>
                                     </div>
                                 </motion.div>
                             )}

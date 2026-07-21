@@ -53,6 +53,18 @@ type RouteForm = {
   image3: string;
   image4: string;
   image5: string;
+  toll_fee: string;
+  access_season: string;
+  opening_access: string;
+  vehicle_restrictions: string;
+  closure_period: string;
+  road_surface: string;
+  difficulty: string;
+  traffic_level: string;
+  fuel_services: string;
+  weather_advice: string;
+  scenic_score: string;
+  elevation_gain_m: string;
 };
 
 const emptyForm: RouteForm = {
@@ -61,12 +73,18 @@ const emptyForm: RouteForm = {
   route_highlights: '', maps_URL: '', chapter1: '', chapter2: '', chapter3: '',
   chapter4: '', chapter5: '', google_maps: '', image1: '', image2: '', image3: '',
   image4: '', image5: '',
+  toll_fee: '', access_season: '', opening_access: '', vehicle_restrictions: '',
+  closure_period: '', road_surface: '', difficulty: '', traffic_level: '',
+  fuel_services: '', weather_advice: '', scenic_score: '', elevation_gain_m: '',
 };
 
 const shortFields: (keyof RouteForm)[] = [
   'title', 'country', 'duration', 'distance_km', 'image_url', 'season',
   'start_point', 'end_point', 'maps_URL', 'google_maps',
   'image1', 'image2', 'image3', 'image4', 'image5',
+  'toll_fee', 'access_season', 'opening_access', 'vehicle_restrictions', 'closure_period',
+  'road_surface', 'difficulty', 'traffic_level', 'fuel_services', 'weather_advice',
+  'scenic_score', 'elevation_gain_m',
 ];
 
 const longFields: (keyof RouteForm)[] = [
@@ -84,6 +102,11 @@ const fieldLabels: Record<keyof RouteForm, string> = {
   chapter4: 'Chapter 4', chapter5: 'Chapter 5', google_maps: 'Google Maps link',
   image1: 'Image 1', image2: 'Image 2', image3: 'Image 3',
   image4: 'Image 4', image5: 'Image 5',
+  toll_fee: 'Toll / Fee', access_season: 'Access season', opening_access: 'Opening / Access',
+  vehicle_restrictions: 'Vehicle restrictions', closure_period: 'Closure period',
+  road_surface: 'Road surface', difficulty: 'Difficulty', traffic_level: 'Traffic level',
+  fuel_services: 'Fuel / Services', weather_advice: 'Weather advice',
+  scenic_score: 'Scenic score (0–10)', elevation_gain_m: 'Elevation gain (m)',
 };
 
 type ProfileRow = {
@@ -240,31 +263,60 @@ export default function AdminPage() {
     return title.trim().toLowerCase();
   }
 
+  // Excel-Zellen liefern manchmal den literalen Text "NULL" statt eines echten leeren Werts
+  // (z. B. bei elevation_gain_m in der aktuellen Tabelle) — das würde sonst wortwörtlich als
+  // "NULL" in der Datenbank landen. Diese beiden Helfer fangen das ab.
+  function cleanText(value: any): string | null {
+    if (value === null || value === undefined) return null;
+    const str = String(value).trim();
+    if (str === '' || str.toUpperCase() === 'NULL') return null;
+    return str;
+  }
+
+  function cleanNumber(value: any): number | null {
+    const text = cleanText(value);
+    if (text === null) return null;
+    const parsed = Number(text);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
   function buildRoute(row: any) {
     return {
       title: row.title,
       country: row.country,
-      description: row.description || null,
-      long_description: row.long_description || null,
-      duration: row.duration || null,
-      distance_km: row.distance_km ? parseInt(row.distance_km) : null,
-      image_url: row.image_url || null,
-      season: row.season || null,
-      start_point: row.start_point || null,
-      end_point: row.end_point || null,
-      route_highlights: row.route_highlights || null,
-      maps_URL: row.maps_URL || null,
-      chapter1: row.chapter1 || null,
-      chapter2: row.chapter2 || null,
-      chapter3: row.chapter3 || null,
-      chapter4: row.chapter4 || null,
-      chapter5: row.chapter5 || null,
-      google_maps: row.google_maps || null,
-      image1: row.image1 || null,
-      image2: row.image2 || null,
-      image3: row.image3 || null,
-      image4: row.image4 || null,
-      image5: row.image5 || null,
+      description: cleanText(row.description),
+      long_description: cleanText(row.long_description),
+      duration: cleanText(row.duration),
+      distance_km: cleanNumber(row.distance_km),
+      image_url: cleanText(row.image_url),
+      season: cleanText(row.season),
+      start_point: cleanText(row.start_point),
+      end_point: cleanText(row.end_point),
+      route_highlights: cleanText(row.route_highlights),
+      maps_URL: cleanText(row.maps_URL),
+      chapter1: cleanText(row.chapter1),
+      chapter2: cleanText(row.chapter2),
+      chapter3: cleanText(row.chapter3),
+      chapter4: cleanText(row.chapter4),
+      chapter5: cleanText(row.chapter5),
+      google_maps: cleanText(row.google_maps),
+      image1: cleanText(row.image1),
+      image2: cleanText(row.image2),
+      image3: cleanText(row.image3),
+      image4: cleanText(row.image4),
+      image5: cleanText(row.image5),
+      toll_fee: cleanText(row.toll_fee),
+      access_season: cleanText(row.access_season),
+      opening_access: cleanText(row.opening_access),
+      vehicle_restrictions: cleanText(row.vehicle_restrictions),
+      closure_period: cleanText(row.closure_period),
+      road_surface: cleanText(row.road_surface),
+      difficulty: cleanText(row.difficulty),
+      traffic_level: cleanText(row.traffic_level),
+      fuel_services: cleanText(row.fuel_services),
+      weather_advice: cleanText(row.weather_advice),
+      scenic_score: cleanNumber(row.scenic_score),
+      elevation_gain_m: cleanNumber(row.elevation_gain_m),
     };
   }
 
@@ -300,7 +352,7 @@ export default function AdminPage() {
 
         const existingByTitle = new Map<string, ExistingRoute>();
         (existingRoutes || []).forEach(r => {
-          existingByTitle.set(normalizeTitle(r.title), r);
+          existingByTitle.set(`${normalizeTitle(r.title)}|${r.country.trim().toLowerCase()}`, r);
         });
 
         const toUpdate: { id: string; row: any }[] = [];
@@ -308,7 +360,7 @@ export default function AdminPage() {
 
         for (const row of rows) {
           if (!row.title || !row.country) continue;
-          const match = existingByTitle.get(normalizeTitle(row.title));
+          const match = existingByTitle.get(`${normalizeTitle(row.title)}|${String(row.country).trim().toLowerCase()}`);
           if (match) {
             toUpdate.push({ id: match.id, row });
           } else {
@@ -473,7 +525,7 @@ export default function AdminPage() {
       description: form.description || null,
       long_description: form.long_description || null,
       duration: form.duration || null,
-      distance_km: form.distance_km ? parseInt(form.distance_km) : null,
+      distance_km: cleanNumber(form.distance_km),
       image_url: form.image_url || null,
       season: form.season || null,
       start_point: form.start_point || null,
@@ -491,6 +543,18 @@ export default function AdminPage() {
       image3: form.image3 || null,
       image4: form.image4 || null,
       image5: form.image5 || null,
+      toll_fee: form.toll_fee || null,
+      access_season: form.access_season || null,
+      opening_access: form.opening_access || null,
+      vehicle_restrictions: form.vehicle_restrictions || null,
+      closure_period: form.closure_period || null,
+      road_surface: form.road_surface || null,
+      difficulty: form.difficulty || null,
+      traffic_level: form.traffic_level || null,
+      fuel_services: form.fuel_services || null,
+      weather_advice: form.weather_advice || null,
+      scenic_score: cleanNumber(form.scenic_score),
+      elevation_gain_m: cleanNumber(form.elevation_gain_m),
     };
 
     if (editingRouteId === 'new') {
