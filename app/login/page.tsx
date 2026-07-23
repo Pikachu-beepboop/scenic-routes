@@ -17,6 +17,7 @@ function LoginPageInner() {
   const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
+  const [isRegistered, setIsRegistered] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -206,12 +207,12 @@ function LoginPageInner() {
       },
     });
 
-    if (error) {
+        if (error) {
       setError(error.message);
     } else if (data.user?.identities?.length === 0) {
       setError("This email is already in use. Please sign in instead.");
     } else {
-      setSuccess("Check your email to confirm registration!");
+      setIsRegistered(true);
     }
 
     setLoading(false);
@@ -350,7 +351,31 @@ function LoginPageInner() {
 
         /* BACK LINK */
         .lp-back { display:inline-flex; align-items:center; gap:8px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); transition:color .2s; margin-bottom:32px; }
-        .lp-back:hover { color:var(--gold); }
+                .lp-back:hover { color:var(--gold); }
+
+        .registration-success-slide {
+          animation: slideIn .5s cubic-bezier(0.22, 1, 0.36, 1) both;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 0;
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        .success-icon {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: rgba(201,168,106,0.1);
+          display: grid;
+          place-items: center;
+          margin-bottom: 20px;
+        }
 
         @media (max-width:860px) {
           .lp-main { flex-direction:column; align-items:center; padding-top:100px; }
@@ -455,187 +480,216 @@ function LoginPageInner() {
             </div>
           </div>
 
-          {/* CARD */}
+                    {/* CARD */}
           <div className={`lp-card ${visible ? "visible" : ""}`}>
             <div className="lp-card-inner">
-              {mode !== "reset" && (
-                <div className="lp-tabs">
+              {isRegistered ? (
+                <div className="registration-success-slide">
+                  <div className="success-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </div>
+                  <p className="lp-form-title" style={{ textAlign: 'center' }}>Confirm your email</p>
+                  <p className="lp-form-sub" style={{ textAlign: 'center', fontSize: '13px', lineHeight: '1.6', marginTop: '10px' }}>
+                    We&apos;ve sent a confirmation link to <br/>
+                    <strong style={{ color: 'var(--cream)' }}>{email}</strong>. <br/>
+                    Please check your inbox to activate your account.
+                  </p>
                   <button
-                    className={`lp-tab ${mode === "login" ? "active" : ""}`}
-                    onClick={() => switchMode("login")}
+                    className="lp-submit"
+                    style={{ marginTop: '30px' }}
+                    onClick={() => {
+                      setIsRegistered(false);
+                      setMode("login");
+                    }}
                   >
-                    Sign In
-                  </button>
-
-                  <button
-                    className={`lp-tab ${
-                      mode === "register" ? "active" : ""
-                    }`}
-                    onClick={() => switchMode("register")}
-                  >
-                    Create Account
+                    Back to Sign In
                   </button>
                 </div>
-              )}
-
-              {mode === "reset" && (
+              ) : (
                 <>
-                  <p className="lp-form-title">Reset password.</p>
-                  <p className="lp-form-sub">
-                    Enter your email and we'll send you a reset link
-                  </p>
+                  {mode !== "reset" && (
+                    <div className="lp-tabs">
+                      <button
+                        className={`lp-tab ${mode === "login" ? "active" : ""}`}
+                        onClick={() => switchMode("login")}
+                      >
+                        Sign In
+                      </button>
 
-                  <input
-                    className="lp-input"
-                    type="email"
-                    placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                      <button
+                        className={`lp-tab ${
+                          mode === "register" ? "active" : ""
+                        }`}
+                        onClick={() => switchMode("register")}
+                      >
+                        Create Account
+                      </button>
+                    </div>
+                  )}
 
-                  {error && <p className="lp-error">{error}</p>}
-                  {success && <p className="lp-success">{success}</p>}
-
-                  <button
-                    className="lp-submit"
-                    type="button"
-                    disabled={loading}
-                    onClick={handleResetPassword}
-                  >
-                    {loading ? "Sending..." : "Send Reset Link"}
-                  </button>
-
-                  <div className="lp-switch">
-                    <button onClick={() => switchMode("login")}>
-                      ← Back to Sign In
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {mode !== "reset" && (
-                <>
-                  {mode === "login" ? (
+                  {mode === "reset" && (
                     <>
-                      <p className="lp-form-title">Welcome back</p>
+                      <p className="lp-form-title">Reset password.</p>
                       <p className="lp-form-sub">
-                        Sign in to continue your journey
+                        Enter your email and we'll send you a reset link
                       </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="lp-form-title">Join the road</p>
-                      <p className="lp-form-sub">
-                        Create your free account today
-                      </p>
-                    </>
-                  )}
 
-                  {/* Unsichtbarer, echter Google-Button (GSI). Wird per
-                      Proxy-Klick vom sichtbaren, eigenen Button ausgelöst,
-                      damit der Consent-Screen unseren echten App-Namen zeigt. */}
-                  <div
-                    ref={googleBtnWrapperRef}
-                    style={{
-                      position: 'absolute',
-                      opacity: 0,
-                      pointerEvents: 'none',
-                      top: 0,
-                      left: 0,
-                      width: 0,
-                      height: 0,
-                      overflow: 'hidden',
-                    }}
-                  />
+                      <input
+                        className="lp-input"
+                        type="email"
+                        placeholder="Email Address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
 
-                  <button
-                    type="button"
-                    className="lp-google-btn"
-                    onClick={handleGoogleLogin}
-                    disabled={!googleReady}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/>
-                      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/>
-                      <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
-                      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
-                    </svg>
-                    {googleReady ? "Continue with Google" : "Loading Google Sign-In..."}
-                  </button>
+                      {error && <p className="lp-error">{error}</p>}
+                      {success && <p className="lp-success">{success}</p>}
 
-                  <div className="lp-divider">
-                    <span>or</span>
-                  </div>
+                      <button
+                        className="lp-submit"
+                        type="button"
+                        disabled={loading}
+                        onClick={handleResetPassword}
+                      >
+                        {loading ? "Sending..." : "Send Reset Link"}
+                      </button>
 
-                  {mode === "register" && (
-                    <input
-                      className="lp-input"
-                      type="text"
-                      placeholder="Full Name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  )}
-
-                  <input
-                    className="lp-input"
-                    type="email"
-                    placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-
-                  <input
-                    className="lp-input"
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-
-                  {mode === "login" && (
-                    <button
-                      className="lp-forgot"
-                      type="button"
-                      onClick={() => switchMode("reset")}
-                    >
-                      Forgot your password?
-                    </button>
-                  )}
-
-                  {error && <p className="lp-error">{error}</p>}
-                  {success && <p className="lp-success">{success}</p>}
-
-                  <button
-                    className="lp-submit"
-                    type="button"
-                    disabled={loading}
-                    onClick={mode === "login" ? handleLogin : handleRegister}
-                  >
-                    {loading
-                      ? "Loading..."
-                      : mode === "login"
-                      ? "Sign In"
-                      : "Create Account"}
-                  </button>
-
-                  <div className="lp-switch">
-                    {mode === "login" ? (
-                      <>
-                        Don&apos;t have an account?{" "}
-                        <button onClick={() => switchMode("register")}>
-                          Sign Up
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        Already have an account?{" "}
+                      <div className="lp-switch">
                         <button onClick={() => switchMode("login")}>
-                          Sign In
+                          ← Back to Sign In
                         </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </>
+                  )}
+
+                  {mode !== "reset" && (
+                    <>
+                      {mode === "login" ? (
+                        <>
+                          <p className="lp-form-title">Welcome back</p>
+                          <p className="lp-form-sub">
+                            Sign in to continue your journey
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="lp-form-title">Join the road</p>
+                          <p className="lp-form-sub">
+                            Create your free account today
+                          </p>
+                        </>
+                      )}
+
+                      {/* Unsichtbarer, echter Google-Button (GSI). Wird per
+                          Proxy-Klick vom sichtbaren, eigenen Button ausgelöst,
+                          damit der Consent-Screen unseren echten App-Namen zeigt. */}
+                      <div
+                        ref={googleBtnWrapperRef}
+                        style={{
+                          position: 'absolute',
+                          opacity: 0,
+                          pointerEvents: 'none',
+                          top: 0,
+                          left: 0,
+                          width: 0,
+                          height: 0,
+                          overflow: 'hidden',
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        className="lp-google-btn"
+                        onClick={handleGoogleLogin}
+                        disabled={!googleReady}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/>
+                          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/>
+                          <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
+                          <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+                        </svg>
+                        {googleReady ? "Continue with Google" : "Loading Google Sign-In..."}
+                      </button>
+
+                      <div className="lp-divider">
+                        <span>or</span>
+                      </div>
+
+                      {mode === "register" && (
+                        <input
+                          className="lp-input"
+                          type="text"
+                          placeholder="Full Name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                        />
+                      )}
+
+                      <input
+                        className="lp-input"
+                        type="email"
+                        placeholder="Email Address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+
+                      <input
+                        className="lp-input"
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+
+                      {mode === "login" && (
+                        <button
+                          className="lp-forgot"
+                          type="button"
+                          onClick={() => switchMode("reset")}
+                        >
+                          Forgot your password?
+                        </button>
+                      )}
+
+                      {error && <p className="lp-error">{error}</p>}
+                      {success && <p className="lp-success">{success}</p>}
+
+                      <button
+                        className="lp-submit"
+                        type="button"
+                        disabled={loading}
+                        onClick={mode === "login" ? handleLogin : handleRegister}
+                      >
+                        {loading
+                          ? "Loading..."
+                          : mode === "login"
+                          ? "Sign In"
+                          : "Create Account"}
+                      </button>
+
+                      <div className="lp-switch">
+                        {mode === "login" ? (
+                          <>
+                            Don&apos;t have an account?{" "}
+                            <button onClick={() => switchMode("register")}>
+                              Sign Up
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            Already have an account?{" "}
+                            <button onClick={() => switchMode("login")}>
+                              Sign In
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
