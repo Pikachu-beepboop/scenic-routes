@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
 import { useTheme } from 'next-themes';
 import { useUnit } from '@/app/UnitContext';
+import { useLanguage } from '@/app/LanguageContext';
 import { formatDistance } from '@/lib/formatDistance';
 
 interface Route {
@@ -30,6 +31,27 @@ interface Route {
     'route_highlights'?: string;
     'maps_URL'?: string;
     'google_maps'?: string;
+    // NEU (Bilingual): title/description/long_description/route_highlights/chapter1-5 gibt es jetzt
+    // jeweils als _en/_de-Paar. Die alten Felder oben (title, description, route_highlights) bleiben
+    // als Fallback erhalten, solange nicht jede Route beide Sprachen gepflegt hat.
+    'title_en'?: string;
+    'title_de'?: string;
+    'description_en'?: string;
+    'description_de'?: string;
+    'long_description_en'?: string;
+    'long_description_de'?: string;
+    'route_highlights_en'?: string;
+    'route_highlights_de'?: string;
+    'chapter1_en'?: string;
+    'chapter1_de'?: string;
+    'chapter2_en'?: string;
+    'chapter2_de'?: string;
+    'chapter3_en'?: string;
+    'chapter3_de'?: string;
+    'chapter4_en'?: string;
+    'chapter4_de'?: string;
+    'chapter5_en'?: string;
+    'chapter5_de'?: string;
     // NEU – für das neue Route-Detail-Design (noch nicht in Supabase, Dummy-Fallback)
     'scenic_score'?: number;
     'elevation_gain_m'?: number;
@@ -49,20 +71,40 @@ interface Route {
     'access_season'?: string;
     'opening_access'?: string;
     'vehicle_restrictions'?: string;
+    'vehicle_restrictions_en'?: string;
+    'vehicle_restrictions_de'?: string;
     'closure_period'?: string;
+    'closure_period_en'?: string;
+    'closure_period_de'?: string;
     'difficulty'?: string;
     'fuel_services'?: string;
+    'fuel_services_en'?: string;
+    'fuel_services_de'?: string;
     'weather_advice'?: string;
+    'weather_advice_en'?: string;
+    'weather_advice_de'?: string;
     // Optional pro Kapitel: `${chapterKey}_elevation_m` (z. B. "chapter2_elevation_m") — echte Höhe
     // dieses Wegpunkts über dem Meeresspiegel, fließt ins Elevation-Profil ein statt einer Schätzung.
     [key: string]: unknown;
 }
 
+// NEU (Bilingual): liest ein übersetzbares Feld (title, description, long_description,
+// route_highlights, chapter1..chapter5) sprachabhängig aus der Route. Fallback-Kette:
+// aktuelle Sprache -> Englisch -> Deutsch -> alte einsprachige Spalte (Übergangszeit).
+function localizedRouteText(route: Route | null, field: string, lang: string): string {
+    if (!route) return '';
+    const specific = route[`${field}_${lang}`];
+    const en = route[`${field}_en`];
+    const de = route[`${field}_de`];
+    const legacy = route[field];
+    const value = specific || en || de || legacy;
+    return typeof value === 'string' ? value : '';
+}
+
 const LANGUAGES = [
-    { code: "DE", label: "Deutsch" },
-    { code: "EN", label: "English" },
-    { code: "RU", label: "Русский" },
-];
+    { code: "de", label: "Deutsch" },
+    { code: "en", label: "English" },
+] as const;
 
 function HighlightedTitle({ title }: { title: string }) {
     if (!title) return null;
@@ -373,7 +415,11 @@ export default function RouteDetailPage() {
     const [username, setUsername] = useState('');
     const [activeChapter, setActiveChapter] = useState(0);
     const [openStopIndex, setOpenStopIndex] = useState<number | null>(null);
-    const [language, setLanguage] = useState("DE");
+    // NEU (Bilingual): Sprache kommt jetzt aus dem globalen LanguageContext (derselbe, den
+    // Navbar/Footer auf allen anderen Seiten nutzen) statt aus einem eigenen lokalen State.
+    // Wechselt man die Sprache auf irgendeiner anderen Seite, wirkt sich das dadurch automatisch
+    // auch hier aus, und umgekehrt.
+    const { lang: currentLang, setLang, t } = useLanguage();
     const [showLangMenu, setShowLangMenu] = useState(false);
 
     // NEU – nur für die Mobile-Ansicht: Vollbild-Menü-Overlay
@@ -396,6 +442,13 @@ export default function RouteDetailPage() {
     }, []);
 
     const isLight = mounted && theme === 'light';
+
+    // NEU (Bilingual): zentrale, sprachabhängige Werte für diese Route — einmal pro Render
+    // berechnet und überall im JSX statt der direkten route?.title / route?.description
+    // Zugriffe verwendet.
+    const routeTitle = localizedRouteText(route, 'title', currentLang);
+    const routeDescription = localizedRouteText(route, 'description', currentLang);
+    const routeHighlightsText = localizedRouteText(route, 'route_highlights', currentLang);
 
     // Geht zur vorherigen Seite in der Browser-History zurück (egal ob das
     // Explore, My Trips, die Homepage oder eine Such-URL mit Filtern war).
@@ -546,11 +599,14 @@ export default function RouteDetailPage() {
         }
     };
 
-    const chapters = Object.entries(route ?? {})
-        .filter(([key, value]) => key.startsWith('chapter') && typeof value === 'string' && (value as string).trim() !== '')
-        .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
-        .map(([key, value]) => {
-            const lines = (value as string).split('\n');
+    // NEU (Bilingual): Kapitel werden jetzt sprachabhängig aus chapter1_en/_de .. chapter5_en/_de
+    // gelesen (mit Fallback-Kette wie überall sonst), statt pauschal alle "chapterX"-Keys aus dem
+    // Objekt zu durchsuchen. Format pro Feld bleibt gleich: Zeile 1 = Titel, Rest = Text.
+    const chapters = [1, 2, 3, 4, 5]
+        .map((n) => ({ n, value: localizedRouteText(route, `chapter${n}`, currentLang) }))
+        .filter((c) => c.value.trim() !== '')
+        .map(({ n, value }) => {
+            const lines = value.split('\n');
             const title = lines[0] ?? '';
             // Euer echtes Format ist 2-zeilig (Titel + Fließtext) — dann ist "short" (Vorschau in der
             // eingeklappten Zeile) und "full" (Text beim Aufklappen) derselbe Text. Falls doch mal 3
@@ -558,10 +614,10 @@ export default function RouteDetailPage() {
             const rest = lines.slice(1).join('\n');
             const short = lines.length >= 3 ? (lines[1] ?? '') : rest;
             const full = lines.length >= 3 ? lines.slice(2).join('\n') : rest;
-            return { key, title, short, body: full };
+            return { key: `chapter${n}`, title, short, body: full };
         });
 
-    const highlights: string[] = (route?.['route_highlights'] ?? '')
+    const highlights: string[] = routeHighlightsText
         .split('\n')
         .map((s: string) => s.trim())
         .filter(Boolean);
@@ -729,12 +785,12 @@ export default function RouteDetailPage() {
                                         {username || user.email?.split('@')[0]}
                                     </p>
                                     <p className="text-[10px] text-[var(--dim)] mt-1 truncate max-w-[180px]">{user.email}</p>
-                                    <p className="text-[8px] font-extrabold tracking-[0.18em] uppercase text-[var(--gold)] mt-1 opacity-70">Scenic Route Explorer</p>
+                                    <p className="text-[8px] font-extrabold tracking-[0.18em] uppercase text-[var(--gold)] mt-1 opacity-70">{t("common.roleExplorer")}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[var(--border)]">
-                                <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">Theme</span>
+                                <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">{t("common.theme")}</span>
                                 <ThemeSwitch />
                             </div>
 
@@ -742,12 +798,12 @@ export default function RouteDetailPage() {
                                 <p className="text-[9px] font-extrabold tracking-[0.2em] uppercase text-[var(--dim)] px-3 pt-3.5 pb-1.5">Navigate</p>
                                 <Link href="/explore" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
                                     <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
-                                    Explore Routes
+                                    {t("nav.explore")}
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </Link>
                                 <Link href="/about" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
                                     <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
-                                    About
+                                    {t("nav.about")}
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </Link>
 
@@ -756,12 +812,12 @@ export default function RouteDetailPage() {
                                 <p className="text-[9px] font-extrabold tracking-[0.2em] uppercase text-[var(--dim)] px-3 pt-2.5 pb-1.5">Account</p>
                                 <Link href="/profile" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
                                     <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><User size={14} strokeWidth={1.8} /></span>
-                                    Profile
+                                    {t("nav.profile")}
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </Link>
                                 <Link href="/my-trips" onClick={() => setShowMobileMenu(false)} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[var(--muted)]">
                                     <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><MapIcon size={14} strokeWidth={1.8} /></span>
-                                    My Trips
+                                    {t("nav.myTrips")}
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </Link>
 
@@ -776,14 +832,14 @@ export default function RouteDetailPage() {
                                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-[10px] text-[13px] font-semibold text-[rgba(224,128,128,0.55)]"
                                 >
                                     <span className="text-[#e08080] w-[18px] flex items-center justify-center shrink-0"><LogOut size={14} strokeWidth={1.8} /></span>
-                                    Sign Out
+                                    {t("nav.signOut")}
                                 </button>
                             </div>
                         </div>
                     ) : (
                         <>
                             <div className="flex flex-col gap-1 mb-0">
-                                {[['Explore Routes', '/explore'], ['About', '/about']].map(([label, href]) => (
+                                {[[t("nav.explore"), '/explore'], [t("nav.about"), '/about']].map(([label, href]) => (
                                     <Link
                                         key={label}
                                         href={href}
@@ -801,7 +857,7 @@ export default function RouteDetailPage() {
                                     onClick={() => setShowMobileMenu(false)}
                                     className="px-6 py-3 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--border)_40%,transparent)] text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--cream)]"
                                 >
-                                    Login
+                                    {t("nav.login")}
                                 </Link>
                                 <ThemeSwitch />
                             </div>
@@ -846,11 +902,11 @@ export default function RouteDetailPage() {
                         </Link>
 
                         <div className="hidden lg:flex items-center gap-9">
-                            <Link href="/explore" className="nav-link">Explore Routes</Link>
-                            <Link href="/about" className="nav-link">About</Link>
+                            <Link href="/explore" className="nav-link">{t("nav.explore")}</Link>
+                            <Link href="/about" className="nav-link">{t("nav.about")}</Link>
                             {user && (
                                 <Link href="/my-trips" className="nav-link">
-                                    My Trips
+                                    {t("nav.myTrips")}
                                 </Link>
                             )}
                         </div>
@@ -906,13 +962,13 @@ export default function RouteDetailPage() {
                                                     {user.email}
                                                 </p>
                                                 <p className="text-[8px] font-extrabold tracking-[0.18em] uppercase text-[var(--gold)] mt-1 opacity-70">
-                                                    Scenic Route Explorer
+                                                    {t("common.roleExplorer")}
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
-                                            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">Theme</span>
+                                            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">{t("common.theme")}</span>
                                             <ThemeSwitch />
                                         </div>
 
@@ -923,7 +979,7 @@ export default function RouteDetailPage() {
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
                                             >
                                                 <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><User size={14} strokeWidth={1.8} /></span>
-                                                Profile
+                                                {t("nav.profile")}
                                             </Link>
 
                                             <Link
@@ -932,7 +988,7 @@ export default function RouteDetailPage() {
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
                                             >
                                                 <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><MapIcon size={14} strokeWidth={1.8} /></span>
-                                                My Trips
+                                                {t("nav.myTrips")}
                                             </Link>
 
                                             <Link
@@ -941,7 +997,7 @@ export default function RouteDetailPage() {
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
                                             >
                                                 <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
-                                                Explore Routes
+                                                {t("nav.explore")}
                                             </Link>
 
                                             <div className="h-px bg-[var(--border)] my-1 mx-2" />
@@ -955,7 +1011,7 @@ export default function RouteDetailPage() {
                                                 className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(224,128,128,0.55)] hover:bg-[rgba(224,128,128,0.07)] hover:text-[#e08080] transition-all"
                                             >
                                                 <span className="text-[#e08080] w-[18px] flex items-center justify-center shrink-0"><LogOut size={14} strokeWidth={1.8} /></span>
-                                                Sign Out
+                                                {t("nav.signOut")}
                                             </button>
                                         </div>
                                     </div>
@@ -972,7 +1028,7 @@ export default function RouteDetailPage() {
                     <div className="relative w-full h-[560px] overflow-hidden">
                         <img
                             src={route?.image_url}
-                            alt={route?.title ?? 'Route'}
+                            alt={routeTitle}
                             className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-transparent to-transparent" />
@@ -982,7 +1038,7 @@ export default function RouteDetailPage() {
                     <div className="px-5 pt-5 pb-6 space-y-5">
                         <div className="space-y-2">
                             <h1 className="text-4xl font-black uppercase leading-[0.95] tracking-tight text-[var(--cream)]">
-                                <HighlightedTitle title={route?.title ?? ''} />
+                                <HighlightedTitle title={routeTitle} />
                             </h1>
                             <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-emerald-400">
                                 <MapPin size={12} /> {route?.country}
@@ -1028,7 +1084,7 @@ export default function RouteDetailPage() {
                 <section className="hidden lg:block relative h-screen w-full overflow-hidden">
                     <img
                         src={route?.image_url}
-                        alt={route?.title ?? 'Route'}
+                        alt={routeTitle}
                         className="w-full h-full object-cover object-[center_75%]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
@@ -1037,7 +1093,7 @@ export default function RouteDetailPage() {
                         <div className="flex items-end justify-between">
                             <div>
                                 <h1 className="text-7xl lg:text-8xl font-black italic uppercase leading-[0.9] tracking-tighter text-white drop-shadow-2xl">
-                                    <HighlightedTitle title={route?.title ?? ''} />
+                                    <HighlightedTitle title={routeTitle} />
                                 </h1>
                                 <div className="mt-4 flex items-center gap-1.5">
                                     <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70">
@@ -1098,7 +1154,7 @@ export default function RouteDetailPage() {
                             </h2>
                         </div>
                         <p className="text-lg leading-relaxed text-[var(--muted)] font-light max-w-3xl">
-                            {route?.description}
+                            {routeDescription}
                         </p>
 
                         {/* ── Access & Fees / Driving Notes / Route Insights (neues 3-Karten-Design) ── */}
@@ -1117,8 +1173,8 @@ export default function RouteDetailPage() {
                                         { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(route?.['toll_fee'], DUMMY.tollFee) },
                                         { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
                                         { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(route?.['opening_access'], DUMMY.openingAccess) },
-                                        { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(route?.['vehicle_restrictions'], DUMMY.vehicleRestrictions) },
-                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(route?.['closure_period'], DUMMY.closurePeriod) },
+                                        { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
                                             <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1145,7 +1201,7 @@ export default function RouteDetailPage() {
                                         { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
                                         { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(route?.['difficulty'], DUMMY.difficulty) },
                                         { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
-                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(route?.['fuel_services'], DUMMY.fuelServices) },
+                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
                                             <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1171,7 +1227,7 @@ export default function RouteDetailPage() {
                                         </span>
                                         <div>
                                             <h3 className="font-serif text-xl text-[var(--cream)] leading-tight">Route Insights</h3>
-                                            <p className="text-xs text-[var(--dim)] mt-0.5">{route?.title}</p>
+                                            <p className="text-xs text-[var(--dim)] mt-0.5">{routeTitle}</p>
                                         </div>
                                     </div>
 
@@ -1197,7 +1253,7 @@ export default function RouteDetailPage() {
                                             { icon: <Mountain size={14} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
                                             { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
                                             { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
-                                            { icon: <CloudRain size={14} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(route?.['weather_advice'], DUMMY.weatherAdvice) },
+                                            { icon: <CloudRain size={14} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-center justify-between text-sm border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
                                                 <span className="flex items-center gap-2 text-[var(--muted)]">
@@ -1339,7 +1395,7 @@ export default function RouteDetailPage() {
                     </div>
 
                     <p className="text-[13px] leading-relaxed text-[var(--muted)] font-light">
-                        {route?.description}
+                        {routeDescription}
                     </p>
                 </section>
 
@@ -1377,8 +1433,8 @@ export default function RouteDetailPage() {
                                             { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(route?.['toll_fee'], DUMMY.tollFee) },
                                             { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
                                             { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(route?.['opening_access'], DUMMY.openingAccess) },
-                                            { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(route?.['vehicle_restrictions'], DUMMY.vehicleRestrictions) },
-                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(route?.['closure_period'], DUMMY.closurePeriod) },
+                                            { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
                                                 <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1424,7 +1480,7 @@ export default function RouteDetailPage() {
                                             { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
                                             { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(route?.['difficulty'], DUMMY.difficulty) },
                                             { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
-                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(route?.['fuel_services'], DUMMY.fuelServices) },
+                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
                                                 <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1456,7 +1512,7 @@ export default function RouteDetailPage() {
                             </span>
                             <div className="flex-1 text-left">
                                 <h3 className="font-serif text-lg text-[var(--cream)] leading-tight">Route Insights</h3>
-                                <p className="text-[11px] text-[var(--dim)] mt-0.5">{route?.title}</p>
+                                <p className="text-[11px] text-[var(--dim)] mt-0.5">{routeTitle}</p>
                             </div>
                             <ChevronDown
                                 size={17}
@@ -1495,7 +1551,7 @@ export default function RouteDetailPage() {
                                             { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
                                             { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
                                             { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
-                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(route?.['weather_advice'], DUMMY.weatherAdvice) },
+                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
                                                 <span className="flex items-center gap-2 text-[var(--muted)]">
@@ -1644,24 +1700,24 @@ export default function RouteDetailPage() {
                         />
 
                         <p className="text-[var(--dim)] text-[13px] leading-relaxed font-light max-w-[280px] mt-2">
-                            Thoughtfully curated road trips for people who value the journey as much as the destination.
+                            {t("home.footer.tagline")}
                         </p>
                     </div>
 
                     <div className="mt-10">
                         {([
-                            { key: 'explore' as const, heading: 'Explore', links: ['All Routes', 'My Trips', 'Profile'] },
-                            { key: 'about' as const, heading: 'About', links: ['Traveller Pass', 'About', 'Our Team'] },
-                            { key: 'support' as const, heading: 'Support', links: ['FAQ', 'Contact', 'Report a Problem', 'Report Route Issue'] },
-                            { key: 'legal' as const, heading: 'Legal', links: ['Terms of Use', 'Privacy Policy', 'Imprint'] },
-                        ]).map(({ key, heading, links }) => (
+                            { key: 'explore' as const, headingKey: 'footer.col.explore' as const, linkKeys: ['footer.link.allRoutes', 'footer.link.myTrips', 'footer.link.profile'] as const },
+                            { key: 'about' as const, headingKey: 'footer.col.about' as const, linkKeys: ['footer.link.travellerPass', 'footer.link.about', 'footer.link.ourTeam'] as const },
+                            { key: 'support' as const, headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.reportProblem', 'footer.link.reportRouteIssue'] as const },
+                            { key: 'legal' as const, headingKey: 'footer.col.legal' as const, linkKeys: ['footer.link.termsOfUse', 'footer.link.privacyPolicy', 'footer.link.imprint'] as const },
+                        ]).map(({ key, headingKey, linkKeys }) => (
                             <div key={key} className="border-t border-[var(--border)]">
                                 <button
                                     type="button"
                                     onClick={() => setMobileFooterOpen(mobileFooterOpen === key ? null : key)}
                                     className="w-full flex items-center justify-between py-4 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[var(--dim)]"
                                 >
-                                    {heading}
+                                    {t(headingKey)}
                                     <ChevronDown
                                         size={14}
                                         className={`text-[var(--dim)] transition-transform duration-300 ${mobileFooterOpen === key ? 'rotate-180 text-[var(--gold)]' : ''}`}
@@ -1676,9 +1732,9 @@ export default function RouteDetailPage() {
                                             transition={{ duration: 0.25 }}
                                             className="overflow-hidden space-y-3 pb-4"
                                         >
-                                            {links.map(link => (
-                                                <li key={link}>
-                                                    <a href="#" className="text-sm text-[var(--dim)]">{link}</a>
+                                            {linkKeys.map(linkKey => (
+                                                <li key={linkKey}>
+                                                    <a href="#" className="text-sm text-[var(--dim)]">{t(linkKey)}</a>
                                                 </li>
                                             ))}
                                         </motion.ul>
@@ -1690,7 +1746,7 @@ export default function RouteDetailPage() {
 
                     <div className="border-t border-[var(--border)] mt-2 pt-6 text-center">
                         <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--dim)]">
-                            © {new Date().getFullYear()} Explore Scenic Routes. All Rights Reserved.
+                            © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
                         </p>
                     </div>
 
@@ -1700,7 +1756,7 @@ export default function RouteDetailPage() {
                                 onClick={() => setShowLangMenu((p) => !p)}
                                 className="flex items-center gap-1 h-[38px] px-3 rounded-full border-none bg-transparent text-[14px] font-normal uppercase tracking-wider text-[var(--muted)]"
                             >
-                                <Globe size={17} /> {language}
+                                <Globe size={17} /> {currentLang.toUpperCase()}
                             </button>
 
                             {showLangMenu && (
@@ -1709,11 +1765,11 @@ export default function RouteDetailPage() {
                                         <button
                                             key={lang.code}
                                             onClick={() => {
-                                                setLanguage(lang.code);
+                                                setLang(lang.code);
                                                 setShowLangMenu(false);
                                             }}
                                             className={`block w-full text-left px-4 py-2.5 text-xs font-medium ${
-                                                lang.code === language ? 'text-emerald-500 font-bold' : 'text-[var(--muted)]'
+                                                lang.code === currentLang ? 'text-emerald-500 font-bold' : 'text-[var(--muted)]'
                                             }`}
                                         >
                                             {lang.label}
@@ -1769,17 +1825,17 @@ export default function RouteDetailPage() {
 
                             <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-12">
                                 {[
-                                    { heading: 'Explore', links: ['All Routes', 'My Trips', 'Profile'] },
-                                    { heading: 'About', links: ['Traveller Pass', 'About', 'Our Team'] },
-                                    { heading: 'Support', links: ['FAQ', 'Contact', 'Report a Problem', 'Report Route Issue'] },
-                                    { heading: 'Legal', links: ['Terms of Use', 'Privacy Policy', 'Imprint'] },
-                                ].map(({ heading, links }) => (
-                                    <div key={heading} className="space-y-6">
-                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">{heading}</h4>
+                                    { headingKey: 'footer.col.explore' as const, linkKeys: ['footer.link.allRoutes', 'footer.link.myTrips', 'footer.link.profile'] as const },
+                                    { headingKey: 'footer.col.about' as const, linkKeys: ['footer.link.travellerPass', 'footer.link.about', 'footer.link.ourTeam'] as const },
+                                    { headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.reportProblem', 'footer.link.reportRouteIssue'] as const },
+                                    { headingKey: 'footer.col.legal' as const, linkKeys: ['footer.link.termsOfUse', 'footer.link.privacyPolicy', 'footer.link.imprint'] as const },
+                                ].map(({ headingKey, linkKeys }) => (
+                                    <div key={headingKey} className="space-y-6">
+                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">{t(headingKey)}</h4>
                                         <ul className="space-y-4">
-                                            {links.map(link => (
-                                                <li key={link}>
-                                                    <a href="#" className="text-sm text-[var(--dim)] hover:text-[var(--cream)] hover:translate-x-1 inline-block transition-all duration-300">{link}</a>
+                                            {linkKeys.map(linkKey => (
+                                                <li key={linkKey}>
+                                                    <a href="#" className="text-sm text-[var(--dim)] hover:text-[var(--cream)] hover:translate-x-1 inline-block transition-all duration-300">{t(linkKey)}</a>
                                                 </li>
                                             ))}
                                         </ul>
@@ -1791,7 +1847,7 @@ export default function RouteDetailPage() {
                         </div>
 
                         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-[var(--dim)]">
-                            <p>© {new Date().getFullYear()} Scenic Routes. All rights reserved.</p>
+                            <p>© {new Date().getFullYear()} Scenic Routes. {t("home.footer.rights")}</p>
 
                             <div className="flex items-center gap-6 flex-wrap justify-center">
                                 {/* ── Sprachauswahl ── */}
@@ -1800,7 +1856,7 @@ export default function RouteDetailPage() {
                                         onClick={() => setShowLangMenu((p) => !p)}
                                         className="flex items-center gap-1.5 px-6.5 py-2 rounded-full border-none bg-transparent text-base font-normal uppercase tracking-[0.12em] text-[var(--muted)] hover:text-[var(--cream)] transition-colors duration-200"
                                     >
-                                        <Globe size={12} strokeWidth={2} /> {language}
+                                        <Globe size={12} strokeWidth={2} /> {currentLang.toUpperCase()}
                                     </button>
 
                                     {showLangMenu && (
@@ -1809,11 +1865,11 @@ export default function RouteDetailPage() {
                                                 <button
                                                     key={lang.code}
                                                     onClick={() => {
-                                                        setLanguage(lang.code);
+                                                        setLang(lang.code);
                                                         setShowLangMenu(false);
                                                     }}
                                                     className={`block w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 ${
-                                                        lang.code === language
+                                                        lang.code === currentLang
                                                             ? 'text-emerald-500 font-bold'
                                                             : 'text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)]'
                                                     }`}

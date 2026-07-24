@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
@@ -15,13 +15,14 @@ const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
 
 // ---------- Types ----------
 
-type ExistingRoute = { id: string; title: string; country: string };
+type ExistingRoute = { id: string; title_en: string | null; title: string | null; country: string };
 type UpdateResultItem = { title: string; country: string };
 type NewRouteItem = { row: any; include: boolean };
 
 type RouteListItem = {
   id: string;
-  title: string;
+  title_en: string;
+  title_de: string | null;
   country: string;
   distance_km: number | null;
   season: string | null;
@@ -30,23 +31,32 @@ type RouteListItem = {
 };
 
 type RouteForm = {
-  title: string;
+  title_en: string;
+  title_de: string;
   country: string;
-  description: string;
-  long_description: string;
+  description_en: string;
+  description_de: string;
+  long_description_en: string;
+  long_description_de: string;
   duration: string;
   distance_km: string;
   image_url: string;
   season: string;
   start_point: string;
   end_point: string;
-  route_highlights: string;
+  route_highlights_en: string;
+  route_highlights_de: string;
   maps_URL: string;
-  chapter1: string;
-  chapter2: string;
-  chapter3: string;
-  chapter4: string;
-  chapter5: string;
+  chapter1_en: string;
+  chapter1_de: string;
+  chapter2_en: string;
+  chapter2_de: string;
+  chapter3_en: string;
+  chapter3_de: string;
+  chapter4_en: string;
+  chapter4_de: string;
+  chapter5_en: string;
+  chapter5_de: string;
   google_maps: string;
   image1: string;
   image2: string;
@@ -56,56 +66,98 @@ type RouteForm = {
   toll_fee: string;
   access_season: string;
   opening_access: string;
-  vehicle_restrictions: string;
-  closure_period: string;
+  vehicle_restrictions_en: string;
+  vehicle_restrictions_de: string;
+  closure_period_en: string;
+  closure_period_de: string;
   road_surface: string;
   difficulty: string;
   traffic_level: string;
-  fuel_services: string;
-  weather_advice: string;
+  fuel_services_en: string;
+  fuel_services_de: string;
+  weather_advice_en: string;
+  weather_advice_de: string;
   scenic_score: string;
   elevation_gain_m: string;
 };
 
 const emptyForm: RouteForm = {
-  title: '', country: '', description: '', long_description: '', duration: '',
-  distance_km: '', image_url: '', season: '', start_point: '', end_point: '',
-  route_highlights: '', maps_URL: '', chapter1: '', chapter2: '', chapter3: '',
-  chapter4: '', chapter5: '', google_maps: '', image1: '', image2: '', image3: '',
+  title_en: '', title_de: '', country: '',
+  description_en: '', description_de: '',
+  long_description_en: '', long_description_de: '',
+  duration: '', distance_km: '', image_url: '', season: '', start_point: '', end_point: '',
+  route_highlights_en: '', route_highlights_de: '', maps_URL: '',
+  chapter1_en: '', chapter1_de: '', chapter2_en: '', chapter2_de: '',
+  chapter3_en: '', chapter3_de: '', chapter4_en: '', chapter4_de: '',
+  chapter5_en: '', chapter5_de: '',
+  google_maps: '', image1: '', image2: '', image3: '',
   image4: '', image5: '',
-  toll_fee: '', access_season: '', opening_access: '', vehicle_restrictions: '',
-  closure_period: '', road_surface: '', difficulty: '', traffic_level: '',
-  fuel_services: '', weather_advice: '', scenic_score: '', elevation_gain_m: '',
+  toll_fee: '', access_season: '', opening_access: '',
+  vehicle_restrictions_en: '', vehicle_restrictions_de: '',
+  closure_period_en: '', closure_period_de: '',
+  road_surface: '', difficulty: '', traffic_level: '',
+  fuel_services_en: '', fuel_services_de: '',
+  weather_advice_en: '', weather_advice_de: '',
+  scenic_score: '', elevation_gain_m: '',
 };
 
+// NEU (Bilingual): title_en/title_de bleiben oben im Formular als eigenes Feldpaar,
+// werden separat gerendert statt über shortFields/longFields (siehe JSX weiter unten).
 const shortFields: (keyof RouteForm)[] = [
-  'title', 'country', 'duration', 'distance_km', 'image_url', 'season',
+  'duration', 'distance_km', 'image_url', 'season',
   'start_point', 'end_point', 'maps_URL', 'google_maps',
   'image1', 'image2', 'image3', 'image4', 'image5',
-  'toll_fee', 'access_season', 'opening_access', 'vehicle_restrictions', 'closure_period',
-  'road_surface', 'difficulty', 'traffic_level', 'fuel_services', 'weather_advice',
+  'toll_fee', 'access_season', 'opening_access',
+  'road_surface', 'difficulty', 'traffic_level',
   'scenic_score', 'elevation_gain_m',
 ];
 
-const longFields: (keyof RouteForm)[] = [
-  'description', 'long_description', 'route_highlights',
-  'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5',
+// NEU (Bilingual): jedes übersetzbare Feld als EN/DE-Paar, damit man beide Sprachen
+// nebeneinander sieht und pflegen kann.
+const longFieldPairs: { en: keyof RouteForm; de: keyof RouteForm; label: string }[] = [
+  { en: 'description_en', de: 'description_de', label: 'Description' },
+  { en: 'long_description_en', de: 'long_description_de', label: 'Long description' },
+  { en: 'route_highlights_en', de: 'route_highlights_de', label: 'Route highlights' },
+  { en: 'chapter1_en', de: 'chapter1_de', label: 'Chapter 1' },
+  { en: 'chapter2_en', de: 'chapter2_de', label: 'Chapter 2' },
+  { en: 'chapter3_en', de: 'chapter3_de', label: 'Chapter 3' },
+  { en: 'chapter4_en', de: 'chapter4_de', label: 'Chapter 4' },
+  { en: 'chapter5_en', de: 'chapter5_de', label: 'Chapter 5' },
+];
+
+// NEU (Bilingual): kurze Praxisfelder, die trotzdem pro Sprache unterschiedlichen Text
+// enthalten (echter Freitext, keine feste Werteliste) — als EN/DE-Paar mit <input> statt
+// <textarea>, weil die Texte meist nur ein paar Wörter lang sind.
+const shortFieldPairs: { en: keyof RouteForm; de: keyof RouteForm; label: string }[] = [
+  { en: 'vehicle_restrictions_en', de: 'vehicle_restrictions_de', label: 'Vehicle restrictions' },
+  { en: 'closure_period_en', de: 'closure_period_de', label: 'Closure period' },
+  { en: 'fuel_services_en', de: 'fuel_services_de', label: 'Fuel / Services' },
+  { en: 'weather_advice_en', de: 'weather_advice_de', label: 'Weather advice' },
 ];
 
 const fieldLabels: Record<keyof RouteForm, string> = {
-  title: 'Title', country: 'Country', description: 'Description',
-  long_description: 'Long description', duration: 'Duration',
+  title_en: 'Title (EN)', title_de: 'Title (DE)', country: 'Country',
+  description_en: 'Description (EN)', description_de: 'Description (DE)',
+  long_description_en: 'Long description (EN)', long_description_de: 'Long description (DE)',
+  duration: 'Duration',
   distance_km: 'Distance (km)', image_url: 'Main image URL', season: 'Season',
   start_point: 'Start point', end_point: 'End point',
-  route_highlights: 'Route highlights', maps_URL: 'Maps URL',
-  chapter1: 'Chapter 1', chapter2: 'Chapter 2', chapter3: 'Chapter 3',
-  chapter4: 'Chapter 4', chapter5: 'Chapter 5', google_maps: 'Google Maps link',
+  route_highlights_en: 'Route highlights (EN)', route_highlights_de: 'Route highlights (DE)',
+  maps_URL: 'Maps URL',
+  chapter1_en: 'Chapter 1 (EN)', chapter1_de: 'Chapter 1 (DE)',
+  chapter2_en: 'Chapter 2 (EN)', chapter2_de: 'Chapter 2 (DE)',
+  chapter3_en: 'Chapter 3 (EN)', chapter3_de: 'Chapter 3 (DE)',
+  chapter4_en: 'Chapter 4 (EN)', chapter4_de: 'Chapter 4 (DE)',
+  chapter5_en: 'Chapter 5 (EN)', chapter5_de: 'Chapter 5 (DE)',
+  google_maps: 'Google Maps link',
   image1: 'Image 1', image2: 'Image 2', image3: 'Image 3',
   image4: 'Image 4', image5: 'Image 5',
   toll_fee: 'Toll / Fee', access_season: 'Access season', opening_access: 'Opening / Access',
-  vehicle_restrictions: 'Vehicle restrictions', closure_period: 'Closure period',
+  vehicle_restrictions_en: 'Vehicle restrictions (EN)', vehicle_restrictions_de: 'Vehicle restrictions (DE)',
+  closure_period_en: 'Closure period (EN)', closure_period_de: 'Closure period (DE)',
   road_surface: 'Road surface', difficulty: 'Difficulty', traffic_level: 'Traffic level',
-  fuel_services: 'Fuel / Services', weather_advice: 'Weather advice',
+  fuel_services_en: 'Fuel / Services (EN)', fuel_services_de: 'Fuel / Services (DE)',
+  weather_advice_en: 'Weather advice (EN)', weather_advice_de: 'Weather advice (DE)',
   scenic_score: 'Scenic score (0–10)', elevation_gain_m: 'Elevation gain (m)',
 };
 
@@ -221,8 +273,8 @@ export default function AdminPage() {
     setRoutesError(null);
     const { data, error } = await supabase
       .from('routes')
-      .select('id, title, country, distance_km, season, featured, featured_order')
-      .order('title', { ascending: true });
+      .select('id, title_en, title_de, country, distance_km, season, featured, featured_order')
+      .order('title_en', { ascending: true });
 
     if (error) {
       setRoutesError(error.message);
@@ -280,25 +332,63 @@ export default function AdminPage() {
     return Number.isNaN(parsed) ? null : parsed;
   }
 
+  // NEU (Bilingual): liest jetzt die _en/_de-Spaltenpaare aus der Excel-Tabelle
+  // (title_en, title_de, description_en, description_de, long_description_en/_de,
+  // route_highlights_en/_de, chapter1-5_en/_de) und schreibt sie 1:1 in die
+  // entsprechenden, neu angelegten Supabase-Spalten. Alle praktischen/kategorialen
+  // Felder (country, duration, difficulty usw.) bleiben unverändert einsprachig.
+  //
+  // WICHTIG (Übergangsphase): Die ALTEN Spalten (title, description, long_description,
+  // route_highlights, chapter1-5) werden hier bewusst noch mitgeschrieben — als Spiegel
+  // aus den neuen Feldern. Grund: solange nicht ALLE Frontend-Seiten (Home, Explore,
+  // Route Detail, ...) auf die neuen _en/_de-Felder umgestellt sind, würden sie sonst
+  // leere Inhalte anzeigen bzw. bricht der NOT-NULL-Constraint auf der alten
+  // "title"-Spalte den Import. Sobald überall umgestellt ist, können diese Zeilen UND
+  // die alten Spalten in Supabase entfernt werden.
   function buildRoute(row: any) {
+    const titleEn = row.title_en ?? row.title;
+    const descriptionEn = cleanText(row.description_en ?? row.description);
+    const longDescriptionEn = cleanText(row.long_description_en ?? row.long_description);
+    const highlightsEn = cleanText(row.route_highlights_en ?? row.route_highlights);
+    const chapter1De = cleanText(row.chapter1_de ?? row.chapter1);
+    const chapter2De = cleanText(row.chapter2_de ?? row.chapter2);
+    const chapter3De = cleanText(row.chapter3_de ?? row.chapter3);
+    const chapter4De = cleanText(row.chapter4_de ?? row.chapter4);
+    const chapter5De = cleanText(row.chapter5_de ?? row.chapter5);
+    // NEU: vehicle_restrictions/closure_period/fuel_services/weather_advice waren im alten
+    // Format immer Englisch -> Spiegelung in die Legacy-Spalte kommt hier aus _en, nicht _de.
+    const vehicleRestrictionsEn = cleanText(row.vehicle_restrictions_en ?? row.vehicle_restrictions);
+    const closurePeriodEn = cleanText(row.closure_period_en ?? row.closure_period);
+    const fuelServicesEn = cleanText(row.fuel_services_en ?? row.fuel_services);
+    const weatherAdviceEn = cleanText(row.weather_advice_en ?? row.weather_advice);
+
     return {
-      title: row.title,
+      title_en: titleEn,
+      title_de: cleanText(row.title_de),
       country: row.country,
-      description: cleanText(row.description),
-      long_description: cleanText(row.long_description),
+      description_en: descriptionEn,
+      description_de: cleanText(row.description_de),
+      long_description_en: longDescriptionEn,
+      long_description_de: cleanText(row.long_description_de),
       duration: cleanText(row.duration),
       distance_km: cleanNumber(row.distance_km),
       image_url: cleanText(row.image_url),
       season: cleanText(row.season),
       start_point: cleanText(row.start_point),
       end_point: cleanText(row.end_point),
-      route_highlights: cleanText(row.route_highlights),
+      route_highlights_en: highlightsEn,
+      route_highlights_de: cleanText(row.route_highlights_de),
       maps_URL: cleanText(row.maps_URL),
-      chapter1: cleanText(row.chapter1),
-      chapter2: cleanText(row.chapter2),
-      chapter3: cleanText(row.chapter3),
-      chapter4: cleanText(row.chapter4),
-      chapter5: cleanText(row.chapter5),
+      chapter1_en: cleanText(row.chapter1_en),
+      chapter1_de: chapter1De,
+      chapter2_en: cleanText(row.chapter2_en),
+      chapter2_de: chapter2De,
+      chapter3_en: cleanText(row.chapter3_en),
+      chapter3_de: chapter3De,
+      chapter4_en: cleanText(row.chapter4_en),
+      chapter4_de: chapter4De,
+      chapter5_en: cleanText(row.chapter5_en),
+      chapter5_de: chapter5De,
       google_maps: cleanText(row.google_maps),
       image1: cleanText(row.image1),
       image2: cleanText(row.image2),
@@ -308,15 +398,33 @@ export default function AdminPage() {
       toll_fee: cleanText(row.toll_fee),
       access_season: cleanText(row.access_season),
       opening_access: cleanText(row.opening_access),
-      vehicle_restrictions: cleanText(row.vehicle_restrictions),
-      closure_period: cleanText(row.closure_period),
+      vehicle_restrictions_en: vehicleRestrictionsEn,
+      vehicle_restrictions_de: cleanText(row.vehicle_restrictions_de),
+      closure_period_en: closurePeriodEn,
+      closure_period_de: cleanText(row.closure_period_de),
       road_surface: cleanText(row.road_surface),
       difficulty: cleanText(row.difficulty),
       traffic_level: cleanText(row.traffic_level),
-      fuel_services: cleanText(row.fuel_services),
-      weather_advice: cleanText(row.weather_advice),
+      fuel_services_en: fuelServicesEn,
+      fuel_services_de: cleanText(row.fuel_services_de),
+      weather_advice_en: weatherAdviceEn,
+      weather_advice_de: cleanText(row.weather_advice_de),
       scenic_score: cleanNumber(row.scenic_score),
       elevation_gain_m: cleanNumber(row.elevation_gain_m),
+      // Übergangs-Spiegelung in die alten Spalten (siehe Kommentar oben):
+      title: titleEn,
+      description: descriptionEn,
+      long_description: longDescriptionEn,
+      route_highlights: highlightsEn,
+      chapter1: chapter1De,
+      chapter2: chapter2De,
+      chapter3: chapter3De,
+      chapter4: chapter4De,
+      chapter5: chapter5De,
+      vehicle_restrictions: vehicleRestrictionsEn,
+      closure_period: closurePeriodEn,
+      fuel_services: fuelServicesEn,
+      weather_advice: weatherAdviceEn,
     };
   }
 
@@ -342,7 +450,7 @@ export default function AdminPage() {
 
         const { data: existingRoutes, error: fetchError } = await supabase
           .from('routes')
-          .select('id, title, country') as { data: ExistingRoute[] | null; error: any };
+          .select('id, title_en, title, country') as { data: ExistingRoute[] | null; error: any };
 
         if (fetchError) {
           setResult({ updated: [], added: 0, errors: [`Не удалось загрузить существующие маршруты: ${fetchError.message}`] });
@@ -352,15 +460,24 @@ export default function AdminPage() {
 
         const existingByTitle = new Map<string, ExistingRoute>();
         (existingRoutes || []).forEach(r => {
-          existingByTitle.set(`${normalizeTitle(r.title)}|${r.country.trim().toLowerCase()}`, r);
+          // NEU (Übergang): solange title_en bei einer Bestandsroute noch nicht befüllt ist
+          // (erster Import nach der Migration), auf die alte "title"-Spalte zurückfallen —
+          // sonst wird jede Route fälschlich als "neu" erkannt und kollidiert beim Insert
+          // mit der bereits vorhandenen Zeile (unique constraint auf title+country).
+          const key = normalizeTitle(r.title_en || r.title || '');
+          if (!key) return;
+          existingByTitle.set(`${key}|${r.country.trim().toLowerCase()}`, r);
         });
 
+        // NEU (Bilingual): Abgleich läuft jetzt über title_en (fällt auf die alte
+        // "title"-Spalte zurück, falls mal eine Excel-Datei im alten Format importiert wird).
         const toUpdate: { id: string; row: any }[] = [];
         const toConfirm: NewRouteItem[] = [];
 
         for (const row of rows) {
-          if (!row.title || !row.country) continue;
-          const match = existingByTitle.get(`${normalizeTitle(row.title)}|${String(row.country).trim().toLowerCase()}`);
+          const rowTitle = row.title_en ?? row.title;
+          if (!rowTitle || !row.country) continue;
+          const match = existingByTitle.get(`${normalizeTitle(rowTitle)}|${String(row.country).trim().toLowerCase()}`);
           if (match) {
             toUpdate.push({ id: match.id, row });
           } else {
@@ -374,9 +491,10 @@ export default function AdminPage() {
 
         for (const { id, row } of toUpdate) {
           const route = buildRoute(row);
+          const rowTitle = row.title_en ?? row.title;
           const { error } = await supabase.from('routes').update(route).eq('id', id);
-          if (error) errors.push(`${row.title}: ${error.message}`);
-          else updated.push({ title: row.title, country: row.country });
+          if (error) errors.push(`${rowTitle}: ${error.message}`);
+          else updated.push({ title: rowTitle, country: row.country });
         }
 
         setResult({ updated, added: 0, errors });
@@ -425,8 +543,9 @@ export default function AdminPage() {
 
     for (const { row } of selected) {
       const route = buildRoute(row);
+      const rowTitle = row.title_en ?? row.title;
       const { error } = await supabase.from('routes').insert(route);
-      if (error) errors.push(`${row.title}: ${error.message}`);
+      if (error) errors.push(`${rowTitle}: ${error.message}`);
       else added++;
     }
 
@@ -443,7 +562,7 @@ export default function AdminPage() {
   // ---------- Routes list: search/filter ----------
   const filteredRoutes = useMemo(() => {
     if (!routesList) return [];
-    return routesList.filter(r => r.title.toLowerCase().includes(routeSearch.toLowerCase()));
+    return routesList.filter(r => (r.title_en || '').toLowerCase().includes(routeSearch.toLowerCase()));
   }, [routesList, routeSearch]);
 
   async function handleDeleteRoute(id: string, title: string) {
@@ -511,8 +630,8 @@ export default function AdminPage() {
   }
 
   async function handleSaveForm() {
-    if (!form.title.trim() || !form.country.trim()) {
-      setFormError('Title и Country обязательны');
+    if (!form.title_en.trim() || !form.country.trim()) {
+      setFormError('Title (EN) и Country обязательны');
       return;
     }
 
@@ -520,24 +639,43 @@ export default function AdminPage() {
     setFormError(null);
 
     const payload = {
-      title: form.title,
+      title_en: form.title_en,
+      title_de: form.title_de || null,
       country: form.country,
-      description: form.description || null,
-      long_description: form.long_description || null,
+      description_en: form.description_en || null,
+      description_de: form.description_de || null,
+      long_description_en: form.long_description_en || null,
+      long_description_de: form.long_description_de || null,
       duration: form.duration || null,
       distance_km: cleanNumber(form.distance_km),
       image_url: form.image_url || null,
       season: form.season || null,
       start_point: form.start_point || null,
       end_point: form.end_point || null,
-      route_highlights: form.route_highlights || null,
+      route_highlights_en: form.route_highlights_en || null,
+      route_highlights_de: form.route_highlights_de || null,
       maps_URL: form.maps_URL || null,
-      chapter1: form.chapter1 || null,
-      chapter2: form.chapter2 || null,
-      chapter3: form.chapter3 || null,
-      chapter4: form.chapter4 || null,
-      chapter5: form.chapter5 || null,
+      chapter1_en: form.chapter1_en || null,
+      chapter1_de: form.chapter1_de || null,
+      chapter2_en: form.chapter2_en || null,
+      chapter2_de: form.chapter2_de || null,
+      chapter3_en: form.chapter3_en || null,
+      chapter3_de: form.chapter3_de || null,
+      chapter4_en: form.chapter4_en || null,
+      chapter4_de: form.chapter4_de || null,
+      chapter5_en: form.chapter5_en || null,
+      chapter5_de: form.chapter5_de || null,
       google_maps: form.google_maps || null,
+      // Übergangs-Spiegelung in die alten Spalten, siehe Kommentar bei buildRoute():
+      title: form.title_en,
+      description: form.description_en || null,
+      long_description: form.long_description_en || null,
+      route_highlights: form.route_highlights_en || null,
+      chapter1: form.chapter1_de || null,
+      chapter2: form.chapter2_de || null,
+      chapter3: form.chapter3_de || null,
+      chapter4: form.chapter4_de || null,
+      chapter5: form.chapter5_de || null,
       image1: form.image1 || null,
       image2: form.image2 || null,
       image3: form.image3 || null,
@@ -546,15 +684,24 @@ export default function AdminPage() {
       toll_fee: form.toll_fee || null,
       access_season: form.access_season || null,
       opening_access: form.opening_access || null,
-      vehicle_restrictions: form.vehicle_restrictions || null,
-      closure_period: form.closure_period || null,
+      vehicle_restrictions_en: form.vehicle_restrictions_en || null,
+      vehicle_restrictions_de: form.vehicle_restrictions_de || null,
+      closure_period_en: form.closure_period_en || null,
+      closure_period_de: form.closure_period_de || null,
       road_surface: form.road_surface || null,
       difficulty: form.difficulty || null,
       traffic_level: form.traffic_level || null,
-      fuel_services: form.fuel_services || null,
-      weather_advice: form.weather_advice || null,
+      fuel_services_en: form.fuel_services_en || null,
+      fuel_services_de: form.fuel_services_de || null,
+      weather_advice_en: form.weather_advice_en || null,
+      weather_advice_de: form.weather_advice_de || null,
       scenic_score: cleanNumber(form.scenic_score),
       elevation_gain_m: cleanNumber(form.elevation_gain_m),
+      // Übergangs-Spiegelung in die alten Spalten (Legacy-Content war Englisch):
+      vehicle_restrictions: form.vehicle_restrictions_en || null,
+      closure_period: form.closure_period_en || null,
+      fuel_services: form.fuel_services_en || null,
+      weather_advice: form.weather_advice_en || null,
     };
 
     if (editingRouteId === 'new') {
@@ -797,7 +944,7 @@ export default function AdminPage() {
                       className="w-4 h-4"
                     />
                     <span className="text-sm text-gray-700">
-                      <strong>{item.row.title}</strong> ({item.row.country})
+                      <strong>{item.row.title_en ?? item.row.title}</strong> ({item.row.country})
                     </span>
                   </label>
                 ))}
@@ -928,7 +1075,10 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filteredRoutes.map(route => (
                     <tr key={route.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 font-medium text-gray-900">{route.title}</td>
+                      <td className="px-5 py-3 font-medium text-gray-900">
+                        {route.title_en || <span className="text-gray-400 italic">(noch nicht importiert)</span>}
+                        {route.title_de && <span className="block text-xs text-gray-400 font-normal">{route.title_de}</span>}
+                      </td>
                       <td className="px-5 py-3 text-gray-500">{route.country}</td>
                       <td className="px-5 py-3 text-gray-500">{route.distance_km ? `${route.distance_km} km` : '—'}</td>
                       <td className="px-5 py-3 text-gray-500">{route.season || '—'}</td>
@@ -940,7 +1090,7 @@ export default function AdminPage() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteRoute(route.id, route.title)}
+                          onClick={() => handleDeleteRoute(route.id, route.title_en || route.country)}
                           disabled={deletingId === route.id}
                           className="text-red-500 hover:underline font-medium disabled:text-gray-300"
                         >
@@ -971,7 +1121,7 @@ export default function AdminPage() {
           ) : (
             <>
               <h1 className="text-4xl font-bold mb-2">
-                {editingRouteId === 'new' ? 'New route' : form.title || 'Edit route'}
+                {editingRouteId === 'new' ? 'New route' : form.title_en || 'Edit route'}
               </h1>
               <p className="text-gray-400 mb-10">
                 {editingRouteId === 'new' ? 'Заполни поля и сохрани.' : `ID: ${editingRouteId}`}
@@ -989,12 +1139,48 @@ export default function AdminPage() {
                 </div>
               )}
 
+              {/* NEU (Bilingual): Title EN/DE und Country zuerst, prominent und mit Pflichtfeld-Markierung */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                    {fieldLabels.title_en}<span className="text-red-400"> *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.title_en}
+                    onChange={(e) => updateFormField('title_en', e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                    {fieldLabels.title_de}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.title_de}
+                    onChange={(e) => updateFormField('title_de', e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                    Country<span className="text-red-400"> *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.country}
+                    onChange={(e) => updateFormField('country', e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {shortFields.map(key => (
-                  <div key={key} className={key === 'title' || key === 'country' ? 'col-span-2 sm:col-span-1' : ''}>
+                  <div key={key}>
                     <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
                       {fieldLabels[key]}
-                      {(key === 'title' || key === 'country') && <span className="text-red-400"> *</span>}
                     </label>
                     <input
                       type="text"
@@ -1006,18 +1192,64 @@ export default function AdminPage() {
                 ))}
               </div>
 
+              {/* NEU (Bilingual): kurze Praxisfelder mit echtem Freitext (vehicle_restrictions,
+                  closure_period, fuel_services, weather_advice) ebenfalls als EN/DE-Paar,
+                  aber mit <input> statt <textarea>, da die Texte meist nur ein paar Wörter lang sind. */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {shortFieldPairs.map(({ en, de, label }) => (
+                  <Fragment key={en}>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                        {label} (EN)
+                      </label>
+                      <input
+                        type="text"
+                        value={form[en]}
+                        onChange={(e) => updateFormField(en, e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                        {label} (DE)
+                      </label>
+                      <input
+                        type="text"
+                        value={form[de]}
+                        onChange={(e) => updateFormField(de, e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                  </Fragment>
+                ))}
+              </div>
+
+              {/* NEU (Bilingual): jedes Textfeld als EN/DE-Paar nebeneinander */}
               <div className="space-y-4 mb-8">
-                {longFields.map(key => (
-                  <div key={key}>
-                    <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
-                      {fieldLabels[key]}
-                    </label>
-                    <textarea
-                      value={form[key]}
-                      onChange={(e) => updateFormField(key, e.target.value)}
-                      rows={3}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
-                    />
+                {longFieldPairs.map(({ en, de, label }) => (
+                  <div key={en} className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                        {label} (EN)
+                      </label>
+                      <textarea
+                        value={form[en]}
+                        onChange={(e) => updateFormField(en, e.target.value)}
+                        rows={3}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">
+                        {label} (DE)
+                      </label>
+                      <textarea
+                        value={form[de]}
+                        onChange={(e) => updateFormField(de, e.target.value)}
+                        rows={3}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1082,7 +1314,7 @@ export default function AdminPage() {
                         className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center"
                       />
                       <span className="flex-1 text-sm font-medium text-gray-900">
-                        {route.title} <span className="text-gray-400">({route.country})</span>
+                        {route.title_en || "(noch nicht importiert)"} <span className="text-gray-400">({route.country})</span>
                       </span>
                       <button
                         onClick={() => toggleFeatured(route)}
@@ -1110,7 +1342,7 @@ export default function AdminPage() {
                   {filteredRoutes.filter(r => !r.featured).map(route => (
                     <div key={route.id} className="flex items-center gap-4 p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
                       <span className="flex-1 text-sm text-gray-700">
-                        {route.title} <span className="text-gray-400">({route.country})</span>
+                        {route.title_en || "(noch nicht importiert)"} <span className="text-gray-400">({route.country})</span>
                       </span>
                       <button
                         onClick={() => toggleFeatured(route)}
