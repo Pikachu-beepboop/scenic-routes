@@ -52,6 +52,12 @@ export default function MyTripsPage() {
   const [visibleCount, setVisibleCount] = useState(MOBILE_PAGE_SIZE);
   const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
 
+  // NEU: eigener, abgerundeter Scrollbar-Indikator für die Saved-Routes-Liste
+  // (native scrollbar-color/webkit-Radien werden von Browsern uneinheitlich
+  // gerendert -> stattdessen selbst positionieren, native scrollbar wird versteckt)
+  const savedListRef = useRef<HTMLDivElement>(null);
+  const [savedThumb, setSavedThumb] = useState({ top: 0, height: 0, visible: false });
+
   const savedCountriesCount = new Set(
     savedRoutes.map((route: any) => route.country).filter(Boolean)
   ).size;
@@ -147,6 +153,29 @@ export default function MyTripsPage() {
     setMobileMenuOpen(false);
     router.push("/");
   }
+
+  // NEU: berechnet Höhe/Position des eigenen Scrollbar-Thumbs anhand des
+  // tatsächlichen Scroll-Zustands der Liste. min. 30px Thumb-Höhe, damit er
+  // bei vielen Einträgen nicht zum unsichtbaren Punkt schrumpft.
+  const updateSavedThumb = () => {
+    const el = savedListRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    if (scrollHeight <= clientHeight + 1) {
+      setSavedThumb({ top: 0, height: 0, visible: false });
+      return;
+    }
+    const thumbHeight = Math.max((clientHeight / scrollHeight) * clientHeight, 30);
+    const maxTop = clientHeight - thumbHeight;
+    const thumbTop = (scrollTop / (scrollHeight - clientHeight)) * maxTop;
+    setSavedThumb({ top: thumbTop, height: thumbHeight, visible: true });
+  };
+
+  useEffect(() => {
+    updateSavedThumb();
+    window.addEventListener("resize", updateSavedThumb);
+    return () => window.removeEventListener("resize", updateSavedThumb);
+  }, [savedRoutes, loading, user]);
 
   // NEU (Mobile): auf Mobile nur die sichtbare Teilmenge rendern, Desktop unverändert alles
   const displayedRoutes = isMobile ? savedRoutes.slice(0, visibleCount) : savedRoutes;
@@ -263,10 +292,22 @@ export default function MyTripsPage() {
         .saved-preview-title { font-family:var(--serif); font-size:28px; font-weight:400; color:var(--cream); }
         .saved-preview-count { font-size:10px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); white-space:nowrap; }
         .light .saved-preview-count { color:#8A6A2E; }
-        .saved-preview-list { display:flex; flex-direction:column; height:auto; max-height:520px; overflow-y:auto; padding-right:10px; }
-        .saved-preview-list::-webkit-scrollbar { width:4px; }
-        .saved-preview-list::-webkit-scrollbar-track { background:color-mix(in srgb, var(--border) 40%, transparent); border-radius:999px; }
-        .saved-preview-list::-webkit-scrollbar-thumb { background:rgba(201,168,106,0.38); border-radius:999px; }
+        .saved-preview-list-wrap { position:relative; }
+        .saved-preview-list {
+          display:flex;
+          flex-direction:column;
+          height:auto;
+          max-height:520px;
+          overflow-y:auto;
+          padding-right:14px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .saved-preview-list::-webkit-scrollbar { display:none; width:0; height:0; }
+        /* NEU: eigener, garantiert abgerundeter Scrollbar-Track/Thumb statt nativer Browser-Scrollbar */
+        .custom-scrollbar-track { position:absolute; top:0; right:0; bottom:0; width:4px; border-radius:999px; background:color-mix(in srgb, var(--border) 55%, transparent); overflow:hidden; pointer-events:none; }
+        .custom-scrollbar-thumb { width:4px; border-radius:999px; background:rgba(201,168,106,0.5); transition:background .2s; }
+        .saved-preview-list-wrap:hover .custom-scrollbar-thumb { background:rgba(201,168,106,0.75); }
         .saved-preview-item { display:grid; grid-template-columns:170px 1fr auto; gap:26px; align-items:center; min-height:130px; padding:14px 0; border-bottom:1px solid var(--border); }
         .saved-preview-item:first-child { padding-top:0; }
         .saved-preview-item:last-child { border-bottom:none; }
@@ -662,29 +703,39 @@ export default function MyTripsPage() {
                   <Link href="/explore" className="btn-gold-filled">{t("mytrips.empty.exploreBtn")}</Link>
                 </div>
               ) : (
-                <div className="saved-preview-list">
-                  {savedRoutes.map((route: any) => (
-                    <div key={route.id} className="saved-preview-item">
-                      <Link href={`/routedetail/${route.id}`} className="saved-preview-thumb">
-                        <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
-                      </Link>
-                      <div>
-                        <p className="saved-preview-country">{route.country || t("home.popular.fallbackType")}</p>
-                        <Link href={`/routedetail/${route.id}`}>
-                          <h3 className="saved-preview-name">{route.title}</h3>
+                <div className="saved-preview-list-wrap">
+                  <div className="saved-preview-list" ref={savedListRef} onScroll={updateSavedThumb}>
+                    {savedRoutes.map((route: any) => (
+                      <div key={route.id} className="saved-preview-item">
+                        <Link href={`/routedetail/${route.id}`} className="saved-preview-thumb">
+                          <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
                         </Link>
-                        <div className="saved-preview-meta">
-                          {route.distance_km && <span><Navigation size={13} strokeWidth={1.8} /> {fmtKm(route.distance_km)}</span>}
-                          {route.duration && <span><Clock size={13} strokeWidth={1.8} /> {route.duration}</span>}
-                          {(route.terrain || route.type) && <span>• {route.terrain || route.type}</span>}
+                        <div>
+                          <p className="saved-preview-country">{route.country || t("home.popular.fallbackType")}</p>
+                          <Link href={`/routedetail/${route.id}`}>
+                            <h3 className="saved-preview-name">{route.title}</h3>
+                          </Link>
+                          <div className="saved-preview-meta">
+                            {route.distance_km && <span><Navigation size={13} strokeWidth={1.8} /> {fmtKm(route.distance_km)}</span>}
+                            {route.duration && <span><Clock size={13} strokeWidth={1.8} /> {route.duration}</span>}
+                            {(route.terrain || route.type) && <span>• {route.terrain || route.type}</span>}
+                          </div>
+                        </div>
+                        <div className="saved-preview-action-wrap">
+                          <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title={t("mytrips.openRoute")}><ChevronRight size={19} strokeWidth={2} /></Link>
+                          <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title={t("mytrips.removeFromSaved")}><X size={15} strokeWidth={2} /></button>
                         </div>
                       </div>
-                      <div className="saved-preview-action-wrap">
-                        <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title={t("mytrips.openRoute")}><ChevronRight size={19} strokeWidth={2} /></Link>
-                        <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title={t("mytrips.removeFromSaved")}><X size={15} strokeWidth={2} /></button>
-                      </div>
+                    ))}
+                  </div>
+                  {savedThumb.visible && (
+                    <div className="custom-scrollbar-track">
+                      <div
+                        className="custom-scrollbar-thumb"
+                        style={{ height: savedThumb.height, transform: `translateY(${savedThumb.top}px)` }}
+                      />
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
 
