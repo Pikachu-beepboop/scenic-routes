@@ -689,7 +689,7 @@ export default function MyTripsPage() {
                   <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
                   <h3>{t("mytrips.empty.signInTitle")}</h3>
                   <p>{t("mytrips.empty.signInText")}</p>
-                  <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>{t("mytrips.empty.loginBtn")}</button>
+                  <Link href="/login" className="btn-gold-filled">{t("mytrips.empty.loginBtn")}</Link>
                 </div>
               ) : loading ? (
                 <div className="saved-preview-empty">
@@ -760,7 +760,7 @@ export default function MyTripsPage() {
                 <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
                 <h3>{t("mytrips.empty.signInTitle")}</h3>
                 <p>{t("mytrips.empty.signInText")}</p>
-                <button className="btn-gold-filled" onClick={() => setIsAuthOpen(true)}>{t("mytrips.empty.loginBtn")}</button>
+                <Link href="/login" className="btn-gold-filled">{t("mytrips.empty.loginBtn")}</Link>
               </div>
             ) : loading ? (
               <div className="saved-preview-empty">
