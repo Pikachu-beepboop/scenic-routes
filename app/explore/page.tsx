@@ -18,6 +18,8 @@ import {
 type Route = {
   id: string;
   title: string;
+  title_en?: string;
+  title_de?: string;
   country: string;
   distance_km?: number;
   image_url?: string;
@@ -25,8 +27,17 @@ type Route = {
   type?: string;
   terrain?: string;
   description?: string;
+  description_en?: string;
+  description_de?: string;
   rating?: number;
 };
+
+// NEU (Bilingual): liest ein übersetzbares Feld (title, description, ...) sprachabhängig
+// aus der Route. Fallback-Kette: aktuelle Sprache -> Englisch -> Deutsch -> alte Spalte.
+function localizedRouteText(route: Route, field: string, lang: string): string {
+  const value = (route as any)[`${field}_${lang}`] || (route as any)[`${field}_en`] || (route as any)[`${field}_de`] || (route as any)[field];
+  return typeof value === 'string' ? value : '';
+}
 
 // Feste, logische Reihenfolge (kurz → lang) statt alphabetischer Sortierung
 const DURATION_ORDER = ["Half day", "Full day", "Weekend trip", "Multi-day journey"];
@@ -593,7 +604,6 @@ function ExplorePageInner() {
         .empty-state h3 { font-family:var(--serif); font-size:40px; font-weight:300; font-style:italic; color:var(--cream); margin-bottom:12px; }
         .empty-state p { font-size:14px; color:var(--dim); font-weight:300; margin-bottom:28px; }
 
-        /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
         .footer-inner { max-width:1200px; margin:0 auto; }
         .footer-top { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
@@ -613,7 +623,6 @@ function ExplorePageInner() {
         .footer-legal a { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; transition:color .2s; }
         .footer-legal a:hover { color:var(--cream); }
 
-        /* FOOTER — Sprachauswahl */
         .footer-lang-wrap { position:relative; }
         .footer-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; border-radius:999px; background:none; font-size:16px; font-weight:400; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); transition:color .2s, border-color .2s; }
         .footer-lang-btn:hover { color:var(--cream); }
@@ -622,7 +631,6 @@ function ExplorePageInner() {
         .footer-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
         .footer-lang-option.active { color:var(--gold); font-weight:700; }
 
-        /* NEU: Nach-oben-Button, taucht per Fade+Slide auf, sobald man weit genug scrollt */
         .scroll-top-btn {
           position: fixed;
           bottom: 28px;
@@ -682,11 +690,9 @@ function ExplorePageInner() {
 
         .mobile-only { display:none; }
 
-        /* Hamburger-Button in der Nav (nur mobil sichtbar) */
         .mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
         .light .nav:not(.scrolled) .mobile-menu-btn { border-color:rgba(255,255,255,0.35); color:#fff; }
 
-        /* Mobile Popup-Menü (zentriertes Fenster, wie auf der Homepage) */
         .mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
         .mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
 
@@ -710,14 +716,11 @@ function ExplorePageInner() {
         .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
         .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
 
-        /* Route-Card — Pin-Icon vor dem Land, nur mobil */
         .route-card-pin { display:none; color:var(--gold); flex-shrink:0; }
 
-        /* Pagination */
         .load-more-row { display:none; margin-top:28px; }
         button.load-more-btn { width:100%; padding:16px; background:var(--gold); color:var(--bg); border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; }
 
-        /* NEU (Mobile): obere Such- + Filter-Leiste */
         .mobile-toolbar { display:none; gap:12px; margin:24px 0 22px; scroll-margin-top:88px; }
         .mobile-search-pill { position:relative; flex:1; display:flex; align-items:center; gap:10px; padding:15px 18px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 35%, transparent); color:var(--muted); font-size:12px; }
         .mobile-search-pill svg { flex-shrink:0; color:var(--gold); }
@@ -727,12 +730,10 @@ function ExplorePageInner() {
         .mobile-filter-pill .filter-count { position:absolute; top:-4px; right:-4px; }
         .mobile-search-dropdown { position:absolute; top:calc(100% + 10px); left:0; right:0; z-index:60; background:color-mix(in srgb, var(--bg) 98%, transparent); border:1px solid rgba(201,168,106,0.2); border-radius:16px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.5); animation:ddOpen .2s cubic-bezier(0.22,1,0.36,1); }
 
-        /* Footer — Social Icons */
         .footer-social { display:flex; gap:10px; margin-top:16px; margin-bottom:6px; }
         .footer-social a { width:34px; height:34px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); transition:all .2s; }
         .footer-social a:hover { color:var(--gold); border-color:rgba(201,168,106,0.4); }
 
-        /* Footer — Akkordeon */
         .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; }
         .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
         .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
@@ -893,7 +894,6 @@ function ExplorePageInner() {
               <Link href={loginHref} className="login-btn">{t("nav.login")}</Link>
             )}
 
-            {/* NEU (Mobile): Hamburger-Button, nur per CSS auf Mobile sichtbar */}
             <button
               className="mobile-menu-btn mobile-only"
               onClick={() => setMobileMenuOpen(true)}
@@ -904,7 +904,6 @@ function ExplorePageInner() {
           </div>
         </nav>
 
-        {/* NEU (Mobile): Popup-Menü + Backdrop */}
         <div
           className={`mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`}
           onClick={() => setMobileMenuOpen(false)}
@@ -1121,9 +1120,6 @@ function ExplorePageInner() {
 
         {/* CONTENT */}
         <div className="content" ref={resultsRef}>
-          {/* NEU (Mobile): kompakte Such- + Filter-Leiste oben, ersetzt visuell
-              die versteckte Desktop-Suchleiste im Hero und den bisherigen
-              Filter-Button ganz unten */}
           <div className="mobile-toolbar mobile-only" ref={mobileSearchRef}>
             <div className="mobile-search-pill">
               <Search size={14} strokeWidth={2} />
@@ -1133,9 +1129,6 @@ function ExplorePageInner() {
                 value={mobileCountryOpen ? mobileCountrySearch : selected}
                 onFocus={() => {
                   setMobileCountryOpen(true); setMobileCountrySearch("");
-                  // NEU (Mobile): Seite hochscrollen, damit das aufklappende
-                  // Dropdown vollständig sichtbar ist (Toolbar wandert unter
-                  // die fixe Nav, s. scroll-margin-top an .mobile-toolbar)
                   setTimeout(() => {
                     mobileSearchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }, 60);
@@ -1329,7 +1322,7 @@ function ExplorePageInner() {
                   <div key={route.id} className="route-card">
                     <div className="route-card-img">
                       <Link href={`/routedetail/${route.id}`}>
-                        <img src={route.image_url || "/iceland.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
+                        <img src={route.image_url || "/iceland.jpg"} alt={localizedRouteText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
                       </Link>
                       <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
                         <Heart size={16} strokeWidth={2} fill={savedRoutes.includes(route.id) ? "#ef4444" : "transparent"} stroke={savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)"} />
@@ -1341,8 +1334,8 @@ function ExplorePageInner() {
                         <MapPin size={10} strokeWidth={2.2} className="route-card-pin" />
                         {route.country}
                       </div>
-                      <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{route.title}</div></Link>
-                      <p className="route-card-desc">{route.description || ""}</p>
+                      <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{localizedRouteText(route, "title", lang)}</div></Link>
+                      <p className="route-card-desc">{localizedRouteText(route, "description", lang)}</p>
                       <div className="route-card-meta">
                         {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
                         {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{formatDistance(route.distance_km, unit)}</div>}
@@ -1392,7 +1385,6 @@ function ExplorePageInner() {
                   {t("home.footer.tagline")}
                 </p>
 
-                {/* NEU (Mobile): Social-Icons */}
                 <div className="footer-social mobile-only">
                   <a href="#" aria-label="Instagram"><InstagramIcon size={15} strokeWidth={1.8} /></a>
                   <a href="#" aria-label="YouTube"><YoutubeIcon size={15} strokeWidth={1.8} /></a>
@@ -1465,7 +1457,6 @@ function ExplorePageInner() {
           </div>
         </footer>
 
-        {/* NEU: Nach-oben-Button */}
         <button
           className={`scroll-top-btn ${showScrollTop ? "visible" : ""}`}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

@@ -102,8 +102,8 @@ function localizedRouteText(route: Route | null, field: string, lang: string): s
 }
 
 const LANGUAGES = [
-    { code: "de", label: "Deutsch" },
     { code: "en", label: "English" },
+    { code: "de", label: "Deutsch" },
 ] as const;
 
 function HighlightedTitle({ title }: { title: string }) {
