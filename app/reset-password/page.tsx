@@ -13,6 +13,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isDone, setIsDone] = useState(false);
   const router = useRouter();
 
   const checks = {
@@ -29,9 +30,12 @@ export default function ResetPasswordPage() {
       setError("Password does not meet requirements."); return;
     }
     setLoading(true); setError("");
-    const { error } = await supabase.auth.updateUser({ password });
+        const { error } = await supabase.auth.updateUser({ password });
     if (error) setError(error.message);
-    else { setSuccess("Password updated! Redirecting..."); setTimeout(() => router.push("/"), 2000); }
+    else {
+      setIsDone(true);
+      setTimeout(() => router.push("/"), 2500);
+    }
     setLoading(false);
   }
 
@@ -128,8 +132,32 @@ export default function ResetPasswordPage() {
         .rp-submit:hover:not(:disabled) { background:var(--gold); color:var(--bg); }
         .rp-submit:disabled { opacity:0.5; cursor:not-allowed; }
 
-        .rp-back { display:block; text-align:center; font-size:11px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; transition:color .2s; }
+                .rp-back { display:block; text-align:center; font-size:11px; color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; transition:color .2s; }
         .rp-back:hover { color:var(--gold); }
+
+        .success-slide {
+          animation: slideIn .5s cubic-bezier(0.22, 1, 0.36, 1) both;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 0;
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        .success-icon {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: rgba(201,168,106,0.1);
+          display: grid;
+          place-items: center;
+          margin-bottom: 24px;
+        }
 
         @media (max-width:860px) {
           .rp-main { flex-direction:column; align-items:center; padding-top:100px; }
@@ -143,7 +171,7 @@ export default function ResetPasswordPage() {
         {/* BG */}
         <div className="rp-bg">
           <img
-            src="/reset-password.png"
+            src="/North Coast 500.jpg"
             alt="Scenic road"
             onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }}
           />
@@ -185,67 +213,85 @@ export default function ResetPasswordPage() {
             </div>
           </div>
 
-          {/* CARD */}
+                    {/* CARD */}
           <div className="rp-card">
             <div className="rp-card-inner">
-              <p className="rp-form-title">Create password</p>
-              <p className="rp-form-sub">Enter and confirm your new password below</p>
+              {isDone ? (
+                <div className="success-slide">
+                  <div className="success-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </div>
+                  <p className="rp-form-title" style={{ textAlign: 'center' }}>Success!</p>
+                  <p className="rp-form-sub" style={{ textAlign: 'center', fontSize: '13px', lineHeight: '1.6', marginTop: '10px' }}>
+                    Your password has been updated. <br/>
+                    Redirecting you to the home page...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="rp-form-title">Create password</p>
+                  <p className="rp-form-sub">Enter and confirm your new password below</p>
 
-              {/* NEW PASSWORD */}
-              <div className="rp-input-wrap">
-                <input
-                  className="rp-input"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="New password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                />
-                <button className="rp-eye" type="button" onClick={() => setShowPassword(p => !p)}>
-                  <EyeIcon open={showPassword} />
-                </button>
-              </div>
+                  {/* NEW PASSWORD */}
+                  <div className="rp-input-wrap">
+                    <input
+                      className="rp-input"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="New password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                    />
+                    <button className="rp-eye" type="button" onClick={() => setShowPassword(p => !p)}>
+                      <EyeIcon open={showPassword} />
+                    </button>
+                  </div>
 
-              {/* CONFIRM */}
-              <div className="rp-input-wrap" style={{ marginBottom: "20px" }}>
-                <input
-                  className="rp-input"
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                />
-                <button className="rp-eye" type="button" onClick={() => setShowConfirm(p => !p)}>
-                  <EyeIcon open={showConfirm} />
-                </button>
-              </div>
+                  {/* CONFIRM */}
+                  <div className="rp-input-wrap" style={{ marginBottom: "20px" }}>
+                    <input
+                      className="rp-input"
+                      type={showConfirm ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                    />
+                    <button className="rp-eye" type="button" onClick={() => setShowConfirm(p => !p)}>
+                      <EyeIcon open={showConfirm} />
+                    </button>
+                  </div>
 
-              {/* REQUIREMENTS */}
-              <div className="rp-reqs">
-                <p className="rp-reqs-title">Password must include</p>
-                {[
-                  { key: "length",  label: "At least 8 characters" },
-                  { key: "upper",   label: "One uppercase letter" },
-                  { key: "number",  label: "One number" },
-                  { key: "special", label: "One special character" },
-                ].map(({ key, label }) => {
-                  const ok = checks[key as keyof typeof checks];
-                  return (
-                    <div key={key} className={`rp-req ${ok ? "ok" : ""}`}>
-                      <div className={`rp-req-dot ${ok ? "ok" : ""}`}>{ok ? "✓" : ""}</div>
-                      <span>{label}</span>
-                    </div>
-                  );
-                })}
-              </div>
+                  {/* REQUIREMENTS */}
+                  <div className="rp-reqs">
+                    <p className="rp-reqs-title">Password must include</p>
+                    {[
+                      { key: "length",  label: "At least 8 characters" },
+                      { key: "upper",   label: "One uppercase letter" },
+                      { key: "number",  label: "One number" },
+                      { key: "special", label: "One special character" },
+                    ].map(({ key, label }) => {
+                      const ok = checks[key as keyof typeof checks];
+                      return (
+                        <div key={key} className={`rp-req ${ok ? "ok" : ""}`}>
+                          <div className={`rp-req-dot ${ok ? "ok" : ""}`}>{ok ? "✓" : ""}</div>
+                          <span>{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-              {error   && <p className="rp-error">{error}</p>}
-              {success && <p className="rp-success">{success}</p>}
+                  {error   && <p className="rp-error">{error}</p>}
+                  {success && <p className="rp-success">{success}</p>}
 
-              <button className="rp-submit" type="button" disabled={loading} onClick={handleReset}>
-                {loading ? "Updating..." : "Update Password"}
-              </button>
+                  <button className="rp-submit" type="button" disabled={loading} onClick={handleReset}>
+                    {loading ? "Updating..." : "Update Password"}
+                  </button>
 
-              <Link href="/" className="rp-back">← Back to home</Link>
+                  <Link href="/" className="rp-back">← Back to home</Link>
+                </>
+              )}
             </div>
           </div>
 
