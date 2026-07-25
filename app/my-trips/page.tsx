@@ -17,6 +17,14 @@ import {
 const fmtKm = (km?: number) =>
   km != null ? `${km.toLocaleString("en-US")} km` : "—";
 
+// NEU (Bilingual): wählt aus einem Datenbank-Feld wie z.B. "title" das passende
+// _en/_de-Gegenstück je nach aktueller Sprache, mit Fallback, falls eine Übersetzung
+// noch fehlt (z.B. während der Migration der Routen-Inhalte).
+function localizedText(route: any, field: string, lang: string): string {
+  const value = route?.[`${field}_${lang}`] ?? route?.[`${field}_en`] ?? route?.[`${field}_de`] ?? route?.[field];
+  return value ?? "";
+}
+
 // NEU (Mobile): Footer-Linkdaten mit stabiler id fürs Akkordeon
 const FOOTER_COLUMNS = [
   { id: "explore", headingKey: "footer.col.explore" as const, linkKeys: ["footer.link.allRoutes", "footer.link.myTrips", "footer.link.profile"] as const },
@@ -356,6 +364,15 @@ export default function MyTripsPage() {
         .footer-lang-wrap { position:relative; }
         .footer-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 30%, transparent); font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); transition:color .2s, border-color .2s; }
         .footer-lang-btn:hover { color:var(--cream); border-color:var(--gold); }
+        /* Fix: --muted ist im Light-Theme bereits reines Schwarz (rgb(0,0,0)) — dadurch
+           sähe der Button schon in Ruhe komplett dunkel aus und der Hover-Kontrast zu
+           --cream (ebenfalls dunkel) wäre kaum sichtbar. Hier gezielt nur für diesen
+           Button eine hellere, transparente Ruhe-Farbe setzen, ohne --muted global zu ändern. */
+        .light .footer-lang-btn { color:var(--dim); }
+        /* Höhere Spezifität nötig (3 statt 2 Selektor-Teile), sonst überschreibt die
+           Zeile oben (gleiche Spezifität, aber später im Code) den Hover-Zustand komplett
+           und die Farbe würde sich nie ändern. */
+        .light .footer-lang-btn:hover { color:var(--cream); border-color:var(--gold); }
         .footer-lang-menu { position:absolute; bottom:calc(100% + 10px); right:0; min-width:150px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.55); backdrop-filter:blur(24px); z-index:50; animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); }
         .footer-lang-option { display:block; width:100%; text-align:left; padding:10px 14px; font-size:12px; font-weight:500; color:var(--muted); background:none; transition:background .15s,color .15s; }
         .footer-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
@@ -708,12 +725,12 @@ export default function MyTripsPage() {
                     {savedRoutes.map((route: any) => (
                       <div key={route.id} className="saved-preview-item">
                         <Link href={`/routedetail/${route.id}`} className="saved-preview-thumb">
-                          <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+                          <img src={route.image_url || "/Amalfi coast road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
                         </Link>
                         <div>
                           <p className="saved-preview-country">{route.country || t("home.popular.fallbackType")}</p>
                           <Link href={`/routedetail/${route.id}`}>
-                            <h3 className="saved-preview-name">{route.title}</h3>
+                            <h3 className="saved-preview-name">{localizedText(route, "title", lang)}</h3>
                           </Link>
                           <div className="saved-preview-meta">
                             {route.distance_km && <span><Navigation size={13} strokeWidth={1.8} /> {fmtKm(route.distance_km)}</span>}
@@ -778,12 +795,12 @@ export default function MyTripsPage() {
                 {displayedRoutes.map((route: any) => (
                   <div key={route.id} className="mobile-route-row">
                     <Link href={`/routedetail/${route.id}`} className="mobile-route-thumb">
-                      <img src={route.image_url || "/Amalfi coast road.jpg"} alt={route.title} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+                      <img src={route.image_url || "/Amalfi coast road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
                     </Link>
                     <div className="mobile-route-info">
                       <p className="mobile-route-country">{route.country || t("home.popular.fallbackType")}</p>
                       <Link href={`/routedetail/${route.id}`}>
-                        <h3 className="mobile-route-title">{route.title}</h3>
+                        <h3 className="mobile-route-title">{localizedText(route, "title", lang)}</h3>
                       </Link>
                       <div className="mobile-route-meta">
                         {route.distance_km && <span><Navigation size={11} strokeWidth={1.8} /> {fmtKm(route.distance_km)}</span>}
