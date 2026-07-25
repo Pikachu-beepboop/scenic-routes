@@ -56,7 +56,11 @@ interface Route {
     'scenic_score'?: number;
     'elevation_gain_m'?: number;
     'road_surface'?: string;
+    'road_surface_en'?: string;
+    'road_surface_de'?: string;
     'traffic_level'?: string;
+    'traffic_level_en'?: string;
+    'traffic_level_de'?: string;
     'best_time_of_day'?: string;
     'route_notes'?: string;
     'best_season'?: string;
@@ -68,8 +72,12 @@ interface Route {
     'end_elevation_m'?: number;
     // NEU – für die "Access & Fees" / "Driving Notes" / "Route Insights" Karten (Dummy-Fallback)
     'toll_fee'?: string;
+    'toll_fee_en'?: string;
+    'toll_fee_de'?: string;
     'access_season'?: string;
     'opening_access'?: string;
+    'opening_access_en'?: string;
+    'opening_access_de'?: string;
     'vehicle_restrictions'?: string;
     'vehicle_restrictions_en'?: string;
     'vehicle_restrictions_de'?: string;
@@ -77,6 +85,8 @@ interface Route {
     'closure_period_en'?: string;
     'closure_period_de'?: string;
     'difficulty'?: string;
+    'difficulty_en'?: string;
+    'difficulty_de'?: string;
     'fuel_services'?: string;
     'fuel_services_en'?: string;
     'fuel_services_de'?: string;
@@ -1170,9 +1180,9 @@ export default function RouteDetailPage() {
 
                                 <div className="space-y-4 flex-1">
                                     {[
-                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(route?.['toll_fee'], DUMMY.tollFee) },
+                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(localizedRouteText(route, 'toll_fee', currentLang), DUMMY.tollFee) },
                                         { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
-                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(route?.['opening_access'], DUMMY.openingAccess) },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(localizedRouteText(route, 'opening_access', currentLang), DUMMY.openingAccess) },
                                         { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
                                         { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
                                     ].map(({ icon, label, value }) => (
@@ -1198,9 +1208,9 @@ export default function RouteDetailPage() {
 
                                 <div className="space-y-4 flex-1">
                                     {[
-                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
-                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(route?.['difficulty'], DUMMY.difficulty) },
-                                        { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(localizedRouteText(route, 'difficulty', currentLang), DUMMY.difficulty) },
+                                        { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
                                         { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
@@ -1251,8 +1261,8 @@ export default function RouteDetailPage() {
                                         </div>
                                         {[
                                             { icon: <Mountain size={14} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
-                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
-                                            { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                            { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
                                             { icon: <CloudRain size={14} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-center justify-between text-sm border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
@@ -1430,9 +1440,9 @@ export default function RouteDetailPage() {
                                 >
                                     <div className="space-y-3 pt-4">
                                         {[
-                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(route?.['toll_fee'], DUMMY.tollFee) },
+                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(localizedRouteText(route, 'toll_fee', currentLang), DUMMY.tollFee) },
                                             { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
-                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(route?.['opening_access'], DUMMY.openingAccess) },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(localizedRouteText(route, 'opening_access', currentLang), DUMMY.openingAccess) },
                                             { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
                                             { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
                                         ].map(({ icon, label, value }) => (
@@ -1477,9 +1487,9 @@ export default function RouteDetailPage() {
                                 >
                                     <div className="space-y-3 pt-4">
                                         {[
-                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
-                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(route?.['difficulty'], DUMMY.difficulty) },
-                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(localizedRouteText(route, 'difficulty', currentLang), DUMMY.difficulty) },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
                                             { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
@@ -1549,8 +1559,8 @@ export default function RouteDetailPage() {
                                         </div>
                                         {[
                                             { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
-                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(route?.['road_surface'], DUMMY.roadSurface) },
-                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(route?.['traffic_level'], DUMMY.trafficLevel) },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
                                             { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">

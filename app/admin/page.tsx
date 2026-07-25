@@ -63,16 +63,21 @@ type RouteForm = {
   image3: string;
   image4: string;
   image5: string;
-  toll_fee: string;
+  toll_fee_en: string;
+  toll_fee_de: string;
   access_season: string;
-  opening_access: string;
+  opening_access_en: string;
+  opening_access_de: string;
   vehicle_restrictions_en: string;
   vehicle_restrictions_de: string;
   closure_period_en: string;
   closure_period_de: string;
-  road_surface: string;
-  difficulty: string;
-  traffic_level: string;
+  road_surface_en: string;
+  road_surface_de: string;
+  difficulty_en: string;
+  difficulty_de: string;
+  traffic_level_en: string;
+  traffic_level_de: string;
   fuel_services_en: string;
   fuel_services_de: string;
   weather_advice_en: string;
@@ -92,10 +97,13 @@ const emptyForm: RouteForm = {
   chapter5_en: '', chapter5_de: '',
   google_maps: '', image1: '', image2: '', image3: '',
   image4: '', image5: '',
-  toll_fee: '', access_season: '', opening_access: '',
+  toll_fee_en: '', toll_fee_de: '', access_season: '',
+  opening_access_en: '', opening_access_de: '',
   vehicle_restrictions_en: '', vehicle_restrictions_de: '',
   closure_period_en: '', closure_period_de: '',
-  road_surface: '', difficulty: '', traffic_level: '',
+  road_surface_en: '', road_surface_de: '',
+  difficulty_en: '', difficulty_de: '',
+  traffic_level_en: '', traffic_level_de: '',
   fuel_services_en: '', fuel_services_de: '',
   weather_advice_en: '', weather_advice_de: '',
   scenic_score: '', elevation_gain_m: '',
@@ -107,8 +115,7 @@ const shortFields: (keyof RouteForm)[] = [
   'duration', 'distance_km', 'image_url', 'season',
   'start_point', 'end_point', 'maps_URL', 'google_maps',
   'image1', 'image2', 'image3', 'image4', 'image5',
-  'toll_fee', 'access_season', 'opening_access',
-  'road_surface', 'difficulty', 'traffic_level',
+  'access_season',
   'scenic_score', 'elevation_gain_m',
 ];
 
@@ -126,11 +133,17 @@ const longFieldPairs: { en: keyof RouteForm; de: keyof RouteForm; label: string 
 ];
 
 // NEU (Bilingual): kurze Praxisfelder, die trotzdem pro Sprache unterschiedlichen Text
-// enthalten (echter Freitext, keine feste Werteliste) — als EN/DE-Paar mit <input> statt
-// <textarea>, weil die Texte meist nur ein paar Wörter lang sind.
+// enthalten — als EN/DE-Paar mit <input> statt <textarea>, weil die Texte meist nur
+// ein paar Wörter lang sind. toll_fee/opening_access/road_surface/difficulty/traffic_level
+// sind zwar kategorial (wenig eindeutige Werte), aber trotzdem pro Route gepflegt.
 const shortFieldPairs: { en: keyof RouteForm; de: keyof RouteForm; label: string }[] = [
+  { en: 'toll_fee_en', de: 'toll_fee_de', label: 'Toll / Fee' },
+  { en: 'opening_access_en', de: 'opening_access_de', label: 'Opening / Access' },
   { en: 'vehicle_restrictions_en', de: 'vehicle_restrictions_de', label: 'Vehicle restrictions' },
   { en: 'closure_period_en', de: 'closure_period_de', label: 'Closure period' },
+  { en: 'road_surface_en', de: 'road_surface_de', label: 'Road surface' },
+  { en: 'difficulty_en', de: 'difficulty_de', label: 'Difficulty' },
+  { en: 'traffic_level_en', de: 'traffic_level_de', label: 'Traffic level' },
   { en: 'fuel_services_en', de: 'fuel_services_de', label: 'Fuel / Services' },
   { en: 'weather_advice_en', de: 'weather_advice_de', label: 'Weather advice' },
 ];
@@ -152,10 +165,14 @@ const fieldLabels: Record<keyof RouteForm, string> = {
   google_maps: 'Google Maps link',
   image1: 'Image 1', image2: 'Image 2', image3: 'Image 3',
   image4: 'Image 4', image5: 'Image 5',
-  toll_fee: 'Toll / Fee', access_season: 'Access season', opening_access: 'Opening / Access',
+  toll_fee_en: 'Toll / Fee (EN)', toll_fee_de: 'Toll / Fee (DE)',
+  access_season: 'Access season',
+  opening_access_en: 'Opening / Access (EN)', opening_access_de: 'Opening / Access (DE)',
   vehicle_restrictions_en: 'Vehicle restrictions (EN)', vehicle_restrictions_de: 'Vehicle restrictions (DE)',
   closure_period_en: 'Closure period (EN)', closure_period_de: 'Closure period (DE)',
-  road_surface: 'Road surface', difficulty: 'Difficulty', traffic_level: 'Traffic level',
+  road_surface_en: 'Road surface (EN)', road_surface_de: 'Road surface (DE)',
+  difficulty_en: 'Difficulty (EN)', difficulty_de: 'Difficulty (DE)',
+  traffic_level_en: 'Traffic level (EN)', traffic_level_de: 'Traffic level (DE)',
   fuel_services_en: 'Fuel / Services (EN)', fuel_services_de: 'Fuel / Services (DE)',
   weather_advice_en: 'Weather advice (EN)', weather_advice_de: 'Weather advice (DE)',
   scenic_score: 'Scenic score (0–10)', elevation_gain_m: 'Elevation gain (m)',
@@ -355,12 +372,18 @@ export default function AdminPage() {
     const chapter3De = cleanText(row.chapter3_de ?? row.chapter3);
     const chapter4De = cleanText(row.chapter4_de ?? row.chapter4);
     const chapter5De = cleanText(row.chapter5_de ?? row.chapter5);
-    // NEU: vehicle_restrictions/closure_period/fuel_services/weather_advice waren im alten
-    // Format immer Englisch -> Spiegelung in die Legacy-Spalte kommt hier aus _en, nicht _de.
+    // NEU: vehicle_restrictions/closure_period/fuel_services/weather_advice/toll_fee/
+    // opening_access/road_surface/difficulty/traffic_level waren im alten Format immer
+    // Englisch -> Spiegelung in die Legacy-Spalte kommt hier aus _en, nicht _de.
     const vehicleRestrictionsEn = cleanText(row.vehicle_restrictions_en ?? row.vehicle_restrictions);
     const closurePeriodEn = cleanText(row.closure_period_en ?? row.closure_period);
     const fuelServicesEn = cleanText(row.fuel_services_en ?? row.fuel_services);
     const weatherAdviceEn = cleanText(row.weather_advice_en ?? row.weather_advice);
+    const tollFeeEn = cleanText(row.toll_fee_en ?? row.toll_fee);
+    const openingAccessEn = cleanText(row.opening_access_en ?? row.opening_access);
+    const roadSurfaceEn = cleanText(row.road_surface_en ?? row.road_surface);
+    const difficultyEn = cleanText(row.difficulty_en ?? row.difficulty);
+    const trafficLevelEn = cleanText(row.traffic_level_en ?? row.traffic_level);
 
     return {
       title_en: titleEn,
@@ -395,16 +418,21 @@ export default function AdminPage() {
       image3: cleanText(row.image3),
       image4: cleanText(row.image4),
       image5: cleanText(row.image5),
-      toll_fee: cleanText(row.toll_fee),
+      toll_fee_en: tollFeeEn,
+      toll_fee_de: cleanText(row.toll_fee_de),
       access_season: cleanText(row.access_season),
-      opening_access: cleanText(row.opening_access),
+      opening_access_en: openingAccessEn,
+      opening_access_de: cleanText(row.opening_access_de),
       vehicle_restrictions_en: vehicleRestrictionsEn,
       vehicle_restrictions_de: cleanText(row.vehicle_restrictions_de),
       closure_period_en: closurePeriodEn,
       closure_period_de: cleanText(row.closure_period_de),
-      road_surface: cleanText(row.road_surface),
-      difficulty: cleanText(row.difficulty),
-      traffic_level: cleanText(row.traffic_level),
+      road_surface_en: roadSurfaceEn,
+      road_surface_de: cleanText(row.road_surface_de),
+      difficulty_en: difficultyEn,
+      difficulty_de: cleanText(row.difficulty_de),
+      traffic_level_en: trafficLevelEn,
+      traffic_level_de: cleanText(row.traffic_level_de),
       fuel_services_en: fuelServicesEn,
       fuel_services_de: cleanText(row.fuel_services_de),
       weather_advice_en: weatherAdviceEn,
@@ -425,6 +453,11 @@ export default function AdminPage() {
       closure_period: closurePeriodEn,
       fuel_services: fuelServicesEn,
       weather_advice: weatherAdviceEn,
+      toll_fee: tollFeeEn,
+      opening_access: openingAccessEn,
+      road_surface: roadSurfaceEn,
+      difficulty: difficultyEn,
+      traffic_level: trafficLevelEn,
     };
   }
 
@@ -681,16 +714,21 @@ export default function AdminPage() {
       image3: form.image3 || null,
       image4: form.image4 || null,
       image5: form.image5 || null,
-      toll_fee: form.toll_fee || null,
+      toll_fee_en: form.toll_fee_en || null,
+      toll_fee_de: form.toll_fee_de || null,
       access_season: form.access_season || null,
-      opening_access: form.opening_access || null,
+      opening_access_en: form.opening_access_en || null,
+      opening_access_de: form.opening_access_de || null,
       vehicle_restrictions_en: form.vehicle_restrictions_en || null,
       vehicle_restrictions_de: form.vehicle_restrictions_de || null,
       closure_period_en: form.closure_period_en || null,
       closure_period_de: form.closure_period_de || null,
-      road_surface: form.road_surface || null,
-      difficulty: form.difficulty || null,
-      traffic_level: form.traffic_level || null,
+      road_surface_en: form.road_surface_en || null,
+      road_surface_de: form.road_surface_de || null,
+      difficulty_en: form.difficulty_en || null,
+      difficulty_de: form.difficulty_de || null,
+      traffic_level_en: form.traffic_level_en || null,
+      traffic_level_de: form.traffic_level_de || null,
       fuel_services_en: form.fuel_services_en || null,
       fuel_services_de: form.fuel_services_de || null,
       weather_advice_en: form.weather_advice_en || null,
@@ -702,6 +740,11 @@ export default function AdminPage() {
       closure_period: form.closure_period_en || null,
       fuel_services: form.fuel_services_en || null,
       weather_advice: form.weather_advice_en || null,
+      toll_fee: form.toll_fee_en || null,
+      opening_access: form.opening_access_en || null,
+      road_surface: form.road_surface_en || null,
+      difficulty: form.difficulty_en || null,
+      traffic_level: form.traffic_level_en || null,
     };
 
     if (editingRouteId === 'new') {
