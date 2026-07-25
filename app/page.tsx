@@ -137,7 +137,6 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
   const [idx, setIdx] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
 
-  // NEU (Mobile): Touch-Swipe-Tracking
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState(0);
 
@@ -164,15 +163,11 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
     setIdx((i) => (i + 1) % items.length);
   };
 
-  // NEU (Mobile): direkte Navigation über die Dots
   const goTo = (target: number) => {
     setSlideDirection(target > idx ? "next" : "prev");
     setIdx(target);
   };
 
-  // NEU (Mobile): Swipe-Handling — nach links wischen = nächste Route,
-  // nach rechts wischen = vorherige Route. 40px Mindest-Wegstrecke als Schwelle,
-  // damit ein normaler Tap/Scroll nicht versehentlich als Swipe zählt.
   const SWIPE_THRESHOLD = 40;
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -185,8 +180,6 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
     setTouchDeltaX(e.touches[0].clientX - touchStartX);
   };
 
-  // NEU (Mobile): merkt sich, ob die letzte Touch-Geste ein Swipe war,
-  // damit ein Wisch nicht gleichzeitig als Klick auf die Karte (Navigation) zählt
   const wasSwipeRef = useRef(false);
 
   const handleTouchEnd = () => {
@@ -295,7 +288,6 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           </Link>
         </div>
 
-        {/* NEU (Mobile): Dot-Pagination unter der Karte, nur auf Mobile sichtbar */}
         <div className="popular-dots mobile-only">
           {items.map((_, i) => (
             <button
@@ -331,18 +323,14 @@ export default function HomePage() {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const { t, lang, setLang } = useLanguage();
 
-  // NEU (Mobile): Hamburger-Menü Zustand
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // NEU (Mobile): welche Footer-Akkordeon-Sektion offen ist
   const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
 
-  // Erst nach dem Mount kennen wir das echte Theme (SSR-Hydration) —
-  // bis dahin zeigen wir das Dark-Hero-Bild als sicheren Standard.
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const heroImage = mounted && theme === "light" ? "/hero.jpg" : "/hero.jpg";
+  const heroImage = mounted && theme === "light" ? "/hero7.jpg" : "/hero7.jpg";
 
   const displayRoutes = useMemo<Route[]>(
     () => (routes.length ? routes : FALLBACK_ROUTES),
@@ -448,7 +436,6 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showLangMenu]);
 
-  // NEU (Mobile): Menü schließen, sobald der Screen wieder auf Desktop-Breite wechselt
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth > 680) setMobileMenuOpen(false);
@@ -457,7 +444,6 @@ export default function HomePage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // NEU (Mobile): Body-Scroll sperren, solange das Menü offen ist
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => {
@@ -502,7 +488,6 @@ export default function HomePage() {
           --sans:  'Inter', system-ui, sans-serif;
         }
 
-        /* DARK THEME (Standard) */
         .dark {
           --bg:    #0c0b09;
           --bg2:   #111009;
@@ -513,7 +498,6 @@ export default function HomePage() {
           --border:rgba(237,229,212,0.10);
         }
 
-        /* LIGHT THEME — warmes Creme, dunkler Text */
         .light {
           --bg:    #F4F0E8;
           --bg2:   #EDE8DC;
@@ -531,7 +515,6 @@ export default function HomePage() {
         .pg img { display:block; }
         .pg { min-height:100vh; background:var(--bg); color:var(--cream); font-family:var(--sans); overflow-x:hidden; }
 
-        /* NAV */
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
@@ -545,6 +528,21 @@ export default function HomePage() {
         .light .nav-link-active { color:#2B2620 !important; text-shadow:0 1px 10px rgba(244,240,232,0.9); opacity:1; }
         .nav-right { display:flex; align-items:center; gap:16px; }
 
+        /* NEU: Light-Theme + Nav noch nicht gescrollt (transparent über dem Hero-Bild) —
+           bislang fehlten diese Overrides hier komplett (anders als auf Explore/Route-Detail),
+           wodurch die dunkle Standard-Textfarbe des Light-Themes über dem Bild kaum lesbar war.
+           Erzwingt für genau diesen Zustand helle, beschattete Nav-Elemente, unabhängig vom
+           Bild darunter — sobald man scrollt (.scrolled), greifen wieder die normalen
+           Theme-Farben (dunkler Text auf hellem, blurred Nav-Hintergrund). */
+        .light .nav:not(.scrolled) .nav-logo span { color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.45); }
+        .light .nav:not(.scrolled) .nav-link { color:rgba(255,255,255,0.78); text-shadow:0 2px 6px rgba(0,0,0,0.4); opacity:0.55; }
+        .light .nav:not(.scrolled) .nav-link:hover { color:#fff; opacity:1; }
+        .light .nav:not(.scrolled) .nav-link-active { color:#fff !important; text-shadow:0 2px 6px rgba(0,0,0,0.4); opacity:1; }
+        .light .nav:not(.scrolled) .login-btn { color:#fff; border-color:rgba(255,255,255,0.35); background:rgba(0,0,0,0.22); }
+        .light .nav:not(.scrolled) .login-btn:hover { background:#fff; color:#2B2620; }
+        .light .nav:not(.scrolled) .user-avatar { border-color:rgba(255,255,255,0.35); }
+        .light .nav:not(.scrolled) .mobile-menu-btn { border-color:rgba(255,255,255,0.35); color:#fff; background:rgba(0,0,0,0.22) !important; }
+
         .login-btn { padding:10px 22px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent); transition:all .25s; }
         .login-btn:hover { background:var(--cream); color:var(--bg); }
 
@@ -552,9 +550,6 @@ export default function HomePage() {
         button.user-avatar:hover { border-color:var(--gold); transform:translateY(-1px); }
         .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
-        /* THEME SWITCH — glasmorpher Apple-Stil */
-        /* !important auf border/background sichert den Gold-Hover-Rand gegen den globalen
-           .pg button Reset ab (dieser überschreibt sonst border:none/background:none). */
         .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent) !important; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border) !important; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
         .theme-switch:hover { border-color: var(--gold) !important; }
         .theme-switch-knob { position:absolute; top:5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
@@ -562,7 +557,6 @@ export default function HomePage() {
         .theme-switch-icon { width:14px; height:14px; }
         .theme-switch-placeholder { width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
 
-        /* USER DROPDOWN */
         .user-menu-wrap { position:relative; }
         .user-dropdown { position:absolute; top:54px; right:0; width:290px; background:color-mix(in srgb, var(--bg) 97%, transparent); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.65); backdrop-filter:blur(28px); animation:dropIn .2s cubic-bezier(0.22,1,0.36,1); z-index:300; }
         @keyframes dropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
@@ -574,7 +568,6 @@ export default function HomePage() {
         .ud-email { font-size:10px; color:var(--dim); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; }
         .ud-role { font-size:8px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-top:4px; opacity:0.7; }
 
-        /* Theme-Zeile im Dropdown */
         .ud-theme-row { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border); }
         .ud-theme-label { font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
 
@@ -586,22 +579,38 @@ export default function HomePage() {
         .ud-logout { display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:0.04em; color:rgba(224,128,128,0.55); background:none; border:none; cursor:pointer; transition:all .18s; }
         .ud-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
-        /* HERO */
         .hero { position:relative; height:100vh; min-height:680px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
         .hero-bg { position:absolute; inset:0; }
         .hero-bg::after { content:""; position:absolute; inset:0; z-index:3; background: linear-gradient(to bottom, rgba(12,11,9,0.1) 0%, rgba(12,11,9,0.05) 30%, rgba(12,11,9,0.65) 70%, rgba(12,11,9,0.95) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%); }
-        .light .hero-bg::after { background: linear-gradient(to top, rgba(244,240,232,0.4) 0%, transparent 35%), linear-gradient(to right, rgba(244,240,232,0.45) 0%, transparent 38%); }
+        /* NEU: dezenter, deutlich schwächerer Verlauf nur fürs Light-Theme (max. ~0.28
+           Deckkraft statt der vorherigen ~0.9) — sorgt für einen sichtbaren, aber
+           unaufdringlichen "wärmeren/helleren" Eindruck von unten links, während die
+           Dunkelabstufung (nötig für den hellen Text) über beiden Verläufen erhalten bleibt. */
+        .light .hero-bg::after {
+          background:
+            linear-gradient(125deg, rgba(244,240,232,0.28) 0%, rgba(244,240,232,0.14) 20%, rgba(244,240,232,0.04) 34%, transparent 46%),
+            linear-gradient(to bottom, rgba(12,11,9,0.08) 0%, rgba(12,11,9,0.04) 30%, rgba(12,11,9,0.6) 70%, rgba(12,11,9,0.9) 100%),
+            linear-gradient(to right, rgba(12,11,9,0.66) 0%, rgba(12,11,9,0.16) 60%, transparent 100%);
+        }
+        /* FIX: vorher zwei separate Verläufe, die beide von derselben (unteren linken) Ecke
+           ausgingen ("to top" + "to right") — genau dort haben sich beide Aufhellungen addiert
+           und den unschönen hellen "Blob" links im Bild erzeugt. Jetzt stattdessen ein einzelner
+           diagonaler Verlauf von der unteren linken Ecke (wo der Hero-Text sitzt) ausgehend, der
+           sauber nach oben rechts ausläuft, plus ein separater, dezenter oberer Verlauf nur für
+           die Nav-Zone (bleibt unabhängig, überlappt sich nicht mit dem Text-Bereich). */
+        /* Hero-Text bleibt in beiden Themes hell (wie bisher im Dark-Theme) — das Foto ist
+           genau in der unteren linken Ecke, wo der Text sitzt, ohnehin dunkel. Damit sind
+           weder ein zusätzlicher Verlauf noch ein Schatten-Glow mehr nötig, um Kontrast zu
+           erzeugen; die Standard-Dunkelabstufung von .hero-bg::after (unten/links) reicht aus. */
         .hero-content { position:relative; z-index:10; padding:0 clamp(24px,5vw,80px) clamp(50px,7vh,90px); max-width:1280px; }
         .hero-copy { opacity:0; transform:translateY(22px); transition:opacity .9s, transform .9s; }
         .hero-copy.visible { opacity:1; transform:translateY(0); }
-        .hero-h1 { font-family:var(--serif); font-size:clamp(56px,8.5vw,122px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:var(--cream); margin-bottom:30px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
-        .light .hero-h1 { text-shadow:0 8px 30px rgba(244,240,232,0.5); }
-        .hero-sub { font-size:16px; font-weight:300; color:var(--muted); margin-bottom:20px; max-width:420px; line-height:1.7; }
+        .hero-h1 { font-family:var(--serif); font-size:clamp(56px,8.5vw,122px); font-weight:300; line-height:0.88; letter-spacing:-0.045em; color:#EDE5D4; margin-bottom:30px; text-shadow:0 20px 60px rgba(0,0,0,0.6); }
+        .hero-sub { font-size:16px; font-weight:300; color:rgba(237,229,212,0.72); margin-bottom:20px; max-width:420px; line-height:1.7; }
 
         .btn-gold-filled { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; background:var(--gold); border:1px solid var(--gold); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--bg); transition:all .25s; }
         .btn-gold-filled:hover { background:#d8b978; border-color:#d8b978; transform:translateY(-1px); }
 
-        /* POPULAR DESTINATIONS */
         .popular-section { padding:clamp(84px,8.4vw,116px) clamp(24px,5vw,80px) clamp(70px,8vw,110px); background:radial-gradient(circle at 72% 22%,rgba(201,168,106,0.13),transparent 28rem),var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
         .popular-container { max-width:1500px; margin:0 auto; }
         .popular-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:38px; }
@@ -645,7 +654,6 @@ export default function HomePage() {
         .popular-left { left:24px; }
         .popular-right { right:24px; }
 
-        /* BUILDER */
         .builder-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); position:relative; overflow:hidden; min-height:680px; }
         .builder-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; align-items:center; position:relative; z-index:2; }
         .builder-image-bg { position:absolute; left:0; top:0; bottom:0; width:50vw; overflow:hidden; z-index:1; }
@@ -692,11 +700,9 @@ export default function HomePage() {
           box-shadow:0 18px 40px rgba(201,168,106,0.28);
         }
 
-        /* DESTINATIONS MAP */
         .dest-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
         .dest-h2 { font-family:var(--serif); font-size:clamp(34px,4.5vw,58px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-top:12px; }
 
-        /* TESTIMONIAL */
         .testimonial-section { padding:clamp(70px,9vw,110px) clamp(24px,5vw,80px); background:var(--bg2); border-top:1px solid var(--border); text-align:center; }
         .testimonial-qq { font-family:var(--serif); font-size:52px; color:var(--gold); opacity:0.6; line-height:0.5; margin-bottom:28px; display:none; }
         .testimonial-text { font-family:var(--serif); font-size:clamp(22px,3vw,38px); font-weight:300; font-style:italic; color:var(--cream); line-height:1.4; max-width:820px; margin:0 auto 28px; }
@@ -706,7 +712,6 @@ export default function HomePage() {
         .t-dot::after { content:""; width:6px; height:6px; border-radius:50%; background:var(--border); border:1px solid var(--dim); transition:all .3s; display:block; }
         .t-dot.active::after { width:22px; background:var(--gold); border-color:var(--gold); border-radius:999px; }
 
-        /* FEATURES */
         .features-section { padding:clamp(70px,9vw,120px) clamp(24px,5vw,80px); background:var(--bg); border-top:1px solid var(--border); }
         .features-inner { max-width:1200px; margin:0 auto; }
         .features-h2 { font-family:var(--serif); font-size:clamp(34px,4.5vw,56px); font-weight:300; line-height:0.95; letter-spacing:-0.04em; color:var(--cream); margin-bottom:48px; }
@@ -717,7 +722,6 @@ export default function HomePage() {
         .feature-title { font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--cream); margin-bottom:10px; }
         .feature-text { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; }
 
-        /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; }
         .footer-inner { max-width:1200px; margin:0 auto; }
         .footer-top { display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr 1.4fr; gap:36px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
@@ -740,7 +744,6 @@ export default function HomePage() {
         .footer-copy { font-size:10px; color:var(--dim); letter-spacing:0.08em; text-transform:uppercase; }
         .footer-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
 
-        /* FOOTER — Sprachauswahl */
         .footer-lang-wrap { position:relative; }
         .footer-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 30%, transparent); font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); transition:color .2s, border-color .2s; }
         .footer-lang-btn:hover { color:var(--cream); border-color:var(--gold); }
@@ -773,20 +776,10 @@ export default function HomePage() {
           .footer-bottom { flex-direction:column; align-items:flex-start; }
         }
 
-        /* ==================================================================
-           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
-           Nichts oberhalb dieser Zeile wurde verändert.
-           .mobile-only ist standardmäßig unsichtbar und wird nur innerhalb
-           der Mobile-Media-Queries wieder eingeblendet -> auf PC bleibt
-           alles exakt wie zuvor.
-           ================================================================== */
-
         .mobile-only { display:none; }
 
-        /* Hamburger-Button in der Nav (nur mobil sichtbar) */
         .mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
 
-        /* Mobile Nav Drawer */
         .mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
         .mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
 
@@ -805,7 +798,6 @@ export default function HomePage() {
         .mobile-nav-user { display:flex; align-items:center; gap:12px; }
         .mobile-nav-user-name { font-size:13px; font-weight:600; color:var(--cream); }
 
-        /* Mobile Drawer — Profil-Card (Avatar/Theme/Links), gestylt wie das Desktop-User-Dropdown */
         .mobile-profile-card { border:1px solid var(--border); border-radius:20px; background:color-mix(in srgb, var(--bg2) 80%, transparent); overflow:hidden; }
         .mobile-profile-card .ud-link { font-size:13px; }
         .mobile-profile-card .ud-header,
@@ -813,46 +805,36 @@ export default function HomePage() {
         .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
         .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
 
-        /* Popular Carousel — Dots */
         .popular-dots { justify-content:center; gap:9px; margin-top:22px; }
         button.popular-dot { width:8px; height:8px; border-radius:50%; background:var(--border) !important; border:1px solid var(--dim) !important; padding:0; transition:all .25s; }
         button.popular-dot.active { width:26px; border-radius:999px; background:var(--gold) !important; border-color:var(--gold) !important; }
 
-        /* Builder — mobiles gekipptes Bild */
         .builder-mobile-image { position:absolute; top:0; right:0; width:44%; max-width:190px; aspect-ratio:3/4; border-radius:20px; overflow:hidden; border:4px solid var(--bg); box-shadow:0 20px 50px rgba(0,0,0,0.45); transform:rotate(4deg); z-index:3; }
         .builder-mobile-image img { width:100%; height:100%; object-fit:cover; }
 
-        /* Testimonial — Card-Optik auf Mobile */
         .testimonial-card-mobile { border:1px solid var(--border); border-radius:22px; padding:36px 22px; background:color-mix(in srgb, var(--border) 20%, transparent); }
 
-        /* Footer — Akkordeon */
         .footer-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; background:none !important; border:none; padding:0; cursor:default; pointer-events:none; }
         .footer-col-chevron { color:var(--dim); transition:transform .3s; flex-shrink:0; }
         .footer-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
         .footer-col-links { overflow:visible; max-height:none; }
 
         @media (max-width:680px) {
-          /* Hamburger sichtbar, Rest der Desktop-Nav-Elemente bleiben unangetastet */
           .mobile-menu-btn { display:flex; }
 
-          /* Avatar-Button verschwindet aus der Navbar auf Mobile — er bleibt
-             über das Hamburger-Menü (Slide-in-Drawer) erreichbar */
           .nav-right .user-menu-wrap { display:none; }
 
-          /* Hero */
           .hero-h1 { font-size:clamp(48px,13vw,72px); margin-bottom:20px; }
           .hero-sub { font-size:14px; max-width:280px; }
           .hero { justify-content:flex-end; }
           .hero-content { padding-top:0; padding-bottom:60px; }
           .hero-bg img { object-position:80% 68% !important; }
-          .light .hero-bg::after { background: linear-gradient(to top, rgba(244,240,232,0.88) 0%, rgba(244,240,232,0.5) 30%, transparent 50%), linear-gradient(to right, rgba(244,240,232,0.45) 0%, transparent 38%) !important; }
+          .light .hero-bg::after { background: linear-gradient(150deg, rgba(244,240,232,0.32) 0%, rgba(244,240,232,0.14) 24%, transparent 42%), linear-gradient(to bottom, rgba(12,11,9,0.05) 0%, rgba(12,11,9,0.15) 40%, rgba(12,11,9,0.7) 68%, rgba(12,11,9,0.92) 100%) !important; }
           .dark .hero-bg::after { background: linear-gradient(to bottom, rgba(12,11,9,0.05) 0%, rgba(12,11,9,0.15) 40%, rgba(12,11,9,0.75) 68%, rgba(12,11,9,0.97) 100%), linear-gradient(to right, rgba(12,11,9,0.72) 0%, rgba(12,11,9,0.2) 60%, transparent 100%) !important; }
 
-          /* Popular Carousel Dots */
           .popular-dots { display:flex; }
           .popular-content { left:22px; right:22px; bottom:26px; }
 
-          /* Builder Section: mobiles Bild sichtbar, Textblock bekommt Platz dafür */
           .builder-content { position:relative; padding-top:30px; }
           .builder-mobile-image { display:block; }
           .builder-content > .eyebrow { padding-right:150px; }
@@ -860,25 +842,21 @@ export default function HomePage() {
           .builder-sub { margin-top:18px; padding-right:150px; max-width:none; font-size:14px; }
           .builder-find-card { margin-top:36px; max-width:100%; }
 
-          /* Testimonial */
           .builder-section { min-height:auto; }
           .dest-section { padding-top:40px; padding-bottom:40px; }
           .dest-explore-btn { border:1px solid var(--border); border-radius:999px; padding:14px 26px !important; background:color-mix(in srgb, var(--border) 30%, transparent); }
           .testimonial-card-mobile { display:block; }
 
-          /* Features: 2x2 wie im Mobile-Mockup (überschreibt die 1-spaltige Regel weiter oben, rein mobil) */
           .features-grid { grid-template-columns:repeat(2,1fr) !important; gap:10px !important; }
           .feature-card { padding:20px 16px 24px; }
           .feature-title { font-size:9px; }
           .feature-text { font-size:12px; }
 
-          /* Footer Akkordeon */
           .footer-col-header { cursor:pointer; pointer-events:auto; }
           .footer-col-links { display:block; overflow:hidden; max-height:0; transition:max-height .3s ease; }
           .footer-col-links.open { max-height:400px; }
           .footer-col-chevron { display:block; }
 
-          /* NEU: Logo + Tagline im Footer auf Mobile zentrieren, statt linksbündig */
           .footer-top > div:first-child {
             display: flex;
             flex-direction: column;
@@ -896,11 +874,6 @@ export default function HomePage() {
             margin-right: auto;
           }
 
-          /* NEU: Sprachmenü bleibt ein normales, am Button verankertes Popover
-             (wie am Desktop) — bisher stand es mit right:0, was es bei einem
-             links positionierten Button über den linken Bildschirmrand hinaus
-             schob. left:0 hält es innerhalb des Viewports, ohne das Aussehen
-             oder Verhalten sonst zu verändern. */
           .footer-lang-menu {
             left: 0;
             right: auto;
@@ -914,7 +887,6 @@ export default function HomePage() {
       `}</style>
 
       <main className="pg">
-        {/* NAV */}
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="nav-logo">
             <span>SCENIC</span>
@@ -942,8 +914,6 @@ export default function HomePage() {
           </div>
 
           <div className="nav-right">
-            {/* ThemeSwitch bleibt in der Nav nur für ausgeloggte User sichtbar —
-                eingeloggte User finden ihn stattdessen im Profile-Dropdown. */}
             {!user && <ThemeSwitch />}
 
             {user ? (
@@ -1046,7 +1016,6 @@ export default function HomePage() {
               </Link>
             )}
 
-            {/* NEU (Mobile): Hamburger-Button, nur per CSS auf Mobile sichtbar */}
             <button
               className="mobile-menu-btn mobile-only"
               onClick={() => setMobileMenuOpen(true)}
@@ -1057,7 +1026,6 @@ export default function HomePage() {
           </div>
         </nav>
 
-        {/* NEU (Mobile): Slide-in Nav-Drawer + Backdrop */}
         <div
           className={`mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`}
           onClick={() => setMobileMenuOpen(false)}
@@ -1199,7 +1167,6 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* HERO */}
         <section className="hero">
           <div className="hero-bg">
             <img
@@ -1209,9 +1176,9 @@ export default function HomePage() {
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                objectPosition: "center 95%",
+                objectPosition: "center 33%",
                 filter: mounted && theme === "light"
-                  ? "brightness(1) contrast(1.05) saturate(1.05)"
+                  ? "brightness(1.18) contrast(1.03) saturate(1.12)"
                   : "brightness(0.92) contrast(1.08) saturate(0.9)",
               }}
             />
@@ -1236,10 +1203,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* POPULAR DESTINATIONS */}
         <PopularCarousel routes={displayRoutes} />
 
-        {/* BUILDER */}
         <section className="builder-section" id="experiences">
           <div className="builder-image-bg">
             <img
@@ -1253,8 +1218,6 @@ export default function HomePage() {
 
           <div className="builder-inner">
             <div className="builder-content">
-              {/* NEU (Mobile): kleines gekipptes Bild oben rechts, ersetzt visuell
-                  das große Hintergrundbild, das auf Mobile ausgeblendet ist */}
               <div className="builder-mobile-image mobile-only">
                 <img
                   src="/Toscana.jpg"
@@ -1286,7 +1249,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* DESTINATIONS MAP */}
         <section className="dest-section">
           <div
             style={{
@@ -1326,9 +1288,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* TESTIMONIAL */}
         <section className="testimonial-section">
-          {/* NEU (Mobile): Card-Wrapper, nur mobil sichtbar (per CSS) */}
           <div className="testimonial-card-mobile">
             <div className="testimonial-qq">"</div>
 
@@ -1353,7 +1313,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* FEATURES */}
         <section className="features-section">
           <div className="features-inner">
             <p className="eyebrow">{t("home.features.eyebrow")}</p>
@@ -1376,7 +1335,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* FOOTER */}
         <footer className="footer">
           <div className="footer-inner">
             <div className="footer-top">
@@ -1399,11 +1357,6 @@ export default function HomePage() {
 
                 return (
                   <div className="footer-col" key={id}>
-                    {/* NEU (Mobile): Header ist jetzt klickbar (Akkordeon).
-                        Auf Desktop bleibt der Titel optisch identisch, der
-                        Klick hat dort keine sichtbare Wirkung, da die
-                        Collapse-Styles nur innerhalb der Mobile-Media-Query
-                        existieren. */}
                     <button
                       className="footer-col-header"
                       onClick={() =>
