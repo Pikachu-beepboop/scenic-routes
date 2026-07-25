@@ -18,6 +18,7 @@ function LoginPageInner() {
 
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
   const [isRegistered, setIsRegistered] = useState(false);
+  const [isResetSent, setIsResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -161,12 +162,14 @@ function LoginPageInner() {
     }
   }
 
-  function resetFields() {
+    function resetFields() {
     setEmail("");
     setPassword("");
     setName("");
     setError("");
     setSuccess("");
+    setIsRegistered(false);
+    setIsResetSent(false);
   }
 
   function switchMode(m: "login" | "register" | "reset") {
@@ -234,10 +237,10 @@ function LoginPageInner() {
           : "",
     });
 
-    if (error) {
+        if (error) {
       setError(error.message);
     } else {
-      setSuccess("Password reset link sent to your email!");
+      setIsResetSent(true);
     }
 
     setLoading(false);
@@ -481,9 +484,9 @@ function LoginPageInner() {
           </div>
 
                     {/* CARD */}
-          <div className={`lp-card ${visible ? "visible" : ""}`}>
+                    <div className={`lp-card ${visible ? "visible" : ""}`}>
             <div className="lp-card-inner">
-              {isRegistered ? (
+              {isRegistered || isResetSent ? (
                 <div className="registration-success-slide">
                   <div className="success-icon">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -491,17 +494,23 @@ function LoginPageInner() {
                       <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
                   </div>
-                  <p className="lp-form-title" style={{ textAlign: 'center' }}>Confirm your email</p>
+                  <p className="lp-form-title" style={{ textAlign: 'center' }}>
+                    {isResetSent ? "Check your email" : "Confirm your email"}
+                  </p>
                   <p className="lp-form-sub" style={{ textAlign: 'center', fontSize: '13px', lineHeight: '1.6', marginTop: '10px' }}>
-                    We&apos;ve sent a confirmation link to <br/>
+                    {isResetSent 
+                      ? "We've sent a password reset link to" 
+                      : "We've sent a confirmation link to"} 
+                    <br/>
                     <strong style={{ color: 'var(--cream)' }}>{email}</strong>. <br/>
-                    Please check your inbox to activate your account.
+                    Please check your inbox to proceed.
                   </p>
                   <button
                     className="lp-submit"
                     style={{ marginTop: '30px' }}
                     onClick={() => {
                       setIsRegistered(false);
+                      setIsResetSent(false);
                       setMode("login");
                     }}
                   >
