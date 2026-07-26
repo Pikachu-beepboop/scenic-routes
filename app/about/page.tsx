@@ -40,9 +40,9 @@ const TEAM = [
 ];
 
 const STATS = [
-  { value: "150+", labelKey: "about.stats.routes" as const },
-  { value: "40+",  labelKey: "about.stats.countries" as const },
-  { value: "18K+", labelKey: "about.stats.travellers" as const },
+  { value: "90+", labelKey: "about.stats.routes" as const },
+  { value: "10+",  labelKey: "about.stats.countries" as const },
+  { value: "10+", labelKey: "about.stats.travellers" as const },
   { value: "6",    labelKey: "about.stats.continents" as const },
 ];
 
