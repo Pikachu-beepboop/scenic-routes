@@ -11,7 +11,8 @@ import { useLanguage } from "../LanguageContext";
 import {
   User, Award, Settings as SettingsIcon, Map, LogOut,
   Bell, ShieldCheck, LifeBuoy, Info,
-  ChevronRight, Menu, X,
+  ChevronRight, ChevronDown, Menu, X,
+  Mail, Lock, Smartphone, Monitor, CheckCircle2,
 } from "lucide-react";
 
 type Stamp = {
@@ -275,14 +276,41 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
 }
 
 const SUBTAB_META: Record<string, { title: string; subtitle: string; icon: ReactNode }> = {
-  account:       { title: "Account",            subtitle: "Manage your personal information and login details.", icon: <User size={20} strokeWidth={1.8} /> },
+  profile:       { title: "Profile",             subtitle: "Manage your personal information.",                    icon: <User size={20} strokeWidth={1.8} /> },
   pass:          { title: "Traveller Pass",      subtitle: "Your digital passport — stamps, routes and identity.", icon: <Award size={20} strokeWidth={1.8} /> },
   preferences:   { title: "Preferences",         subtitle: "Units, language, map style and recommendations.",      icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
+  email:         { title: "Email Address",       subtitle: "Manage your email address associated with your account.", icon: <Mail size={20} strokeWidth={1.8} /> },
+  password:      { title: "Password",            subtitle: "Change the password used to sign in.",                 icon: <Lock size={20} strokeWidth={1.8} /> },
+  twofa:         { title: "Two-Factor Authentication", subtitle: "Add an extra layer of security to your account.", icon: <Smartphone size={20} strokeWidth={1.8} /> },
+  sessions:      { title: "Sessions",            subtitle: "See where you're signed in and manage active sessions.", icon: <Monitor size={20} strokeWidth={1.8} /> },
   notifications: { title: "Notifications",       subtitle: "Choose what you want to be notified about.",           icon: <Bell size={20} strokeWidth={1.8} /> },
-  privacy:       { title: "Privacy & Security",  subtitle: "Control your visibility and data.",                    icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
+  privacy:       { title: "Privacy",              subtitle: "Control your visibility and data.",                    icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
   support:       { title: "Support & Feedback",  subtitle: "Get help or send us your feedback.",                   icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
   about:         { title: "About",               subtitle: "Version, legal and app information.",                  icon: <Info size={20} strokeWidth={1.8} /> },
 };
+
+const NAV_GROUPS = [
+  {
+    id: "account",
+    label: "Account",
+    icon: <User size={15} strokeWidth={1.8} />,
+    items: [
+      { id: "profile" as const,     label: "Profile" },
+      { id: "preferences" as const, label: "Preferences" },
+    ],
+  },
+  {
+    id: "security",
+    label: "Security",
+    icon: <ShieldCheck size={15} strokeWidth={1.8} />,
+    items: [
+      { id: "email" as const,    label: "Email Address" },
+      { id: "password" as const, label: "Password" },
+      { id: "twofa" as const,    label: "Two-Factor Authentication" },
+      { id: "sessions" as const, label: "Sessions" },
+    ],
+  },
+];
 
 export default function ProfilePage() {
   const [user, setUser]                   = useState<any>(null);
@@ -307,8 +335,28 @@ export default function ProfilePage() {
   const router = useRouter();
 
   const [subTab, setSubTab] = useState<
-    "account" | "pass" | "preferences" | "notifications" | "privacy" | "support" | "about"
-  >("account");
+    "profile" | "pass" | "preferences" | "email" | "password" | "twofa" | "sessions" | "notifications" | "privacy" | "support" | "about"
+  >("profile");
+
+  const [accountGroupOpen, setAccountGroupOpen] = useState(true);
+  const [securityGroupOpen, setSecurityGroupOpen] = useState(true);
+
+  // Email Address tab
+  const [newEmailInput, setNewEmailInput]         = useState("");
+  const [confirmEmailPassword, setConfirmEmailPassword] = useState("");
+  const [emailError, setEmailError]               = useState("");
+  const [emailSuccess, setEmailSuccess]           = useState("");
+  const [emailSaving, setEmailSaving]             = useState(false);
+
+  // Password tab
+  const [passwordError, setPasswordError]         = useState("");
+  const [passwordSuccess, setPasswordSuccess]     = useState("");
+  const [passwordSaving, setPasswordSaving]       = useState(false);
+
+  // Sessions tab
+  const [sessionsError, setSessionsError]         = useState("");
+  const [sessionsSuccess, setSessionsSuccess]     = useState("");
+  const [sessionsSaving, setSessionsSaving]       = useState(false);
 
   const [toggles, setToggles] = useState({
     nearbyRoutes: true,
@@ -337,7 +385,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get("tab");
-    const validTabs = ["account", "pass", "preferences", "notifications", "privacy", "support", "about"] as const;
+    const validTabs = ["profile", "pass", "preferences", "email", "password", "twofa", "sessions", "notifications", "privacy", "support", "about"] as const;
     if (tabParam && (validTabs as readonly string[]).includes(tabParam)) {
       setSubTab(tabParam as typeof subTab);
     }
@@ -406,7 +454,7 @@ export default function ProfilePage() {
     setAvatarPreview(URL.createObjectURL(file));
   }
 
-  async function handleSave() {
+  async function handleSaveProfile() {
     setSaving(true); setError(""); setSuccess("");
     let uploadedAvatarUrl = avatarUrl;
 
@@ -424,22 +472,93 @@ export default function ProfilePage() {
       .eq("id", user.id);
     if (profileError) { setError(profileError.message); setSaving(false); return; }
 
-    if (email !== user.email) {
-      const { error: emailError } = await supabase.auth.updateUser({ email });
-      if (emailError) { setError(emailError.message); setSaving(false); return; }
-    }
-
-    if (newPassword) {
-      if (newPassword !== confirmPassword) { setError("Passwords do not match."); setSaving(false); return; }
-      if (newPassword.length < 6) { setError("Password must be at least 6 characters."); setSaving(false); return; }
-      const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword });
-      if (passwordError) { setError(passwordError.message); setSaving(false); return; }
-    }
-
     setSuccess("Profile updated successfully!");
     setAvatarUrl(uploadedAvatarUrl);
-    setNewPassword(""); setConfirmPassword("");
     setSaving(false);
+  }
+
+  async function handleChangeEmail() {
+    setEmailSaving(true); setEmailError(""); setEmailSuccess("");
+
+    if (!confirmEmailPassword) {
+      setEmailError("Please enter your current password to confirm.");
+      setEmailSaving(false);
+      return;
+    }
+    if (!newEmailInput || newEmailInput === user?.email) {
+      setEmailError("Please enter a new email address.");
+      setEmailSaving(false);
+      return;
+    }
+
+    // Verify the current password before allowing the email change
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: confirmEmailPassword,
+    });
+    if (verifyError) {
+      setEmailError("Incorrect password.");
+      setEmailSaving(false);
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ email: newEmailInput });
+    if (updateError) {
+      setEmailError(updateError.message);
+      setEmailSaving(false);
+      return;
+    }
+
+    setEmailSuccess("A verification link has been sent to your new email address.");
+    setNewEmailInput("");
+    setConfirmEmailPassword("");
+    setEmailSaving(false);
+  }
+
+  async function handleChangePassword() {
+    setPasswordSaving(true); setPasswordError(""); setPasswordSuccess("");
+
+    if (!newPassword || !confirmPassword) {
+      setPasswordError("Please fill in both fields.");
+      setPasswordSaving(false);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      setPasswordSaving(false);
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      setPasswordSaving(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPasswordError(error.message);
+      setPasswordSaving(false);
+      return;
+    }
+
+    setPasswordSuccess("Password updated successfully.");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordSaving(false);
+  }
+
+  async function handleSignOutOthers() {
+    setSessionsSaving(true); setSessionsError(""); setSessionsSuccess("");
+
+    const { error } = await supabase.auth.signOut({ scope: "others" });
+    if (error) {
+      setSessionsError(error.message);
+      setSessionsSaving(false);
+      return;
+    }
+
+    setSessionsSuccess("Signed out of all other sessions.");
+    setSessionsSaving(false);
   }
 
   async function handleLogout() {
@@ -581,6 +700,7 @@ export default function ProfilePage() {
 
         .st-body { display:grid; grid-template-columns:230px 1fr; gap:0; align-items:start; padding-top:24px; }
         .st-subnav { border-right:1px solid var(--border); padding-right:18px; display:flex; flex-direction:column; gap:2px; }
+        .st-subnav-label { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); padding:4px 12px 8px; }
         .st-subnav-item { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; color:var(--dim); transition:all .18s; width:100%; text-align:left; }
         .st-subnav-item:hover { color:var(--muted); background:color-mix(in srgb, var(--border) 40%, transparent); }
         .st-subnav-item.active { color:var(--gold); background:rgba(201,168,106,0.1); }
@@ -588,6 +708,31 @@ export default function ProfilePage() {
         .st-subnav-divider { height:1px; background:var(--border); margin:6px 4px; }
         .st-subnav-logout { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:600; color:rgba(224,128,128,0.55); transition:all .18s; width:100%; text-align:left; }
         .st-subnav-logout:hover { color:#e08080; background:rgba(224,128,128,0.07); }
+
+        .st-subnav-group { display:flex; flex-direction:column; gap:2px; margin-bottom:4px; }
+        .st-subnav-group-title { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; font-size:12px; font-weight:700; color:var(--cream); width:100%; text-align:left; }
+        .st-subnav-group-title:hover { background:color-mix(in srgb, var(--border) 40%, transparent); }
+        .st-subnav-group-title svg:first-child { flex-shrink:0; color:var(--gold); }
+        .st-subnav-group-title span { flex:1; }
+        .st-subnav-chevron { transition:transform .2s; opacity:0.6; flex-shrink:0; }
+        .st-subnav-chevron.open { transform:rotate(180deg); }
+        .st-subnav-sub { display:flex; flex-direction:column; gap:2px; padding-left:14px; }
+        .st-subnav-item-sub { font-weight:500; padding:9px 12px; }
+
+        .st-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; flex-shrink:0; }
+        .st-badge-verified { color:#86c9a0; background:rgba(134,201,160,0.1); }
+        .st-badge-unverified { color:var(--dim); background:color-mix(in srgb, var(--border) 40%, transparent); }
+
+        .st-info-banner { display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-radius:10px; background:color-mix(in srgb, var(--border) 30%, transparent); border:1px solid var(--border); font-size:12px; color:var(--dim); line-height:1.5; }
+        .st-info-banner svg { flex-shrink:0; margin-top:1px; color:var(--gold); }
+
+        .st-action-row { display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
+        .st-btn { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:10px; font-size:12px; font-weight:700; letter-spacing:0.02em; transition:all .2s; }
+        .st-btn:disabled { opacity:0.6; cursor:not-allowed; }
+        .st-btn-secondary { background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); }
+        .st-btn-secondary:hover { background:color-mix(in srgb, var(--border) 60%, transparent); }
+        .st-btn-primary { background:var(--gold); color:#1a1404; }
+        .st-btn-primary:hover:not(:disabled) { background:#d8b978; transform:translateY(-1px); }
 
         .st-content { display:grid; grid-template-columns:1fr; max-width:560px; padding-left:28px; }
         .st-content.wide { max-width:none; padding-left:28px; }
@@ -767,13 +912,45 @@ export default function ProfilePage() {
 
               <div className="pp-mobile-divider" />
 
-              <p className="pp-mobile-section-label">Profile Settings</p>
+              <p className="pp-mobile-section-label">Account</p>
               {([
-                { id: "account",       label: "Account",            icon: <User size={14} strokeWidth={1.8} /> },
+                { id: "profile",     label: "Profile",     icon: <User size={14} strokeWidth={1.8} /> },
+                { id: "preferences", label: "Preferences", icon: <SettingsIcon size={14} strokeWidth={1.8} /> },
+              ] as const).map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  className={`pp-mobile-link ${subTab === id ? "active" : ""}`}
+                  onClick={() => { setSubTab(id); setMobileMenuOpen(false); }}
+                >
+                  <span className="pp-mobile-link-icon">{icon}</span>
+                  {label}
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </button>
+              ))}
+
+              <p className="pp-mobile-section-label">Security</p>
+              {([
+                { id: "email",    label: "Email Address",             icon: <Mail size={14} strokeWidth={1.8} /> },
+                { id: "password", label: "Password",                  icon: <Lock size={14} strokeWidth={1.8} /> },
+                { id: "twofa",    label: "Two-Factor Authentication", icon: <Smartphone size={14} strokeWidth={1.8} /> },
+                { id: "sessions", label: "Sessions",                  icon: <Monitor size={14} strokeWidth={1.8} /> },
+              ] as const).map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  className={`pp-mobile-link ${subTab === id ? "active" : ""}`}
+                  onClick={() => { setSubTab(id); setMobileMenuOpen(false); }}
+                >
+                  <span className="pp-mobile-link-icon">{icon}</span>
+                  {label}
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </button>
+              ))}
+
+              <p className="pp-mobile-section-label">More</p>
+              {([
                 { id: "pass",          label: "Traveller Pass",     icon: <Award size={14} strokeWidth={1.8} /> },
-                { id: "preferences",   label: "Preferences",        icon: <SettingsIcon size={14} strokeWidth={1.8} /> },
                 { id: "notifications", label: "Notifications",      icon: <Bell size={14} strokeWidth={1.8} /> },
-                { id: "privacy",       label: "Privacy & Security", icon: <ShieldCheck size={14} strokeWidth={1.8} /> },
+                { id: "privacy",       label: "Privacy",             icon: <ShieldCheck size={14} strokeWidth={1.8} /> },
                 { id: "support",       label: "Support & Feedback", icon: <LifeBuoy size={14} strokeWidth={1.8} /> },
                 { id: "about",         label: "About",              icon: <Info size={14} strokeWidth={1.8} /> },
               ] as const).map(({ id, label, icon }) => (
@@ -813,8 +990,8 @@ export default function ProfilePage() {
                     <p className="st-subtitle">{meta.subtitle}</p>
                   </div>
                 </div>
-                {subTab === "account" && (
-                <button className="st-save-btn" disabled={saving} onClick={handleSave}>
+                {subTab === "profile" && (
+                <button className="st-save-btn" disabled={saving} onClick={handleSaveProfile}>
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
                 )}
@@ -823,13 +1000,17 @@ export default function ProfilePage() {
               <div className="st-body">
               <div className="pp-mobile-subnav mobile-only">
                 {([
-                  { id: "account",       label: "Account",      icon: <User size={13} strokeWidth={1.8} /> },
-                  { id: "pass",          label: "Pass",          icon: <Award size={13} strokeWidth={1.8} /> },
+                  { id: "profile",       label: "Profile",       icon: <User size={13} strokeWidth={1.8} /> },
                   { id: "preferences",   label: "Preferences",   icon: <SettingsIcon size={13} strokeWidth={1.8} /> },
+                  { id: "email",         label: "Email",         icon: <Mail size={13} strokeWidth={1.8} /> },
+                  { id: "password",      label: "Password",      icon: <Lock size={13} strokeWidth={1.8} /> },
+                  { id: "twofa",         label: "2FA",            icon: <Smartphone size={13} strokeWidth={1.8} /> },
+                  { id: "sessions",      label: "Sessions",       icon: <Monitor size={13} strokeWidth={1.8} /> },
+                  { id: "pass",          label: "Pass",           icon: <Award size={13} strokeWidth={1.8} /> },
                   { id: "notifications", label: "Notifications", icon: <Bell size={13} strokeWidth={1.8} /> },
-                  { id: "privacy",       label: "Privacy",       icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
-                  { id: "support",       label: "Support",       icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
-                  { id: "about",         label: "About",         icon: <Info size={13} strokeWidth={1.8} /> },
+                  { id: "privacy",       label: "Privacy",        icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
+                  { id: "support",       label: "Support",        icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
+                  { id: "about",         label: "About",          icon: <Info size={13} strokeWidth={1.8} /> },
                 ] as const).map(({ id, label, icon }) => (
                   <button
                     key={id}
@@ -842,12 +1023,43 @@ export default function ProfilePage() {
               </div>
 
               <div className="st-subnav">
+                <p className="st-subnav-label">Settings</p>
+
+                {NAV_GROUPS.map((group) => {
+                  const isOpen = group.id === "account" ? accountGroupOpen : securityGroupOpen;
+                  const toggleOpen = () => group.id === "account"
+                    ? setAccountGroupOpen((v) => !v)
+                    : setSecurityGroupOpen((v) => !v);
+
+                  return (
+                    <div key={group.id} className="st-subnav-group">
+                      <button className="st-subnav-group-title" onClick={toggleOpen}>
+                        {group.icon} <span>{group.label}</span>
+                        <ChevronDown size={14} className={`st-subnav-chevron ${isOpen ? "open" : ""}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="st-subnav-sub">
+                          {group.items.map((item) => (
+                            <button
+                              key={item.id}
+                              className={`st-subnav-item st-subnav-item-sub ${subTab === item.id ? "active" : ""}`}
+                              onClick={() => setSubTab(item.id)}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div className="st-subnav-divider" />
+
                 {([
-                  { id: "account",       label: "Account",            icon: <User size={15} strokeWidth={1.8} /> },
                   { id: "pass",          label: "Traveller Pass",     icon: <Award size={15} strokeWidth={1.8} /> },
-                  { id: "preferences",   label: "Preferences",        icon: <SettingsIcon size={15} strokeWidth={1.8} /> },
                   { id: "notifications", label: "Notifications",      icon: <Bell size={15} strokeWidth={1.8} /> },
-                  { id: "privacy",       label: "Privacy & Security", icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
+                  { id: "privacy",       label: "Privacy",             icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
                   { id: "support",       label: "Support & Feedback", icon: <LifeBuoy size={15} strokeWidth={1.8} /> },
                   { id: "about",         label: "About",              icon: <Info size={15} strokeWidth={1.8} /> },
                 ] as const).map(({ id, label, icon }) => (
@@ -870,7 +1082,7 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {subTab === "account" && (
+              {subTab === "profile" && (
                 <div className="st-content">
                   <div className="st-card">
                     <div className="st-profile-head">
@@ -895,22 +1107,8 @@ export default function ProfilePage() {
                     <div className="st-field">
                       <label className="st-field-label">Username</label>
                       <input className="st-input" type="text" placeholder="Your username" value={username} onChange={e => setUsername(e.target.value)} />
-                    </div>
-                    <div className="st-field">
-                      <label className="st-field-label">Email</label>
-                      <input className="st-input" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-                    </div>
-
-                    <div className="st-divider" />
-
-                    <p className="st-card-title">Change Password</p>
-                    <div className="st-field">
-                      <label className="st-field-label">New Password</label>
-                      <input className="st-input" type="password" placeholder="Leave blank to keep current" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                    </div>
-                    <div className="st-field">
-                      <label className="st-field-label">Confirm New Password</label>
-                      <input className="st-input" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                      <label className="st-field-label">Name</label>
+                      <input className="st-input" type="text" placeholder="Your name" />
                     </div>
 
                     {error   && <p className="st-error">{error}</p>}
@@ -929,6 +1127,140 @@ export default function ProfilePage() {
                         <p className="st-row-sub">Permanently delete your account and data.</p>
                       </div>
                       <ChevronRight size={15} color="#e08080" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {subTab === "email" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Current Email Address</p>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label" style={{ fontSize: 14 }}>{user?.email}</p>
+                      </div>
+                      {user?.email_confirmed_at ? (
+                        <span className="st-badge st-badge-verified"><CheckCircle2 size={12} strokeWidth={2} /> Verified</span>
+                      ) : (
+                        <span className="st-badge st-badge-unverified">Unverified</span>
+                      )}
+                    </div>
+
+                    <div className="st-divider" />
+
+                    <p className="st-card-title">New Email Address</p>
+                    <div className="st-field">
+                      <input
+                        className="st-input"
+                        type="email"
+                        placeholder="Enter new email address"
+                        value={newEmailInput}
+                        onChange={e => setNewEmailInput(e.target.value)}
+                      />
+                    </div>
+
+                    <p className="st-card-title">Confirm With Password</p>
+                    <div className="st-field">
+                      <input
+                        className="st-input"
+                        type="password"
+                        placeholder="Enter your current password"
+                        value={confirmEmailPassword}
+                        onChange={e => setConfirmEmailPassword(e.target.value)}
+                      />
+                    </div>
+
+                    {emailError   && <p className="st-error">{emailError}</p>}
+                    {emailSuccess && <p className="st-success">{emailSuccess}</p>}
+
+                    <div className="st-info-banner">
+                      <Mail size={14} strokeWidth={1.8} />
+                      <span>We will send a verification link to your new email address.</span>
+                    </div>
+
+                    <div className="st-action-row">
+                      <button
+                        className="st-btn st-btn-secondary"
+                        onClick={() => { setNewEmailInput(""); setConfirmEmailPassword(""); setEmailError(""); setEmailSuccess(""); }}
+                      >
+                        Cancel
+                      </button>
+                      <button className="st-btn st-btn-primary" disabled={emailSaving} onClick={handleChangeEmail}>
+                        <Mail size={13} strokeWidth={2} /> {emailSaving ? "Sending..." : "Change Email"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {subTab === "password" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Change Password</p>
+                    <div className="st-field">
+                      <label className="st-field-label">New Password</label>
+                      <input className="st-input" type="password" placeholder="Enter a new password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    </div>
+                    <div className="st-field">
+                      <label className="st-field-label">Confirm New Password</label>
+                      <input className="st-input" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    </div>
+
+                    {passwordError   && <p className="st-error">{passwordError}</p>}
+                    {passwordSuccess && <p className="st-success">{passwordSuccess}</p>}
+
+                    <div className="st-action-row">
+                      <button
+                        className="st-btn st-btn-secondary"
+                        onClick={() => { setNewPassword(""); setConfirmPassword(""); setPasswordError(""); setPasswordSuccess(""); }}
+                      >
+                        Cancel
+                      </button>
+                      <button className="st-btn st-btn-primary" disabled={passwordSaving} onClick={handleChangePassword}>
+                        <Lock size={13} strokeWidth={2} /> {passwordSaving ? "Saving..." : "Change Password"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {subTab === "twofa" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Two-Factor Authentication</p>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">Authenticator App</p>
+                        <p className="st-row-sub">Coming soon — we're working on adding two-factor authentication.</p>
+                      </div>
+                      <button className="st-toggle" disabled style={{ opacity: 0.4, cursor: "not-allowed" }}>
+                        <span className="st-toggle-knob" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {subTab === "sessions" && (
+                <div className="st-content">
+                  <div className="st-card">
+                    <p className="st-card-title">Active Sessions</p>
+                    <div className="st-row">
+                      <div>
+                        <p className="st-row-label">This device</p>
+                        <p className="st-row-sub">Current session · Active now</p>
+                      </div>
+                      <span className="st-badge st-badge-verified">Active</span>
+                    </div>
+
+                    {sessionsError   && <p className="st-error">{sessionsError}</p>}
+                    {sessionsSuccess && <p className="st-success">{sessionsSuccess}</p>}
+
+                    <div className="st-action-row">
+                      <button className="st-btn st-btn-primary" disabled={sessionsSaving} onClick={handleSignOutOthers}>
+                        <LogOut size={13} strokeWidth={2} /> {sessionsSaving ? "Signing out..." : "Sign Out Of All Other Sessions"}
+                      </button>
                     </div>
                   </div>
                 </div>
