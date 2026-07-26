@@ -536,7 +536,7 @@ export default function ProfilePage() {
         .pp-nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .pp-nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .pp-nav-logo { display:flex; flex-direction:column; line-height:1; }
-        .pp-nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .pp-nav-logo span { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .pp-nav-links { display:flex; gap:36px; }
         .pp-nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .pp-nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
@@ -693,7 +693,7 @@ export default function ProfilePage() {
 
         <nav className={`pp-nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="pp-nav-logo">
-            <span>SCENIC</span><span>ROUTES</span>
+            <span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span>
           </Link>
           <div className="pp-nav-links">
             <Link href="/explore"  className="pp-nav-link">Explore Routes</Link>
@@ -715,9 +715,10 @@ export default function ProfilePage() {
 
         <div className={`pp-mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
 
+          // Mobile navigation drawer for small screens
         <div className={`pp-mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="pp-mobile-nav-top">
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em", color: "var(--cream)" }}>SCENIC ROUTES</span>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em", color: "var(--cream)" }}>EXPLORE SCENIC ROUTES</span>
             <button className="pp-mobile-nav-close" onClick={() => setMobileMenuOpen(false)} aria-label="Menü schließen">
               <X size={18} strokeWidth={1.8} />
             </button>

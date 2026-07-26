@@ -452,7 +452,7 @@ function ExplorePageInner() {
 
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
-        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); transition:color .3s, text-shadow .3s; }
+        .nav-logo span { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); transition:color .3s, text-shadow .3s; }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
         .nav-links { display:flex; gap:36px; }
         .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, text-shadow .3s, opacity .2s; }
@@ -876,6 +876,7 @@ function ExplorePageInner() {
         {/* NAV */}
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="nav-logo">
+          <span>EXPLORE</span>
             <span>SCENIC</span>
             <span>ROUTES</span>
           </Link>
@@ -949,7 +950,7 @@ function ExplorePageInner() {
 
         <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="mobile-nav-top">
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>EXPLORE SCENIC ROUTES</span>
 
             <button
               className="mobile-nav-close"

@@ -552,7 +552,7 @@ export default function HomePage() {
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
-        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-logo span { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
         .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
@@ -921,6 +921,7 @@ export default function HomePage() {
       <main className="pg">
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="nav-logo">
+          <span>EXPLORE</span>
             <span>SCENIC</span>
             <span>ROUTES</span>
           </Link>
@@ -1066,7 +1067,7 @@ export default function HomePage() {
         <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="mobile-nav-top">
             <span className="nav-logo" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>EXPLORE SCENIC ROUTES</span>
             </span>
 
             <button

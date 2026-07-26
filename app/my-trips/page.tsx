@@ -262,7 +262,7 @@ export default function MyTripsPage() {
         .nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .nav.scrolled { background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .nav-logo { display:flex; flex-direction:column; line-height:1; }
-        .nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .nav-logo span { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .nav-links { display:flex; gap:36px; }
         .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); opacity:0.5; transition:color .2s, opacity .2s; }
         .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
@@ -536,7 +536,7 @@ export default function MyTripsPage() {
       <div className="mt">
         {/* NAV */}
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
-          <Link href="/" className="nav-logo"><span>SCENIC</span><span>ROUTES</span></Link>
+          <Link href="/" className="nav-logo"><span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
             {[['nav.explore','/explore'],['nav.about','/about']].map(([key,h])=>(
               <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
@@ -598,7 +598,7 @@ export default function MyTripsPage() {
 
         <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="mobile-nav-top">
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>SCENIC ROUTES</span>
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em" }}>EXPLORE SCENIC ROUTES</span>
             <button className="mobile-nav-close" onClick={() => setMobileMenuOpen(false)} aria-label="Menü schließen">
               <X size={18} strokeWidth={1.8} />
             </button>
