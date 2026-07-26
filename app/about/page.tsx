@@ -52,12 +52,50 @@ const VALUES = [
   { num: "03", titleKey: "about.values.v3.title" as const, textKey: "about.values.v3.text" as const },
 ];
 
-// Footer-Linkdaten mit stabiler id fürs Akkordeon — gleiche Daten für Desktop-Grid und Mobile-Akkordeon
+// Footer-Linkdaten: jeder Link trägt jetzt sein eigenes Ziel (href) und ein
+// "protected"-Flag für Links, die einen eingeloggten User voraussetzen
+// (Login-Redirect greift dafür weiter unten im Render).
 const FOOTER_COLUMNS = [
-  { id: "explore", headingKey: "footer.col.explore" as const, linkKeys: ["footer.link.allRoutes", "footer.link.myTrips", "footer.link.profile"] as const },
-  { id: "about", headingKey: "footer.col.about" as const, linkKeys: ["footer.link.travellerPass", "footer.link.about", "footer.link.ourTeam"] as const },
-  { id: "support", headingKey: "footer.col.support" as const, linkKeys: ["footer.link.faq", "footer.link.contact", "footer.link.reportProblem", "footer.link.reportRouteIssue"] as const },
-  { id: "legal", headingKey: "footer.col.legal" as const, linkKeys: ["footer.link.termsOfUse", "footer.link.privacyPolicy", "footer.link.imprint"] as const },
+  {
+    id: "explore",
+    headingKey: "footer.col.explore" as const,
+    links: [
+      { key: "footer.link.allRoutes" as const, href: "/explore", protected: false },
+      { key: "footer.link.myTrips" as const, href: "/my-trips", protected: true },
+      { key: "footer.link.profile" as const, href: "/profile", protected: true },
+    ],
+  },
+  {
+    id: "about",
+    headingKey: "footer.col.about" as const,
+    links: [
+      // Traveller Pass ist kein eigener Pfad, sondern ein Tab auf der Profile-Page
+      // (subTab="pass"). Die Profile-Page liest ?tab=pass beim Laden aus.
+      { key: "footer.link.travellerPass" as const, href: "/profile?tab=pass", protected: true },
+      { key: "footer.link.about" as const, href: "/about", protected: false },
+      // Our Team ist der Anchor-Abschnitt weiter unten auf dieser Page (id="team")
+      { key: "footer.link.ourTeam" as const, href: "/about#team", protected: false },
+    ],
+  },
+  {
+    id: "support",
+    headingKey: "footer.col.support" as const,
+    links: [
+      { key: "footer.link.faq" as const, href: "#", protected: false },
+      { key: "footer.link.contact" as const, href: "#", protected: false },
+      { key: "footer.link.reportProblem" as const, href: "#", protected: false },
+      { key: "footer.link.reportRouteIssue" as const, href: "#", protected: false },
+    ],
+  },
+  {
+    id: "legal",
+    headingKey: "footer.col.legal" as const,
+    links: [
+      { key: "footer.link.termsOfUse" as const, href: "#", protected: false },
+      { key: "footer.link.privacyPolicy" as const, href: "#", protected: false },
+      { key: "footer.link.imprint" as const, href: "#", protected: false },
+    ],
+  },
 ];
 
 export default function AboutPage() {
@@ -862,7 +900,7 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              {FOOTER_COLUMNS.map(({ id, headingKey, linkKeys }) => {
+              {FOOTER_COLUMNS.map(({ id, headingKey, links }) => {
                 const isOpen = openFooterSection === id;
                 return (
                   <div key={id}>
@@ -880,9 +918,21 @@ export default function AboutPage() {
 
                     <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
                       <div style={{ paddingTop: 14 }}>
-                        {linkKeys.map((linkKey) => (
-                          <a href="#" key={linkKey} className="footer-col-link">{t(linkKey)}</a>
-                        ))}
+                        {links.map(({ key, href, protected: isProtected }) => {
+                          // Geschützte Links (My Trips, Profile, Traveller Pass) gehen
+                          // ohne Session erst zum Login, mit redirect zurück zum Ziel —
+                          // gleiches Verhalten wie in der Navbar (loginHref).
+                          const finalHref =
+                            isProtected && !user
+                              ? `/login?redirect=${encodeURIComponent(href)}`
+                              : href;
+
+                          return (
+                            <Link href={finalHref} key={key} className="footer-col-link">
+                              {t(key)}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
