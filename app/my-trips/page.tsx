@@ -766,9 +766,6 @@ export default function MyTripsPage() {
         <div className="mobile-saved-section mobile-only">
           <div className="mobile-saved-head">
             <h2 className="saved-preview-title">{t("mytrips.savedTitle")}</h2>
-            {user && savedRoutes.length > 0 && (
-              <span className="saved-preview-count">{savedRoutes.length} {t("mytrips.savedSuffix")}</span>
-            )}
           </div>
 
           <div className="mobile-route-list">

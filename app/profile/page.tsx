@@ -74,21 +74,20 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
         <span style={{fontSize:10,letterSpacing:".32em",textTransform:"uppercase",color:"rgba(200,180,110,.5)",fontWeight:400}}>International</span>
       </div>
-      
-      {/* ЛОГОТИП - БЕЗ БЕЛОГО ФОНА */}
+
       <div style={{position:"relative",zIndex:1}}>
-        <img 
-          src="/logo2.png" 
-          alt="Scenic Routes Logo" 
+        <img
+          src="/logo2.png"
+          alt="Scenic Routes Logo"
           style={{
             width:400,
             height:320,
             objectFit:"contain",
             display:"block"
-          }} 
+          }}
         />
       </div>
-      
+
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
         <span style={{fontSize:27,letterSpacing:".22em",textTransform:"uppercase",color:"rgba(200,180,110,.85)",fontFamily:"'Cormorant Garamond',Georgia,serif",fontWeight:400}}>Passport</span>
         <span style={{fontSize:10,letterSpacing:".14em",color:"rgba(200,180,110,.35)",textTransform:"uppercase"}}>Passeport · Pasaporte · Reisepass</span>
@@ -227,7 +226,6 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:20,width:"100%",maxWidth:540,margin:"0 auto"}}>
 
-      {/* TABS */}
       <div style={{display:"flex",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden",background:"color-mix(in srgb, var(--bg2) 60%, transparent)"}}>
         {PASSPORT_PAGES.map((p) => (
           <button key={p} onClick={() => goTo(p)} disabled={flipping} style={{padding:"11px 22px",fontSize:11,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color: page===p ? "#C9A86A" : "var(--dim)",background: page===p ? "rgba(201,168,106,0.08)" : "none",border:"none",borderRight:"1px solid var(--border)",cursor: flipping ? "default" : "pointer",transition:"all .2s",fontFamily:"Inter,sans-serif"}}>
@@ -236,7 +234,6 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
         ))}
       </div>
 
-      {/* PASSPORT — eigenständiges Reisepass-Design, bewusst unverändert (eigene Materialfarben: dunkelgrünes Leder / cremefarbenes Papier, unabhängig vom Light/Dark-Theme der Seite) */}
       <div style={{width:"100%",position:"relative",perspective:2400}}>
         <style>{`
           @keyframes ppFlipFwd {
@@ -307,12 +304,10 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [navScrolled, setNavScrolled]     = useState(false);
   const [stamps, setStamps]               = useState<Stamp[]>([]);
-  // NEU: Delete-Account-Flow (Bestätigungsdialog + Status)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  // NEU (Mobile): Popup-Menü, identisch zum Muster auf About-/Route-Detail-Seite
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
@@ -341,13 +336,24 @@ export default function ProfilePage() {
     setMounted(true);
   }, []);
 
+  // NEU: liest ?tab=... aus der URL beim Laden aus (z.B. vom Footer-Link
+  // "Traveller Pass" -> /profile?tab=pass) und öffnet direkt den passenden
+  // Sub-Tab, statt immer auf "account" zu starten.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    const validTabs = ["account", "pass", "preferences", "notifications", "privacy", "support", "about"] as const;
+    if (tabParam && (validTabs as readonly string[]).includes(tabParam)) {
+      setSubTab(tabParam as typeof subTab);
+    }
+  }, []);
+
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // NEU (Mobile): Body-Scroll sperren, solange das Popup-Menü offen ist
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -465,7 +471,6 @@ export default function ProfilePage() {
         return;
       }
 
-      // Löschung erfolgreich — client-seitig ausloggen und zur Startseite
       await supabase.auth.signOut();
       router.push("/");
     } catch (err: any) {
@@ -496,7 +501,6 @@ export default function ProfilePage() {
 
         .light { --gold: #B08A3F; }
 
-        /* DARK THEME (Standard) */
         .dark {
           --bg:    #0c0b09;
           --bg2:   #111009;
@@ -507,7 +511,6 @@ export default function ProfilePage() {
           --border:rgba(237,229,212,0.10);
         }
 
-        /* LIGHT THEME — klar, warm, hoher Kontrast statt blassem Creme-Einheitsbrei */
         .light {
           --bg:    #FAF6EE;
           --bg2:   #FFFFFF;
@@ -543,9 +546,6 @@ export default function ProfilePage() {
         .pp-nav-right { display:flex; align-items:center; justify-content:flex-end; }
         @media (max-width:680px) { .pp-nav-links { display:none; } .pp-nav-right { display:none; } }
 
-        /* THEME SWITCH — glasmorpher Apple-Stil */
-        /* !important auf border/background sichert den Gold-Hover-Rand gegen den globalen
-           .pg button Reset ab (dieser überschreibt sonst border:none/background:none). */
         .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent) !important; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border) !important; box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
         .theme-switch:hover { border-color: var(--gold) !important; }
         .theme-switch-knob { position:absolute; top:4.5px; left:3.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
@@ -555,7 +555,6 @@ export default function ProfilePage() {
 
         .pp-layout { position:relative; z-index:10; min-height:100vh; padding:112px clamp(20px,4vw,60px) 60px; display:flex; justify-content:center; }
 
-        /* ── SETTINGS-STYLE PAGE ── */
         .st-wrap { width:100%; max-width:1180px; display:flex; flex-direction:column; gap:24px; }
         .st-megacard { background:color-mix(in srgb, var(--bg2) 82%, transparent); border:1px solid var(--border); border-radius:28px; padding:28px; box-shadow:0 40px 100px rgba(0,0,0,0.45); display:flex; flex-direction:column; gap:24px; }
         .light .st-megacard { background:#FFFFFF; box-shadow:0 30px 80px rgba(58,44,16,0.12); }
@@ -625,22 +624,12 @@ export default function ProfilePage() {
         .st-toggle-knob { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.3); transition:transform .25s; }
         .st-toggle.on .st-toggle-knob { transform:translateX(16px); }
 
-
-
         @media (max-width:760px) { .st-body { grid-template-columns:1fr; } .st-subnav { position:static; flex-direction:row; overflow-x:auto; } }
-
-        /* ==================================================================
-           NEU (Mobile-Design) — ab hier ausschließlich neue Regeln/Klassen.
-           Nichts oberhalb dieser Zeile wurde verändert. Die Basis-Regeln hier
-           (außerhalb der @media-Blöcke) sind bewusst wirkungslos für PC.
-           ================================================================== */
 
         .mobile-only { display:none; }
 
-        /* Hamburger-Button */
         .pp-mobile-menu-btn { width:42px; height:42px; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--cream); background:color-mix(in srgb, var(--border) 40%, transparent) !important; flex-shrink:0; }
 
-        /* Popup-Menü (zentriertes Fenster), identisch im Aufbau zu About-/Route-Detail-Seite */
         .pp-mobile-nav-backdrop { position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.55); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .3s; }
         .pp-mobile-nav-backdrop.open { opacity:1; pointer-events:auto; }
         .pp-mobile-nav-drawer { position:fixed; top:50%; left:50%; z-index:401; width:min(380px,88vw); max-height:85vh; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:26px; box-shadow:0 50px 120px rgba(0,0,0,0.55); opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(0.94); transition:opacity .28s ease, transform .28s ease; padding:22px 22px 26px; }
@@ -667,14 +656,11 @@ export default function ProfilePage() {
         .pp-mobile-logout { display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border-radius:10px; font-size:13px; font-weight:600; color:rgba(224,128,128,0.55); }
         .pp-mobile-logout:hover { background:rgba(224,128,128,0.07); color:#e08080; }
 
-        /* Mobile Subnav — horizontale Pill-Tabs statt Sidebar */
         .pp-mobile-subnav { display:none; gap:8px; overflow-x:auto; padding-bottom:4px; margin:0 0 18px; scrollbar-width:none; }
         .pp-mobile-subnav::-webkit-scrollbar { display:none; }
         .pp-mobile-subnav-item { flex-shrink:0; display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:999px; border:1px solid var(--border); font-size:11px; font-weight:700; letter-spacing:0.04em; color:var(--dim); background:color-mix(in srgb, var(--bg2) 60%, transparent); white-space:nowrap; }
         .pp-mobile-subnav-item.active { color:var(--gold); border-color:rgba(201,168,106,0.4); background:rgba(201,168,106,0.1); }
 
-        /* Traveller Pass auf Mobile herunterskalieren, damit die feste Breite nicht überläuft.
-           Ohne Media Query ist der Wrapper ein reiner No-Op (kein Effekt auf PC). */
         .pp-pass-scale-wrap { }
 
         @media (max-width:760px) {
@@ -718,7 +704,6 @@ export default function ProfilePage() {
             <ThemeSwitch />
           </div>
 
-          {/* NEU (Mobile): Hamburger-Button, öffnet das Popup-Menü */}
           <button
             className="pp-mobile-menu-btn mobile-only"
             onClick={() => setMobileMenuOpen(true)}
@@ -728,7 +713,6 @@ export default function ProfilePage() {
           </button>
         </nav>
 
-        {/* NEU (Mobile): Popup-Menü + Backdrop */}
         <div className={`pp-mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
 
         <div className={`pp-mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
@@ -830,7 +814,6 @@ export default function ProfilePage() {
               </div>
 
               <div className="st-body">
-              {/* NEU (Mobile): horizontale Pill-Tabs statt Sidebar-Navigation */}
               <div className="pp-mobile-subnav mobile-only">
                 {([
                   { id: "account",       label: "Account",      icon: <User size={13} strokeWidth={1.8} /> },
@@ -851,7 +834,6 @@ export default function ProfilePage() {
                 ))}
               </div>
 
-              {/* SUB-NAVIGATION */}
               <div className="st-subnav">
                 {([
                   { id: "account",       label: "Account",            icon: <User size={15} strokeWidth={1.8} /> },
@@ -881,7 +863,6 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {/* CONTENT */}
               {subTab === "account" && (
                 <div className="st-content">
                   <div className="st-card">
@@ -1094,7 +1075,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Delete-Account-Bestätigungsdialog */}
         {showDeleteConfirm && (
           <>
             <div

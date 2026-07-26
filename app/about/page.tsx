@@ -295,7 +295,7 @@ export default function AboutPage() {
         .mission-text strong { color:var(--cream); font-weight:600; }
 
         /* TEAM */
-        .team-section { background:var(--bg); border-top:1px solid var(--border); }
+        .team-section { background:var(--bg); border-top:1px solid var(--border); scroll-margin-top:96px; }
         .team-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:52px; }
         .team-sub { font-size:13px; color:var(--dim); line-height:1.7; font-weight:300; max-width:280px; text-align:right; }
         .team-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
@@ -488,6 +488,8 @@ export default function AboutPage() {
           .footer-logo-container { justify-content:center; margin:0 auto; }
           .footer-tagline { margin-left:auto; margin-right:auto; }
           .footer-social { justify-content:center; }
+
+          .team-section { scroll-margin-top:80px; }
         }
       `}</style>
 
@@ -754,7 +756,7 @@ export default function AboutPage() {
         </section>
 
         {/* TEAM */}
-        <section className="section team-section">
+        <section id="team" className="section team-section">
           <div className="container">
             <div className="team-header">
               <div>
