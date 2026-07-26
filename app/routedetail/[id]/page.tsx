@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
+import GoogleMapsGate from '@/app/components/GoogleMapsGate';
 import { useTheme } from 'next-themes';
 import { useUnit } from '@/app/UnitContext';
 import { useLanguage } from '@/app/LanguageContext';
@@ -1291,32 +1292,34 @@ export default function RouteDetailPage() {
                     </div>
 
                     <div className={`rounded-[2rem] overflow-hidden ${isLight ? 'border border-[var(--border)] shadow-[0_20px_60px_rgba(43,38,32,0.12)]' : 'shadow-[0_30px_100px_rgba(0,0,0,0.8)]'}`}>
-                        <div className={`relative h-[620px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
-                            {route?.['google_maps'] && (
-                                <iframe
-                                    src={route['google_maps']}
-                                    width="100%"
-                                    height="100%"
-                                    style={{
-                                        border: 0,
-                                        filter: isLight
-                                            ? 'none'
-                                            : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
-                                    }}
-                                    allowFullScreen
-                                    loading="lazy"
-                                    title="Route Map"
-                                    className="w-full h-full outline-none border-none"
-                                />
-                            )}
+                        <GoogleMapsGate height={620}>
+                            <div className={`relative h-[620px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
+                                {route?.['google_maps'] && (
+                                    <iframe
+                                        src={route['google_maps']}
+                                        width="100%"
+                                        height="100%"
+                                        style={{
+                                            border: 0,
+                                            filter: isLight
+                                                ? 'none'
+                                                : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
+                                        }}
+                                        allowFullScreen
+                                        loading="lazy"
+                                        title="Route Map"
+                                        className="w-full h-full outline-none border-none"
+                                    />
+                                )}
 
-                            {!isLight && (
-                                <>
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
-                                </>
-                            )}
-                        </div>
+                                {!isLight && (
+                                    <>
+                                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
+                                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
+                                    </>
+                                )}
+                            </div>
+                        </GoogleMapsGate>
 
                         <div className={`flex items-center justify-between gap-6 px-8 py-7 ${isLight ? 'bg-[#ffffff]' : 'bg-[#0d1626]'}`}>
                             <div className="space-y-1.5 min-w-0">
@@ -1590,32 +1593,34 @@ export default function RouteDetailPage() {
                     </div>
 
                     <div className={`rounded-2xl overflow-hidden ${isLight ? 'border border-[var(--border)] shadow-[0_16px_40px_rgba(43,38,32,0.10)]' : 'shadow-[0_20px_60px_rgba(0,0,0,0.7)]'}`}>
-                        <div className={`relative h-[230px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
-                            {route?.['google_maps'] && (
-                                <iframe
-                                    src={route['google_maps']}
-                                    width="100%"
-                                    height="100%"
-                                    style={{
-                                        border: 0,
-                                        filter: isLight
-                                            ? 'none'
-                                            : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
-                                    }}
-                                    allowFullScreen
-                                    loading="lazy"
-                                    title="Route Map"
-                                    className="w-full h-full outline-none border-none"
-                                />
-                            )}
+                        <GoogleMapsGate height={230}>
+                            <div className={`relative h-[230px] w-full overflow-hidden ${isLight ? 'bg-[#e8e8e3]' : 'bg-[#0b1220]'}`}>
+                                {route?.['google_maps'] && (
+                                    <iframe
+                                        src={route['google_maps']}
+                                        width="100%"
+                                        height="100%"
+                                        style={{
+                                            border: 0,
+                                            filter: isLight
+                                                ? 'none'
+                                                : 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(1.4)',
+                                        }}
+                                        allowFullScreen
+                                        loading="lazy"
+                                        title="Route Map"
+                                        className="w-full h-full outline-none border-none"
+                                    />
+                                )}
 
-                            {!isLight && (
-                                <>
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
-                                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
-                                </>
-                            )}
-                        </div>
+                                {!isLight && (
+                                    <>
+                                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#0b1220]/50 via-transparent to-[#0b1220]/40" />
+                                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0b1220]/30 via-transparent to-[#0b1220]/30" />
+                                    </>
+                                )}
+                            </div>
+                        </GoogleMapsGate>
 
                         <div className={`flex items-center justify-between gap-3 px-4 py-4 ${isLight ? 'bg-[#ffffff]' : 'bg-[#0d1626]'}`}>
                             <div className="space-y-1 min-w-0">

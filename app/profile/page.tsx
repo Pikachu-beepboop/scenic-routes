@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { getSupabaseConsent, persistConsent } from "../../lib/cookieConsent";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useTheme } from "next-themes";
 import { useUnit } from "../UnitContext";
@@ -358,16 +359,30 @@ export default function ProfilePage() {
   const [sessionsSuccess, setSessionsSuccess]     = useState("");
   const [sessionsSaving, setSessionsSaving]       = useState(false);
 
+  // Privacy tab — Google Maps consent, kept in sync with the same
+  // cookie_consents table the cookie banner reads/writes, so toggling it
+  // here has the same effect as changing it in the banner's settings.
+  const [googleMapsConsent, setGoogleMapsConsent] = useState(false);
+  const [mapsConsentSaving, setMapsConsentSaving] = useState(false);
+
   const [toggles, setToggles] = useState({
     nearbyRoutes: true,
     tripReminders: true,
     communityUpdates: false,
-    profileVisible: true,
     activityTracking: true,
   });
 
   function toggleSwitch(key: keyof typeof toggles) {
     setToggles((t) => ({ ...t, [key]: !t[key] }));
+  }
+
+  async function handleGoogleMapsToggle() {
+    if (!user || mapsConsentSaving) return;
+    const nextValue = !googleMapsConsent;
+    setMapsConsentSaving(true);
+    setGoogleMapsConsent(nextValue);
+    await persistConsent({ necessary: true, googleMaps: nextValue }, user.id);
+    setMapsConsentSaving(false);
   }
 
   const { theme } = useTheme();
@@ -409,6 +424,9 @@ export default function ProfilePage() {
       setUser(u);
       fetchProfile(u.id);
       fetchStamps(u.id);
+      getSupabaseConsent(u.id).then((consent) => {
+        setGoogleMapsConsent(consent?.googleMaps ?? false);
+      });
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
@@ -1357,10 +1375,16 @@ export default function ProfilePage() {
                     <p className="st-card-title">Privacy & Security</p>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">Make Profile Visible</p>
-                        <p className="st-row-sub">Your profile is visible to other users.</p>
+                        <p className="st-row-label">Google Maps</p>
+                        <p className="st-row-sub">Load maps from Google Maps on route pages. Google may process your IP address and device information.</p>
                       </div>
-                      <button className={`st-toggle ${toggles.profileVisible ? "on" : ""}`} onClick={() => toggleSwitch("profileVisible")}><span className="st-toggle-knob" /></button>
+                      <button
+                        className={`st-toggle ${googleMapsConsent ? "on" : ""}`}
+                        onClick={handleGoogleMapsToggle}
+                        disabled={mapsConsentSaving}
+                      >
+                        <span className="st-toggle-knob" />
+                      </button>
                     </div>
                     <div className="st-row">
                       <div>
