@@ -841,7 +841,7 @@ export default function AboutPage() {
                 />
               ))}
             </div>
-
+              {/*
             <div className="team-footer-bar">
               <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
                 <div style={{display:"flex"}}>
@@ -855,7 +855,9 @@ export default function AboutPage() {
               </div>
               <a href="mailto:jobs@scenicroutes.app" className="team-footer-link">{t("about.team.joinTeam")} <ArrowRight size={11} strokeWidth={2.5} /></a>
             </div>
+            */}
           </div>
+          
         </section>
 
         {/* CTA */}
