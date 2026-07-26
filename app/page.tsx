@@ -306,10 +306,6 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
               {String(items.length).padStart(2, "0")}
             </span>
 
-            <span className="popular-type">
-              {route.terrain || route.type || t("home.popular.fallbackType")}
-            </span>
-
             <div className="popular-content">
               <p>{route.country}</p>
               <h3>{route.title}</h3>
@@ -681,7 +677,6 @@ export default function HomePage() {
 
         .popular-card-overlay { position:absolute; inset:0; z-index:1; background:linear-gradient(to top,rgba(0,0,0,0.78),rgba(0,0,0,0.24) 48%,rgba(0,0,0,0.15)),linear-gradient(to right,rgba(0,0,0,0.5),transparent 58%); }
         .popular-counter { position:absolute; top:28px; left:32px; z-index:2; font-family:var(--serif); font-size:clamp(26px,3vw,42px); font-weight:300; letter-spacing:-0.03em; color:rgba(255,255,255,0.76); }
-        .popular-type { position:absolute; top:34px; right:34px; z-index:2; color:rgba(255,255,255,0.66); font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
         .popular-content { position:absolute; z-index:2; left:clamp(28px,5vw,90px); right:clamp(28px,5vw,70px); bottom:clamp(34px,6vw,74px); max-width:min(1120px,calc(100% - 80px)); }
         .popular-content p { margin-bottom:12px; color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; }
         .popular-content h3 { margin-bottom:22px; color:#fff; font-family:var(--serif); font-size:clamp(48px,6.2vw,92px); font-weight:300; line-height:0.9; letter-spacing:-0.055em; text-shadow:0 20px 60px rgba(0,0,0,0.65); }
@@ -803,7 +798,6 @@ export default function HomePage() {
           .popular-header { align-items:flex-start; flex-direction:column; }
           .popular-card { height:520px; border-radius:26px; }
           .popular-arrow { display:none; }
-          .popular-type { display:none; }
           .popular-content h3 { font-size:clamp(42px,12vw,66px); line-height:0.94; }
         }
 
