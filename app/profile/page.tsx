@@ -18,7 +18,6 @@ type Stamp = {
   id: string;
   title: string;
   country: string;
-  terrain?: string;
   completed_at?: string;
 };
 
@@ -61,10 +60,6 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
     { border:"rgba(180,60,80,.6)",  bg:"rgba(180,60,80,.08)",  icon:"rgba(180,60,80,.8)",  text:"#4a0a14", sub:"#8a2030" },
     { border:"rgba(80,100,60,.6)",  bg:"rgba(80,100,60,.08)",  icon:"rgba(80,100,60,.8)",  text:"#1a2810", sub:"#3a5020" },
   ];
-
-  const TERRAIN_ICONS: Record<string, string> = {
-    Mountains:"△", Coastal:"〰", Desert:"◇", Forest:"◉", Alpine:"▲", Scenic:"◎",
-  };
 
   function renderPage(p: PassportPageId) {
     if (p === "cover") {
@@ -198,7 +193,7 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
               return (
                 <div key={s.id} style={{border:`2px solid ${st.border}`,background:st.bg,borderRadius:4,aspectRatio:"1",display:"flex",alignItems:"center",justifyContent:"center",transition:"transform .2s",cursor:"default"}}>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,padding:10,textAlign:"center"}}>
-                    <div style={{fontSize:19,lineHeight:1,color:st.icon}}>{TERRAIN_ICONS[s.terrain||""]||"◎"}</div>
+                    <div style={{fontSize:19,lineHeight:1,color:st.icon}}>◎</div>
                     <div style={{fontSize:8,fontWeight:800,letterSpacing:".08em",textTransform:"uppercase",lineHeight:1.3,color:st.text}}>{s.title}</div>
                     <div style={{fontSize:7,letterSpacing:".14em",textTransform:"uppercase",color:st.sub}}>{s.country}</div>
                     {s.completed_at && <div style={{fontSize:7,fontFamily:"'Courier New',monospace",color:st.sub,opacity:.7,marginTop:1}}>{new Date(s.completed_at).toLocaleDateString("en",{month:"short",year:"numeric"})}</div>}
@@ -384,12 +379,24 @@ export default function ProfilePage() {
     setLoading(false);
   }
 
+  // GEÄNDERT: saved_routes hat nur id/user_id/route_id/created_at — title/country
+  // kommen jetzt per Join aus routes(...), completed_at nutzt created_at als
+  // "wann gespeichert"-Zeitpunkt, terrain gibt es nicht (Feld komplett entfernt).
   async function fetchStamps(userId: string) {
     const { data } = await supabase
       .from("saved_routes")
-      .select("id, title, country, terrain, completed_at")
+      .select("id, created_at, routes(title, country)")
       .eq("user_id", userId);
-    if (data && data.length > 0) setStamps(data);
+
+    if (data && data.length > 0) {
+      const mapped: Stamp[] = data.map((r: any) => ({
+        id: r.id,
+        title: r.routes?.title || "",
+        country: r.routes?.country || "",
+        completed_at: r.created_at,
+      }));
+      setStamps(mapped);
+    }
   }
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -715,7 +722,6 @@ export default function ProfilePage() {
 
         <div className={`pp-mobile-nav-backdrop ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
 
-          // Mobile navigation drawer for small screens
         <div className={`pp-mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
           <div className="pp-mobile-nav-top">
             <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.18em", color: "var(--cream)" }}>EXPLORE SCENIC ROUTES</span>

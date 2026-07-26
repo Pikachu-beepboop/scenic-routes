@@ -25,7 +25,6 @@ type Route = {
   image_url?: string;
   duration?: string;
   type?: string;
-  terrain?: string;
   description?: string;
   description_en?: string;
   description_de?: string;
@@ -142,11 +141,9 @@ function ExplorePageInner() {
   const [appliedSelected, setAppliedSelected] = useState(selected);
   const [appliedSelectedDate, setAppliedSelectedDate] = useState(selectedDate);
   const [filters, setFilters] = useState<{
-    difficulty: string[];
     minRating: number;
     countries: string[];
   }>({
-    difficulty: searchParams.get("terrain")?.split(",").filter(Boolean) || [],
     minRating: Number(searchParams.get("rating") || 0),
     countries: searchParams.get("countries")?.split(",").filter(Boolean) || [],
   });
@@ -158,7 +155,6 @@ function ExplorePageInner() {
     const params = new URLSearchParams();
     if (appliedSelected) params.set("destination", appliedSelected);
     if (appliedSelectedDate) params.set("duration", appliedSelectedDate);
-    if (filters.difficulty.length > 0) params.set("terrain", filters.difficulty.join(","));
     if (filters.minRating > 0) params.set("rating", String(filters.minRating));
     if (filters.countries.length > 0) params.set("countries", filters.countries.join(","));
     const query = params.toString();
@@ -222,7 +218,7 @@ function ExplorePageInner() {
   const isLight = mounted && theme === "light";
   const themeClass = isLight ? "light" : "dark";
 
-  const toggleFilter = (key: "difficulty" | "countries", value: string) => {
+  const toggleFilter = (key: "countries", value: string) => {
     setFilters((prev) => ({
       ...prev,
       [key]: prev[key].includes(value)
@@ -233,11 +229,11 @@ function ExplorePageInner() {
 
   const clearAllFilters = () => {
     setSelected(""); setSelectedDate(""); setAppliedSelected(""); setAppliedSelectedDate("");
-    setFilters({ difficulty: [], minRating: 0, countries: [] });
+    setFilters({ minRating: 0, countries: [] });
   };
 
   const activeFilterCount =
-    filters.difficulty.length + filters.countries.length +
+    filters.countries.length +
     (filters.minRating > 0 ? 1 : 0) +
     (appliedSelected ? 1 : 0) + (appliedSelectedDate ? 1 : 0);
 
@@ -363,7 +359,6 @@ function ExplorePageInner() {
     if (appliedSelected && appliedSelected !== "Choose destination") query = query.eq("country", appliedSelected);
     if (appliedSelectedDate && appliedSelectedDate !== "Choose duration") query = query.eq("duration", appliedSelectedDate);
     if (filters.countries.length > 0) query = query.in("country", filters.countries);
-    if (filters.difficulty.length > 0) query = query.in("terrain", filters.difficulty);
     if (filters.minRating > 0) query = query.gte("rating", filters.minRating);
     const { data } = await query;
     if (data) setRoutes(data);
@@ -1245,14 +1240,6 @@ function ExplorePageInner() {
                       </div>
                     </div>
                     <div className="filter-section">
-                      <p className="filter-section-title">{t("explore.terrain")}</p>
-                      <div className="filter-chips">
-                        {["Forest", "Deserts", "Coastal", "Mountains"].map((terrain) => (
-                          <button key={terrain} className={`filter-chip ${filters.difficulty.includes(terrain) ? "active" : ""}`} onClick={() => toggleFilter("difficulty", terrain)}>{terrain}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="filter-section">
                       <p className="filter-section-title">{t("explore.search.duration")}</p>
                       <div className="filter-radio">
                         <label className="filter-radio-item">
@@ -1327,7 +1314,6 @@ function ExplorePageInner() {
 
           {(activeFilterCount > 0 || appliedSelected || appliedSelectedDate) && (
             <div className="active-tags">
-              {filters.difficulty.map((terrain) => (<span key={terrain} className="active-tag">{terrain}<button onClick={() => toggleFilter("difficulty", terrain)}><X size={11} strokeWidth={2.5} /></button></span>))}
               {filters.countries.map((c) => (<span key={c} className="active-tag">{c}<button onClick={() => toggleFilter("countries", c)}><X size={11} strokeWidth={2.5} /></button></span>))}
               {appliedSelected && (<span className="active-tag">{appliedSelected}<button onClick={() => { setSelected(""); setAppliedSelected(""); }}><X size={11} strokeWidth={2.5} /></button></span>)}
               {appliedSelectedDate && (<span className="active-tag">{appliedSelectedDate}<button onClick={() => { setSelectedDate(""); setAppliedSelectedDate(""); }}><X size={11} strokeWidth={2.5} /></button></span>)}
@@ -1366,7 +1352,7 @@ function ExplorePageInner() {
                       <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
                         <Heart size={16} strokeWidth={2} fill={savedRoutes.includes(route.id) ? "#ef4444" : "transparent"} stroke={savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)"} />
                       </button>
-                      {(route.terrain || route.type) && <div className="route-card-type">{route.terrain || route.type}</div>}
+                      {route.type && <div className="route-card-type">{route.type}</div>}
                     </div>
                     <div className="route-card-body">
                       <div className="route-card-country">
