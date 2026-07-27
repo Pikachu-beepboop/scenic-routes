@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -40,6 +40,12 @@ const FALLBACK_MARKERS = [
   { id: "20", title: "Irohazaka Road", country: "Japan", latitude: 36.7, longitude: 139.5 },
 ];
 
+// Sanfte Ease-Funktion für den automatischen Reset — beschleunigt erst,
+// bremst dann sanft ab, statt linear oder abrupt zu springen.
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 export default function WorldMap() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [tooltip, setTooltip] = useState<{ title: string; country: string; x: number; y: number } | null>(null);
@@ -47,13 +53,26 @@ export default function WorldMap() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // NEU (Mobile): erkennt, ob wir uns unterhalb des mobilen Breakpoints befinden.
+  // Mobile: erkennt, ob wir uns unterhalb des mobilen Breakpoints befinden.
   // Nur dort wird die Karte zoom-/pan-bar; auf PC bleibt das Verhalten unverändert.
   const [isMobile, setIsMobile] = useState(false);
 
-  // NEU (Mobile): Zoom-/Pan-Zustand für die ZoomableGroup
+  // Mobile: Zoom-/Pan-Zustand für die ZoomableGroup
   const [zoom, setZoom] = useState(1);
   const [center, setCenter] = useState<[number, number]>([13, 30]);
+
+  // Wird bei jedem Reset auf die Ausgangsansicht hochgezählt und als "key"
+  // an die ZoomableGroup übergeben. Das erzwingt einen kompletten Neu-Render
+  // der ZoomableGroup, damit deren interne Zoom/Pan-Transform sauber
+  // zurückgesetzt wird. Passiert jetzt erst GANZ AM ENDE der Animation
+  // (siehe animateResetToOverview), wenn Zoom/Center bereits exakt auf dem
+  // Zielwert stehen — der Remount ist dadurch unsichtbar, statt den
+  // Reset-Sprung selbst auszulösen.
+  const [mapResetKey, setMapResetKey] = useState(0);
+
+  // Animations-Handle für den sanften Reset, damit eine laufende Animation
+  // bei einer neuen Geste sauber abgebrochen werden kann.
+  const resetAnimRef = useRef<number | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 680px)");
@@ -63,11 +82,64 @@ export default function WorldMap() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // NEU (Mobile): ab dieser Zoomstufe werden die Routen-Titel neben den
+  // Beim Verlassen der Komponente eine eventuell noch laufende
+  // Reset-Animation abbrechen, um Updates auf unmounted state zu vermeiden.
+  useEffect(() => {
+    return () => {
+      if (resetAnimRef.current) cancelAnimationFrame(resetAnimRef.current);
+    };
+  }, []);
+
+  // Mobile: ab dieser Zoomstufe werden die Routen-Titel neben den
   // Markern eingeblendet ("reinzoomen auf ein Land zeigt die Routen")
   const LABEL_ZOOM_THRESHOLD = 3.5;
 
+  // Animiert Zoom + Center sanft zur Ausgangsansicht zurück, statt hart zu
+  // springen. Läuft über ~450ms mit ease-in-out, damit der Übergang "rund"
+  // statt eckig wirkt. Am Ende wird der mapResetKey hochgezählt, um die
+  // ZoomableGroup einmal sauber neu zu rendern (Rundungsreste beseitigen)
+  // — unsichtbar, da bereits exakt auf dem Zielwert.
+  function animateResetToOverview(fromZoom: number, fromCenter: [number, number]) {
+    if (resetAnimRef.current) cancelAnimationFrame(resetAnimRef.current);
+
+    const targetZoom = 1;
+    const targetCenter: [number, number] = [13, 30];
+    const duration = 450;
+    const start = performance.now();
+
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = easeInOutCubic(t);
+
+      setZoom(fromZoom + (targetZoom - fromZoom) * eased);
+      setCenter([
+        fromCenter[0] + (targetCenter[0] - fromCenter[0]) * eased,
+        fromCenter[1] + (targetCenter[1] - fromCenter[1]) * eased,
+      ]);
+
+      if (t < 1) {
+        resetAnimRef.current = requestAnimationFrame(step);
+      } else {
+        setZoom(targetZoom);
+        setCenter(targetCenter);
+        setMapResetKey((k) => k + 1);
+        resetAnimRef.current = null;
+      }
+    };
+
+    resetAnimRef.current = requestAnimationFrame(step);
+  }
+
   function handleMoveEnd(position: { coordinates: [number, number]; zoom: number }) {
+    // Komplett rausgezoomt (zoom == minZoom) → sanft zurück zur
+    // Ausgangsansicht animieren, damit man wieder die komplette Karte sieht,
+    // statt an der letzten (verschobenen) Position "hängen" zu bleiben oder
+    // hart dorthin zu springen.
+    if (position.zoom <= 1) {
+      animateResetToOverview(position.zoom, position.coordinates);
+      return;
+    }
+
     setCenter(position.coordinates);
     setZoom(position.zoom);
   }
@@ -125,7 +197,7 @@ export default function WorldMap() {
       borderRadius: "15px",
       transition: "background .35s, border-color .35s",
     }}>
-      {/* NEU (Mobile): responsive Höhe für die Karte statt fixer 580px.
+      {/* Mobile: responsive Höhe für die Karte statt fixer 580px.
           Auf PC bleibt exakt das bisherige Verhalten (580px), nur unterhalb
           von 680px Breite wird die Höhe reduziert, damit die Karte nicht
           riesige Leerflächen erzeugt. */}
@@ -155,20 +227,24 @@ export default function WorldMap() {
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{ scale: 170, center: [13, 30] }}
-        viewBox="10 0 720 600"
+        viewBox="-130 0 980 600"
+        preserveAspectRatio="xMidYMid slice"
         className="wm-composable-map"
       >
         {isMobile ? (
-          /* NEU (Mobile): zoom-/pan-bare Variante. Reinzoomen (Pinch-Geste)
-             blendet ab LABEL_ZOOM_THRESHOLD die Routennamen neben den
-             Markern ein — quasi "Routen erscheinen, wenn man auf ein Land
-             zoomt". Auf PC wird dieser Zweig nie gerendert. */
+          /* Mobile: zoom-/pan-bare Variante, Pannen ist über translateExtent
+             begrenzt. Reinzoomen (Pinch-Geste) blendet ab
+             LABEL_ZOOM_THRESHOLD die Routennamen neben den Markern ein —
+             quasi "Routen erscheinen, wenn man auf ein Land zoomt". Auf PC
+             wird dieser Zweig nie gerendert. */
           <ZoomableGroup
+            key={mapResetKey}
             zoom={zoom}
             center={center}
             onMoveEnd={handleMoveEnd}
             minZoom={1}
             maxZoom={7}
+            translateExtent={[[-150, -150], [1020, 770]]}
           >
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>

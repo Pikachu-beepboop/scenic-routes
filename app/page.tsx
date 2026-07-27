@@ -1102,6 +1102,12 @@ export default function HomePage() {
                 <ThemeSwitch />
               </div>
 
+              {/* FIX: Auf allen anderen Seiten ist dieses Menü in zwei
+                  Abschnitte unterteilt ("NAVIGATE" und "ACCOUNT", getrennt
+                  durch eine Linie), inkl. Profile-Link. Auf der Homepage
+                  fehlte diese Aufteilung komplett — alle Links hingen unter
+                  einem einzigen "NAVIGATE"-Label, und der Profile-Link
+                  fehlte ganz. Jetzt an die anderen Seiten angeglichen. */}
               <div className="ud-links">
                 <p className="ud-section-label">{t("nav.navigate")}</p>
 
@@ -1125,6 +1131,20 @@ export default function HomePage() {
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
 
+                <div className="ud-divider" />
+
+                <p className="ud-section-label">{t("nav.account")}</p>
+
+                <Link
+                  href="/profile"
+                  className="ud-link"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span>
+                  {t("nav.profile")}
+                  <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                </Link>
+
                 <Link
                   href="/my-trips"
                   className="ud-link"
@@ -1134,15 +1154,21 @@ export default function HomePage() {
                   {t("nav.myTrips")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
-                  {isAdmin && (
+
+                {isAdmin && (
+                  // FIX: Schloss vorher fälschlicherweise setShowUserMenu(false)
+                  // (Copy-Paste-Rest vom Desktop-Dropdown) statt
+                  // setMobileMenuOpen(false) — dadurch blieb das mobile Menü
+                  // beim Klick auf Admin Panel offen.
                   <Link
                     href="/admin"
                     className="ud-link"
-                    onClick={() => setShowUserMenu(false)}
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> {t("nav.adminPanel")}
                   </Link>
-                      )}
+                )}
+
                 <div className="ud-divider" />
 
                 <button className="ud-logout" onClick={handleLogout}>
