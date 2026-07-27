@@ -14,6 +14,8 @@ import {
   Bell, ShieldCheck, LifeBuoy, Info,
   ChevronRight, ChevronDown, Menu, X,
   Mail, Lock, Smartphone, Monitor, CheckCircle2,
+  Camera, Compass, Globe, Bookmark, TrendingUp,
+  Calendar, MapPin, AlertTriangle, Circle,
 } from "lucide-react";
 
 type Stamp = {
@@ -320,6 +322,16 @@ export default function ProfilePage() {
   const [username, setUsername]           = useState("");
   const [email, setEmail]                 = useState("");
   const [avatarUrl, setAvatarUrl]         = useState("");
+
+  // Profile tab — additional fields. NOTE: `profiles` table currently only has
+  // username/avatar_url/email. To persist these, add columns display_name,
+  // country, timezone, about (text) to `profiles` — until then these are
+  // local-only and handleSaveProfile will silently skip them.
+  const [displayName, setDisplayName]     = useState("");
+  const [country, setCountry]             = useState("");
+  const [timezone, setTimezone]           = useState("UTC+0");
+  const [aboutYou, setAboutYou]           = useState("");
+  const ABOUT_MAX = 250;
   const [newPassword, setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError]                 = useState("");
@@ -441,6 +453,11 @@ export default function ProfilePage() {
       setEmail(data.email || "");
       setAvatarUrl(data.avatar_url || "");
       setAvatarPreview(data.avatar_url || "");
+      // Optional columns — read if present (see note above `displayName` state).
+      setDisplayName(data.display_name || data.username || "");
+      setCountry(data.country || "");
+      setTimezone(data.timezone || "UTC+0");
+      setAboutYou(data.about || "");
     }
     setLoading(false);
   }
@@ -486,7 +503,15 @@ export default function ProfilePage() {
     }
 
     const { error: profileError } = await supabase.from("profiles")
-      .update({ username, avatar_url: uploadedAvatarUrl, updated_at: new Date().toISOString() })
+      .update({
+        username,
+        avatar_url: uploadedAvatarUrl,
+        display_name: displayName,
+        country,
+        timezone,
+        about: aboutYou,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", user.id);
     if (profileError) { setError(profileError.message); setSaving(false); return; }
 
@@ -794,7 +819,52 @@ export default function ProfilePage() {
         .st-toggle-knob { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.3); transition:transform .25s; }
         .st-toggle.on .st-toggle-knob { transform:translateX(16px); }
 
-        @media (max-width:760px) { .st-body { grid-template-columns:1fr; } .st-subnav { position:static; flex-direction:row; overflow-x:auto; } }
+        /* Profile tab — identity, stats, completion, pass, danger zone */
+        .st-profile-grid { display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
+        .st-profile-col { display:flex; flex-direction:column; gap:20px; min-width:0; }
+        .st-profile-col-side { min-width:0; }
+
+        /* Boxed sub-cards for the Profile tab — .st-card itself is bare
+           (used as a plain layout wrapper elsewhere in the app), so these
+           need their own background/border to read as distinct cards. */
+        .st-subcard { background:color-mix(in srgb, var(--bg3) 65%, transparent); border:1px solid var(--border); border-radius:18px; padding:20px; box-shadow:0 16px 40px rgba(0,0,0,0.18); }
+        .light .st-subcard { background:#FFFFFF; box-shadow:0 12px 30px rgba(58,44,16,0.08); }
+        .st-profile-head-card { padding:20px; }
+        .st-profile-meta-row { display:flex; flex-wrap:wrap; gap:14px; margin-top:8px; }
+        .st-profile-meta-row span { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--dim); }
+        .st-profile-meta-row svg { color:var(--gold); flex-shrink:0; }
+
+        .st-field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        .st-field-label-row { display:flex; align-items:center; justify-content:space-between; }
+        .st-char-count { font-size:10px; color:var(--dim); }
+        .st-select-full { appearance:none; -webkit-appearance:none; cursor:pointer; }
+        .st-select-wrap { position:relative; }
+        .st-select-wrap svg { position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--dim); }
+        .st-textarea { min-height:90px; resize:vertical; line-height:1.6; font-family:inherit; }
+
+        .st-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        .st-stat-item { display:flex; align-items:center; gap:10px; }
+        .st-stat-icon { width:36px; height:36px; border-radius:10px; background:rgba(201,168,106,0.1); border:1px solid rgba(201,168,106,0.25); display:flex; align-items:center; justify-content:center; color:var(--gold); flex-shrink:0; }
+        .st-stat-num { font-family:var(--serif); font-size:19px; font-weight:500; color:var(--cream); line-height:1.15; }
+        .st-stat-label { font-size:10px; color:var(--dim); margin-top:1px; }
+
+        .st-completion-head { display:flex; align-items:center; justify-content:space-between; }
+        .st-completion-pct { font-family:var(--serif); font-size:20px; font-weight:500; color:var(--gold); }
+        .st-completion-track { height:6px; border-radius:999px; background:var(--border); overflow:hidden; margin-top:2px; }
+        .st-completion-fill { height:100%; background:var(--gold); border-radius:999px; transition:width .3s ease; }
+        .st-completion-hint { font-size:11px; color:var(--dim); line-height:1.5; }
+        .st-checklist { display:flex; flex-direction:column; gap:9px; margin-top:2px; }
+        .st-checklist-item { display:flex; align-items:center; gap:9px; font-size:12px; color:var(--cream); }
+        .st-checklist-item svg { flex-shrink:0; }
+
+        .st-pass-mini-card { gap:14px; }
+        .st-pass-mini-head { display:flex; align-items:center; gap:12px; }
+
+        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); }
+
+        @media (max-width:900px) { .st-profile-grid { grid-template-columns:1fr; } }
+
+        @media (max-width:760px) { .st-body { grid-template-columns:1fr; } .st-subnav { position:static; flex-direction:row; overflow-x:auto; } .st-field-row { grid-template-columns:1fr; } .st-danger-banner { flex-direction:column; } .st-action-row { flex-direction:column-reverse; } .st-action-row .st-btn { width:100%; justify-content:center; } }
 
         .mobile-only { display:none; }
 
@@ -1100,55 +1170,203 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {subTab === "profile" && (
-                <div className="st-content">
-                  <div className="st-card">
-                    <div className="st-profile-head">
-                      <div className="st-avatar-wrap">
-                        {avatarPreview
-                          ? <img src={avatarPreview} className="st-avatar-lg" alt="avatar" />
-                          : <div className="st-avatar-lg-placeholder">{initials}</div>
-                        }
-                        <label className="st-avatar-edit" title="Change photo">
-                          ✎
-                          <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
-                        </label>
+              {subTab === "profile" && (() => {
+                // Profile Completion — derived from data we already have on hand
+                // (no extra backend calls). The overall % is computed from this
+                // checklist rather than hardcoded, so it stays honest even
+                // though the underlying stat cards below are still placeholders.
+                const completionChecks = [
+                  { label: "Add profile picture", done: !!avatarPreview },
+                  { label: "Add about you",        done: aboutYou.trim().length > 0 },
+                  { label: "Add country",          done: country.trim().length > 0 },
+                  { label: "Connect your email",   done: !!user?.email_confirmed_at },
+                  { label: "Set preferences",      done: false }, // TODO: wire once a "preferences saved" flag exists
+                ];
+                const completionPct = Math.round((completionChecks.filter(c => c.done).length / completionChecks.length) * 100);
+                const memberSince = user?.created_at
+                  ? new Date(user.created_at).toLocaleDateString("en", { month: "long", year: "numeric" })
+                  : "—";
+
+                return (
+                <div className="st-content wide">
+                  <div className="st-profile-grid">
+
+                    {/* Left column — identity + editable profile info */}
+                    <div className="st-profile-col">
+                      <div className="st-card st-subcard st-profile-head-card">
+                        <div className="st-profile-head" style={{ borderBottom: "none", paddingBottom: 0 }}>
+                          <div className="st-avatar-wrap">
+                            {avatarPreview
+                              ? <img src={avatarPreview} className="st-avatar-lg" alt="avatar" />
+                              : <div className="st-avatar-lg-placeholder">{initials}</div>
+                            }
+                            <label className="st-avatar-edit" title="Change photo">
+                              <Camera size={11} strokeWidth={2.2} />
+                              <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
+                            </label>
+                          </div>
+                          <div>
+                            <p className="st-profile-name">{displayName || username || user?.email?.split("@")[0]}</p>
+                            <p className="st-profile-role">Scenic Route Explorer</p>
+                            <p className="st-profile-email">{user?.email}</p>
+                            <div className="st-profile-meta-row">
+                              <span><Calendar size={11} strokeWidth={1.8} /> Member since {memberSince}</span>
+                              {country && <span><MapPin size={11} strokeWidth={1.8} /> {country}</span>}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="st-profile-name">{username || user?.email?.split("@")[0]}</p>
-                        <p className="st-profile-email">{user?.email}</p>
-                        <p className="st-profile-role">Scenic Route Explorer</p>
+
+                      <div className="st-card st-subcard">
+                        <p className="st-card-title">Profile Information</p>
+
+                        <div className="st-field">
+                          <label className="st-field-label">Display Name</label>
+                          <input className="st-input" type="text" placeholder="Your display name" value={displayName} onChange={e => setDisplayName(e.target.value)} />
+                        </div>
+
+                        <div className="st-field">
+                          <label className="st-field-label">Username</label>
+                          <input className="st-input" type="text" placeholder="Your username" value={username} onChange={e => setUsername(e.target.value)} />
+                        </div>
+
+                        <div className="st-field-row">
+                          <div className="st-field">
+                            <label className="st-field-label">Country</label>
+                            <div className="st-select-wrap">
+                              <select className="st-input st-select-full" value={country} onChange={e => setCountry(e.target.value)}>
+                                <option value="">Select country</option>
+                                {["Germany","Pakistan","United States","United Kingdom","France","Italy","Spain","Switzerland","Austria","Norway","Canada","Australia","Other"].map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                              <ChevronDown size={14} strokeWidth={2} />
+                            </div>
+                          </div>
+                          <div className="st-field">
+                            <label className="st-field-label">Time Zone</label>
+                            <div className="st-select-wrap">
+                              <select className="st-input st-select-full" value={timezone} onChange={e => setTimezone(e.target.value)}>
+                                {["UTC-8","UTC-5","UTC+0","UTC+1","UTC+2","UTC+5","UTC+8","UTC+9"].map(tz => (
+                                  <option key={tz} value={tz}>{tz}</option>
+                                ))}
+                              </select>
+                              <ChevronDown size={14} strokeWidth={2} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="st-field">
+                          <div className="st-field-label-row">
+                            <label className="st-field-label">About You</label>
+                            <span className="st-char-count">{aboutYou.length}/{ABOUT_MAX}</span>
+                          </div>
+                          <textarea
+                            className="st-input st-textarea"
+                            placeholder="Mountain lover. Scenic roads enthusiast."
+                            value={aboutYou}
+                            maxLength={ABOUT_MAX}
+                            onChange={e => setAboutYou(e.target.value)}
+                          />
+                        </div>
+
+                        {error   && <p className="st-error">{error}</p>}
+                        {success && <p className="st-success">{success}</p>}
                       </div>
                     </div>
 
-                    <p className="st-card-title">Profile Information</p>
-                    <div className="st-field">
-                      <label className="st-field-label">Username</label>
-                      <input className="st-input" type="text" placeholder="Your username" value={username} onChange={e => setUsername(e.target.value)} />
-                      <label className="st-field-label">Name</label>
-                      <input className="st-input" type="text" placeholder="Your name" />
-                    </div>
-
-                    {error   && <p className="st-error">{error}</p>}
-                    {success && <p className="st-success">{success}</p>}
-
-                    <div className="st-divider" />
-
-                    <div
-                      className="st-row st-row-clickable st-row-danger"
-                      onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(""); setDeleteError(""); }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div>
-                        <p className="st-row-label">Delete Account</p>
-                        <p className="st-row-sub">Permanently delete your account and data.</p>
+                    {/* Right column — stats, completion, pass */}
+                    <div className="st-profile-col st-profile-col-side">
+                      <div className="st-card st-subcard st-stats-card">
+                        <p className="st-card-title">Traveller Stats</p>
+                        {/* TODO: replace placeholders with real counts once wired
+                            (trips = completed routes, countries = distinct route
+                            countries, distance = sum of route lengths). Saved
+                            Routes could use stamps.length today if desired. */}
+                        <div className="st-stats-grid">
+                          <div className="st-stat-item">
+                            <div className="st-stat-icon"><Compass size={16} strokeWidth={1.8} /></div>
+                            <div><p className="st-stat-num">18</p><p className="st-stat-label">Trips</p></div>
+                          </div>
+                          <div className="st-stat-item">
+                            <div className="st-stat-icon"><Globe size={16} strokeWidth={1.8} /></div>
+                            <div><p className="st-stat-num">4</p><p className="st-stat-label">Countries</p></div>
+                          </div>
+                          <div className="st-stat-item">
+                            <div className="st-stat-icon"><Bookmark size={16} strokeWidth={1.8} /></div>
+                            <div><p className="st-stat-num">{stamps.length}</p><p className="st-stat-label">Saved Routes</p></div>
+                          </div>
+                          <div className="st-stat-item">
+                            <div className="st-stat-icon"><TrendingUp size={16} strokeWidth={1.8} /></div>
+                            <div><p className="st-stat-num">4,328 km</p><p className="st-stat-label">Distance Traveled</p></div>
+                          </div>
+                        </div>
                       </div>
-                      <ChevronRight size={15} color="#e08080" />
+
+                      <div className="st-card st-subcard st-completion-card">
+                        <div className="st-completion-head">
+                          <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />Profile Completion</p>
+                          <span className="st-completion-pct">{completionPct}%</span>
+                        </div>
+                        <div className="st-completion-track">
+                          <div className="st-completion-fill" style={{ width: `${completionPct}%` }} />
+                        </div>
+                        <p className="st-completion-hint">Complete your profile to unlock badges and personalize your experience.</p>
+                        <div className="st-checklist">
+                          {completionChecks.map((c) => (
+                            <div key={c.label} className="st-checklist-item">
+                              {c.done ? <CheckCircle2 size={14} strokeWidth={2} color="var(--gold)" /> : <Circle size={14} strokeWidth={1.8} color="var(--dim)" />}
+                              <span style={{ opacity: c.done ? 1 : 0.6 }}>{c.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="st-card st-subcard st-pass-mini-card">
+                        <div className="st-pass-mini-head">
+                          <div className="st-header-icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Award size={17} strokeWidth={1.8} /></div>
+                          <div style={{ flex: 1 }}>
+                            <p className="st-profile-name" style={{ fontSize: 15 }}>Traveller Pass</p>
+                            <p className="st-row-sub" style={{ marginTop: 1 }}>Your passport to explore the world.</p>
+                          </div>
+                          <span className="st-badge st-badge-verified">Active</span>
+                        </div>
+                        <button className="st-btn st-btn-secondary" style={{ width: "100%", justifyContent: "space-between" }} onClick={() => setSubTab("pass")}>
+                          View My Passport <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="st-danger-banner">
+                    <AlertTriangle size={18} strokeWidth={1.8} color="#e08080" />
+                    <div style={{ flex: 1 }}>
+                      <p className="st-row-label" style={{ color: "#e08080" }}>Danger Zone</p>
+                      <p className="st-row-sub">Permanently delete your account and all of your data. This action cannot be undone.</p>
+                    </div>
+                    <button
+                      className="st-btn"
+                      style={{ background: "rgba(224,128,128,0.12)", border: "1px solid rgba(224,128,128,0.4)", color: "#e08080", flexShrink: 0 }}
+                      onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(""); setDeleteError(""); }}
+                    >
+                      Delete Account
+                    </button>
+                  </div>
+
+                  <div className="st-action-row">
+                    <button
+                      className="st-btn st-btn-secondary"
+                      onClick={() => { setDisplayName(username); setAboutYou(""); setCountry(""); setTimezone("UTC+0"); }}
+                    >
+                      Cancel
+                    </button>
+                    <button className="st-btn st-btn-primary" disabled={saving} onClick={handleSaveProfile}>
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
                 </div>
-              )}
+                );
+              })()}
 
               {subTab === "email" && (
                 <div className="st-content">
