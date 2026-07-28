@@ -383,6 +383,28 @@ export const translations = {
   "profile.delete.text":         { en: "This will permanently delete your account, saved routes, and profile data. This action cannot be undone.", de: "Dadurch werden dein Konto, deine gespeicherten Routen und Profildaten dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.", ru: "Это безвозвратно удалит твой аккаунт, сохранённые маршруты и данные профиля. Это действие невозможно отменить." },
   "profile.delete.typeConfirm":  { en: "Type DELETE to confirm", de: "Gib DELETE ein, um zu bestätigen", ru: "Введи DELETE для подтверждения" },
   "profile.delete.deleting":     { en: "Deleting…",              de: "Wird gelöscht…",           ru: "Удаление…" },
+
+// ==================== Route-Detail-Seite ====================
+
+  // Quick Facts Bar
+  "routeDetail.driveTime":   { en: "Drive Time",   de: "Fahrzeit",       ru: "Время в пути" },
+  "routeDetail.distance":    { en: "Distance",     de: "Distanz",        ru: "Расстояние" },
+  "routeDetail.country":     { en: "Country",      de: "Land",           ru: "Страна" },
+  "routeDetail.bestSeason":  { en: "Best Season",  de: "Beste Saison",   ru: "Лучший сезон" },
+  "routeDetail.scenicScore": { en: "Scenic Score", de: "Scenic Score",   ru: "Живописность" },
+  "routeDetail.viewMap":     { en: "View Map",     de: "Karte ansehen",  ru: "Показать карту" },
+  "routeDetail.rating":      { en: "Rating",       de: "Bewertung",      ru: "Рейтинг" },
+
+  // Hero
+  "routeDetail.scroll": { en: "Scroll", de: "Scrollen", ru: "Прокрутите" },
+  "routeDetail.back":   { en: "Back",   de: "Zurück",   ru: "Назад" },
+
+  // About the Route
+  "routeDetail.aboutRoute":              { en: "About the Route",                     de: "Über die Route",                        ru: "О маршруте" },
+  // {route} wird client-seitig durch den (bereits sprachabhängigen) Routennamen ersetzt
+  // (siehe route-detail-page.tsx). So kann die Wortstellung pro Sprache frei gewählt werden.
+  "routeDetail.aboutHeadingWithName": { en: "An Iconic {route} Journey",   de: "Eine legendäre Reise: {route}",         ru: "Незабываемое путешествие: {route}" },
+  "routeDetail.aboutHeadingNoName":   { en: "An Iconic Journey",           de: "Eine legendäre Reise",                  ru: "Незабываемое путешествие" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

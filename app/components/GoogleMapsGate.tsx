@@ -33,6 +33,16 @@ const TEXT = {
     note: "You can change this at any time in your Profile under Privacy.",
     profileLink: "Go to settings",
   },
+  // NEU (Trilingual): Russisch ergänzt, damit das Gate der Sprachauswahl der
+  // restlichen Website (EN/DE/RU) folgt, statt bei Russisch stumm auf "de"
+  // zurückzufallen.
+  ru: {
+    title: "Google Maps отключён",
+    body: "Вы ещё не дали согласие на использование Google Maps. Включите его, чтобы увидеть интерактивную карту этого маршрута.",
+    enable: "Включить Google Maps",
+    note: "Вы можете изменить эту настройку в любое время в профиле, в разделе Privacy.",
+    profileLink: "К настройкам",
+  },
 } as const;
 
 type Lang = keyof typeof TEXT;
