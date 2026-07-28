@@ -168,10 +168,34 @@ type Route = {
   type?: string;
   terrain?: string;
   description?: string;
+  // NEU (Trilingual): title/description gibt es in Supabase jetzt zusätzlich als
+  // _en/_de/_ru-Spalten. Die alten Felder oben (title, description) bleiben als
+  // Fallback erhalten, solange nicht jede Route alle Sprachen gepflegt hat, und die
+  // FALLBACK_ROUTES oben (ohne _en/_de/_ru) funktionieren dadurch unverändert weiter.
+  title_en?: string;
+  title_de?: string;
+  title_ru?: string;
+  description_en?: string;
+  description_de?: string;
+  description_ru?: string;
+  [key: string]: unknown;
 };
 
+// NEU (Trilingual): liest ein übersetzbares Feld (title, description) sprachabhängig
+// aus der Route. Fallback-Kette: aktuelle Sprache -> Englisch -> Deutsch -> alte
+// einsprachige Spalte (Übergangszeit / Fallback-Routen ohne _en/_de/_ru).
+function localizedRouteText(route: Route | null | undefined, field: "title" | "description", lang: string): string {
+  if (!route) return "";
+  const specific = route[`${field}_${lang}`];
+  const en = route[`${field}_en`];
+  const de = route[`${field}_de`];
+  const legacy = route[field];
+  const value = specific || en || de || legacy;
+  return typeof value === "string" ? value : "";
+}
+
 function PopularCarousel({ routes }: { routes: Route[] }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [idx, setIdx] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
 
@@ -180,6 +204,11 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
 
   const items = useMemo(() => routes.slice(0, 10), [routes]);
   const route = items[idx] ?? items[0];
+
+  // NEU (Trilingual): sprachabhängiger Titel/Beschreibung für die aktuell angezeigte
+  // Karte — wechselt automatisch mit, sobald die Sprache im Footer/Navbar geändert wird.
+  const routeTitle = localizedRouteText(route, "title", lang);
+  const routeDescription = localizedRouteText(route, "description", lang);
 
   useEffect(() => {
     items.forEach((routeItem) => {
@@ -293,7 +322,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           >
             <img
               src={route.image_url || "/Pacific Route Highway.jpg"}
-              alt={route.title}
+              alt={routeTitle}
               onError={(e) => {
                 e.currentTarget.src = "/Pacific Route Highway.jpg";
               }}
@@ -308,9 +337,9 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
 
             <div className="popular-content">
               <p>{route.country}</p>
-              <h3>{route.title}</h3>
+              <h3>{routeTitle}</h3>
               <span>
-                {route.description || t("home.popular.fallbackDesc")}
+                {routeDescription || t("home.popular.fallbackDesc")}
               </span>
             </div>
           </Link>
