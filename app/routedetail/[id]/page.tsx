@@ -115,6 +115,7 @@ function localizedRouteText(route: Route | null, field: string, lang: string): s
 const LANGUAGES = [
     { code: "en", label: "English" },
     { code: "de", label: "Deutsch" },
+    { code: "ru", label: "Русский" },
 ] as const;
 
 function HighlightedTitle({ title }: { title: string }) {
@@ -206,9 +207,8 @@ function ImpressionSlideshow({
                             type="button"
                             onClick={() => setActiveIndex(i)}
                             aria-label={`Bild ${i + 1} anzeigen`}
-                            className={`h-1.5 rounded-full transition-all duration-500 ${
-                                i === activeIndex ? 'w-6 bg-emerald-400' : 'w-1.5 bg-white/40 hover:bg-white/70'
-                            }`}
+                            className={`h-1.5 rounded-full transition-all duration-500 ${i === activeIndex ? 'w-6 bg-emerald-400' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                                }`}
                         />
                     ))}
                 </div>
@@ -721,25 +721,24 @@ export default function RouteDetailPage() {
                     Ersetzt Back-Button + Nav rein optisch für kleine Screens.
                    ══════════════════════════════════════════════════════════ */}
                 <div
-                    className={`lg:hidden fixed top-0 left-0 w-full z-[70] flex items-start justify-between gap-2 px-4 h-[68px] pt-5 transition-all duration-300 ${
-                        mobileNavScrolled
-                            ? 'bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] backdrop-blur-xl border-b border-[var(--border)]'
-                            : 'bg-transparent border-b border-transparent'
-                    }`}
+                    className={`lg:hidden fixed top-0 left-0 w-full z-[70] flex items-start justify-between gap-2 px-4 h-[68px] pt-5 transition-all duration-300 ${mobileNavScrolled
+                        ? 'bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] backdrop-blur-xl border-b border-[var(--border)]'
+                        : 'bg-transparent border-b border-transparent'
+                        }`}
                 >
                     <button
                         onClick={handleBack}
                         aria-label="Zurück"
-                        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all duration-300 ${
-                            mobileNavScrolled
-                                ? 'bg-[color-mix(in_srgb,var(--border)_40%,transparent)] border border-[var(--border)]'
-                                : 'bg-black/35 backdrop-blur-md border border-white/20'
-                        }`}
+                        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all duration-300 ${mobileNavScrolled
+                            ? 'bg-[color-mix(in_srgb,var(--border)_40%,transparent)] border border-[var(--border)]'
+                            : 'bg-black/35 backdrop-blur-md border border-white/20'
+                            }`}
                     >
                         <ArrowLeft size={17} className={mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white'} />
                     </button>
 
                     <Link href="/" className="flex flex-col items-center leading-[1.15]">
+                        <span className={`text-[11px] font-extrabold uppercase tracking-[0.22em] transition-colors duration-300 ${mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'}`}>Explore</span>
                         <span className={`text-[11px] font-extrabold uppercase tracking-[0.22em] transition-colors duration-300 ${mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'}`}>SCENIC</span>
                         <span className={`text-[11px] font-extrabold uppercase tracking-[0.22em] transition-colors duration-300 ${mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]'}`}>ROUTES</span>
                     </Link>
@@ -747,11 +746,10 @@ export default function RouteDetailPage() {
                     <button
                         onClick={() => setShowMobileMenu(true)}
                         aria-label="Menü öffnen"
-                        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all duration-300 ${
-                            mobileNavScrolled
-                                ? 'bg-[color-mix(in_srgb,var(--border)_40%,transparent)] border border-[var(--border)]'
-                                : 'bg-black/35 backdrop-blur-md border border-white/20'
-                        }`}
+                        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-all duration-300 ${mobileNavScrolled
+                            ? 'bg-[color-mix(in_srgb,var(--border)_40%,transparent)] border border-[var(--border)]'
+                            : 'bg-black/35 backdrop-blur-md border border-white/20'
+                            }`}
                     >
                         <Menu size={18} strokeWidth={1.8} className={mobileNavScrolled ? 'text-[var(--cream)]' : 'text-white'} />
                     </button>
@@ -764,12 +762,11 @@ export default function RouteDetailPage() {
                 />
 
                 <div
-                    className={`lg:hidden fixed top-1/2 left-1/2 z-[401] w-[88vw] max-w-[380px] max-h-[85vh] overflow-y-auto bg-[var(--bg)] border border-[var(--border)] rounded-[26px] shadow-[0_50px_120px_rgba(0,0,0,0.55)] p-[22px] transition-all duration-300 ${
-                        showMobileMenu ? 'opacity-100 pointer-events-auto -translate-x-1/2 -translate-y-1/2 scale-100' : 'opacity-0 pointer-events-none -translate-x-1/2 -translate-y-1/2 scale-95'
-                    }`}
+                    className={`lg:hidden fixed top-1/2 left-1/2 z-[401] w-[88vw] max-w-[380px] max-h-[85vh] overflow-y-auto bg-[var(--bg)] border border-[var(--border)] rounded-[26px] shadow-[0_50px_120px_rgba(0,0,0,0.55)] p-[22px] transition-all duration-300 ${showMobileMenu ? 'opacity-100 pointer-events-auto -translate-x-1/2 -translate-y-1/2 scale-100' : 'opacity-0 pointer-events-none -translate-x-1/2 -translate-y-1/2 scale-95'
+                        }`}
                 >
                     <div className="flex items-center justify-between mb-[22px]">
-                        <span className="text-[12px] font-extrabold tracking-[0.18em] text-[var(--cream)]">SCENIC ROUTES</span>
+                        <span className="text-[12px] font-extrabold tracking-[0.18em] text-[var(--cream)]">EXPLORE SCENIC ROUTES</span>
                         <button
                             onClick={() => setShowMobileMenu(false)}
                             aria-label="Menü schließen"
@@ -908,8 +905,9 @@ export default function RouteDetailPage() {
                 >
                     <div className="max-w-screen-2xl mx-auto px-12 h-28 flex items-center justify-between">
                         <Link href="/" className="flex flex-col leading-none pl-14">
-                            <span className="text-[13px] font-extrabold uppercase tracking-[0.22em] text-[var(--cream)] not-italic">SCENIC</span>
-                            <span className="text-[13px] font-extrabold uppercase tracking-[0.22em] text-[var(--cream)] not-italic">ROUTES</span>
+                            <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--cream)] not-italic">Explore</span>
+                            <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--cream)] not-italic">SCENIC</span>
+                            <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--cream)] not-italic">ROUTES</span>
                         </Link>
 
                         <div className="hidden lg:flex items-center gap-9">
@@ -1783,9 +1781,8 @@ export default function RouteDetailPage() {
                                                 setLang(lang.code);
                                                 setShowLangMenu(false);
                                             }}
-                                            className={`block w-full text-left px-4 py-2.5 text-xs font-medium ${
-                                                lang.code === currentLang ? 'text-emerald-500 font-bold' : 'text-[var(--muted)]'
-                                            }`}
+                                            className={`block w-full text-left px-4 py-2.5 text-xs font-medium ${lang.code === currentLang ? 'text-emerald-500 font-bold' : 'text-[var(--muted)]'
+                                                }`}
                                         >
                                             {lang.label}
                                         </button>
@@ -1858,11 +1855,11 @@ export default function RouteDetailPage() {
                                 ))}
                             </div>
 
-                            
+
                         </div>
 
                         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-[var(--dim)]">
-                            <p>© {new Date().getFullYear()} Scenic Routes. {t("home.footer.rights")}</p>
+                            <p>© {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}</p>
 
                             <div className="flex items-center gap-6 flex-wrap justify-center">
                                 {/* ── Sprachauswahl ── */}
@@ -1883,11 +1880,10 @@ export default function RouteDetailPage() {
                                                         setLang(lang.code);
                                                         setShowLangMenu(false);
                                                     }}
-                                                    className={`block w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 ${
-                                                        lang.code === currentLang
-                                                            ? 'text-emerald-500 font-bold'
-                                                            : 'text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)]'
-                                                    }`}
+                                                    className={`block w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 ${lang.code === currentLang
+                                                        ? 'text-emerald-500 font-bold'
+                                                        : 'text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)]'
+                                                        }`}
                                                 >
                                                     {lang.label}
                                                 </button>

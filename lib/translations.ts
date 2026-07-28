@@ -105,6 +105,9 @@ export const translations = {
   "footer.link.privacyPolicy":    { en: "Privacy Policy",        de: "Datenschutz",              ru: "Политика конфиденциальности" },
   "footer.link.imprint":          { en: "Imprint",               de: "Impressum",                ru: "Выходные данные" },
 
+// ==================== About-Seite ====================
+
+
   // About-Seite — Hero
   "about.eyebrow":     { en: "About Us",                                              de: "Über uns",                                                ru: "О нас" },
   "about.h1.line1":    { en: "Built by road lovers,",                                 de: "Gebaut von Straßenliebhabern,",                           ru: "Создано любителями дорог," },
@@ -160,6 +163,9 @@ export const translations = {
   "about.cta.browseRoutes":  { en: "Browse Routes",                        de: "Routen durchsuchen",                     ru: "Смотреть маршруты" },
   "about.cta.createAccount": { en: "Create Account",                       de: "Konto erstellen",                        ru: "Создать аккаунт" },
 
+// ==================== My Trips-Seite ====================
+
+
   // My-Trips-Seite
   "mytrips.eyebrow":         { en: "Your Collection",                         de: "Deine Sammlung",                            ru: "Твоя коллекция" },
   "mytrips.h1":              { en: "My Trips",                                de: "Meine Trips",                               ru: "Мои поездки" },
@@ -183,6 +189,9 @@ export const translations = {
   "mytrips.showing":         { en: "Showing",                                 de: "Zeige",                                     ru: "Показано" },
   "common.of":               { en: "of",                                      de: "von",                                       ru: "из" },
   "common.routes":           { en: "routes",                                  de: "Routen",                                    ru: "маршрутов" },
+
+// ==================== Explore-Seite ====================
+
 
   // Explore-Seite — Hero & Suche
   "explore.hero.eyebrow":     { en: "Discover · Explore · Drive",              de: "Entdecken · Erkunden · Fahren",             ru: "Открывай · Исследуй · Езжай" },
