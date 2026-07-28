@@ -32,9 +32,6 @@ interface Route {
     'route_highlights'?: string;
     'maps_URL'?: string;
     'google_maps'?: string;
-    // NEU (Bilingual): title/description/long_description/route_highlights/chapter1-5 gibt es jetzt
-    // jeweils als _en/_de-Paar. Die alten Felder oben (title, description, route_highlights) bleiben
-    // als Fallback erhalten, solange nicht jede Route beide Sprachen gepflegt hat.
     'title_en'?: string;
     'title_de'?: string;
     'description_en'?: string;
@@ -53,7 +50,6 @@ interface Route {
     'chapter4_de'?: string;
     'chapter5_en'?: string;
     'chapter5_de'?: string;
-    // NEU – für das neue Route-Detail-Design (noch nicht in Supabase, Dummy-Fallback)
     'scenic_score'?: number;
     'elevation_gain_m'?: number;
     'road_surface'?: string;
@@ -65,13 +61,12 @@ interface Route {
     'best_time_of_day'?: string;
     'route_notes'?: string;
     'best_season'?: string;
-    'must_see_stops'?: string; // Format: "Titel|Beschreibung\nTitel|Beschreibung..."
-    'access_fees'?: string;    // Format: "Zeile1\nZeile2..."
+    'must_see_stops'?: string;
+    'access_fees'?: string;
     'season_timing'?: string;
     'practical_notes'?: string;
     'start_elevation_m'?: number;
     'end_elevation_m'?: number;
-    // NEU – für die "Access & Fees" / "Driving Notes" / "Route Insights" Karten (Dummy-Fallback)
     'toll_fee'?: string;
     'toll_fee_en'?: string;
     'toll_fee_de'?: string;
@@ -94,14 +89,9 @@ interface Route {
     'weather_advice'?: string;
     'weather_advice_en'?: string;
     'weather_advice_de'?: string;
-    // Optional pro Kapitel: `${chapterKey}_elevation_m` (z. B. "chapter2_elevation_m") — echte Höhe
-    // dieses Wegpunkts über dem Meeresspiegel, fließt ins Elevation-Profil ein statt einer Schätzung.
     [key: string]: unknown;
 }
 
-// NEU (Bilingual): liest ein übersetzbares Feld (title, description, long_description,
-// route_highlights, chapter1..chapter5) sprachabhängig aus der Route. Fallback-Kette:
-// aktuelle Sprache -> Englisch -> Deutsch -> alte einsprachige Spalte (Übergangszeit).
 function localizedRouteText(route: Route | null, field: string, lang: string): string {
     if (!route) return '';
     const specific = route[`${field}_${lang}`];
@@ -152,12 +142,6 @@ function HighlightedTitle({ title }: { title: string }) {
     );
 }
 
-/* ── Impression Slideshow ──
-   Eigenständiger Bereich, unabhängig von den Kapiteln der Route.
-   Zeigt mehrere Bilder (image1..image5 aus Supabase) und wechselt sie
-   automatisch alle paar Sekunden mit einem sanften Fade-Übergang.
-   `compact` ist NEU und nur für die Mobile-Ansicht gedacht (kleinere Höhe).
-   Ohne die Prop verhält sich die Komponente exakt wie zuvor -> PC unverändert. */
 function ImpressionSlideshow({
     images,
     intervalMs = 4000,
@@ -198,7 +182,6 @@ function ImpressionSlideshow({
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-            {/* Dots zur Anzeige, welches Bild aktuell läuft */}
             {images.length > 1 && (
                 <div className="absolute bottom-6 right-6 flex gap-2">
                     {images.map((_, i) => (
@@ -217,7 +200,6 @@ function ImpressionSlideshow({
     );
 }
 
-// Dummy-Werte solange die Felder noch nicht in Supabase existieren – nur zum Design-Preview
 const DUMMY = {
     scenicScore: 9.7,
     elevationGain: 1220,
@@ -235,19 +217,16 @@ const DUMMY = {
     ],
     startElevation: 210,
     endElevation: 10,
-    // Access & Fees
     tollFee: 'NZD $95 per vehicle',
     accessSeason: 'Year-round',
     openingAccess: '24 hours',
     vehicleRestrictions: 'No trailers over 7.5m, no caravans',
     closurePeriod: 'Road closed in severe weather conditions',
-    // Driving Notes
     difficulty: 'Moderate',
     fuelServices: 'No fuel along route. Fill up in the nearest town.',
     weatherAdvice: 'Check conditions – expect rain in all seasons',
 };
 
-// Icon + Label für die "Route Highlights"-Boxen (Icon anhand von Stichworten im Highlight-Text gewählt)
 const HIGHLIGHT_ICONS: { match: RegExp; icon: React.ReactNode }[] = [
     { match: /alpine|mountain|scenery/i, icon: <Mountain size={22} strokeWidth={1.4} /> },
     { match: /lake|mirror/i, icon: <TreePine size={22} strokeWidth={1.4} /> },
@@ -259,9 +238,6 @@ function highlightIcon(label: string) {
     return HIGHLIGHT_ICONS.find((h) => h.match.test(label))?.icon ?? <Mountain size={22} strokeWidth={1.4} />;
 }
 
-// Liest ein Text-Feld robust aus dem Route-Objekt: null/undefined/leerer String/das literale
-// Wort "NULL" (kommt so in eurer Excel/Supabase-Tabelle vor, z. B. bei elevation_gain_m) zählen
-// als "nicht gepflegt" und fallen auf den Dummy-Wert zurück, statt "NULL" auf der Seite anzuzeigen.
 function routeText(value: unknown, fallback: string): string {
     if (typeof value !== 'string') return fallback;
     const trimmed = value.trim();
@@ -269,7 +245,6 @@ function routeText(value: unknown, fallback: string): string {
     return trimmed;
 }
 
-// Gleiches Prinzip für Zahlenfelder — parst auch Zahlen, die (fälschlich) als Text abgelegt wurden.
 function routeNum(value: unknown, fallback: number): number {
     if (typeof value === 'number' && !Number.isNaN(value)) return value;
     if (typeof value === 'string') {
@@ -281,10 +256,6 @@ function routeNum(value: unknown, fallback: number): number {
     return fallback;
 }
 
-// Simple Elevation-Profil SVG (Platzhalter-Kurve, später mit echten Höhendaten pro Kapitel ersetzbar)
-// Kleiner deterministischer Hash + PRNG (mulberry32) — erzeugt aus einem String (z. B. der Route-ID)
-// eine reproduzierbare, aber pro Route unterschiedliche Zufallsfolge (kein Math.random(), daher stabil
-// zwischen Server- und Client-Rendering).
 function seededRng(seedStr: string) {
     let h = 1779033703 ^ seedStr.length;
     for (let i = 0; i < seedStr.length; i++) {
@@ -301,8 +272,6 @@ function seededRng(seedStr: string) {
     };
 }
 
-// Erzeugt eine monoton ansteigende, aber leicht "welligere" Fraktions-Reihe (0 → 1) mit pro-Route
-// individueller Wellenform (Amplitude/Phase aus dem Seed), damit nicht jede Route-Karte identisch aussieht.
 function generateProfileFractions(rng: () => number, steps: number, rising: boolean) {
     const amplitude = 0.12 + rng() * 0.14;
     const freq = 2 + rng() * 2.5;
@@ -310,7 +279,7 @@ function generateProfileFractions(rng: () => number, steps: number, rising: bool
 
     const raw = Array.from({ length: steps }, (_, i) => {
         const base = i / (steps - 1);
-        const wiggle = Math.sin(base * Math.PI * freq + phase) * amplitude * Math.sin(base * Math.PI); // an den Enden gedämpft
+        const wiggle = Math.sin(base * Math.PI * freq + phase) * amplitude * Math.sin(base * Math.PI);
         return base + wiggle;
     });
 
@@ -330,8 +299,6 @@ function ElevationProfile({ startLabel, endLabel, startElevation, endElevation, 
     const topPad = 12;
     const bottomPad = 12;
 
-    // Fallback-Höhenprofil (falls für einzelne Wegpunkte keine echte Höhe in Supabase gepflegt ist):
-    // Anstieg von Start zum Pass, dann Abstieg zum Ziel, aus Elevation Gain abgeleitet.
     const peakElevation = startElevation + elevationGain;
     const climbFractions = [0, 0.04, 0.14, 0.10, 0.24, 0.19, 0.36, 0.30, 0.50, 0.44, 0.63, 0.56, 0.78, 0.70, 0.90, 0.82, 1];
     const descentFractions = [1, 0.84, 0.92, 0.60, 0.68, 0.34, 0.42, 0.16, 0.06, 0];
@@ -349,7 +316,6 @@ function ElevationProfile({ startLabel, endLabel, startElevation, endElevation, 
         y: height - bottomPad - ((e - minE) / range) * (height - topPad - bottomPad),
     }));
 
-    // Catmull-Rom → Bézier: verbindet die Höhenpunkte mit einer sanften, organischen Kurve.
     const smoothPath = (() => {
         let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
         for (let i = 0; i < points.length - 1; i++) {
@@ -366,7 +332,6 @@ function ElevationProfile({ startLabel, endLabel, startElevation, endElevation, 
         return d;
     })();
 
-    // Ein Zwischenpunkt (ca. bei der zweiten Wegmarke) bekommt einen hohlen Ring-Marker.
     const midIndex = Math.round(points.length * 0.42);
     const midPoint = points[midIndex];
 
@@ -426,22 +391,13 @@ export default function RouteDetailPage() {
     const [username, setUsername] = useState('');
     const [activeChapter, setActiveChapter] = useState(0);
     const [openStopIndex, setOpenStopIndex] = useState<number | null>(null);
-    // NEU (Bilingual): Sprache kommt jetzt aus dem globalen LanguageContext (derselbe, den
-    // Navbar/Footer auf allen anderen Seiten nutzen) statt aus einem eigenen lokalen State.
-    // Wechselt man die Sprache auf irgendeiner anderen Seite, wirkt sich das dadurch automatisch
-    // auch hier aus, und umgekehrt.
     const { lang: currentLang, setLang, t } = useLanguage();
     const [showLangMenu, setShowLangMenu] = useState(false);
 
-    // NEU – nur für die Mobile-Ansicht: Vollbild-Menü-Overlay
     const [showMobileMenu, setShowMobileMenu] = useState(false);
-    // NEU – nur für die Mobile-Ansicht: Navbar bekommt beim Scrollen Hintergrund/Blur/Border (wie auf der About-Page)
     const [mobileNavScrolled, setMobileNavScrolled] = useState(false);
-    // NEU – nur für die Mobile-Ansicht: Accordion-Footer (Explore/About/Support/Legal)
     const [mobileFooterOpen, setMobileFooterOpen] = useState<'explore' | 'about' | 'support' | 'legal' | null>(null);
-    // NEU – nur für die Mobile-Ansicht: aufklappbare Info-Karten (Access & Fees / Driving Notes / Route Insights)
     const [mobileInfoOpen, setMobileInfoOpen] = useState<'access' | 'driving' | 'insights' | null>(null);
-    // NEU – nur für die Mobile-Ansicht: aktives Bild im Highlights-Slider
     const [mobileSlideIndex, setMobileSlideIndex] = useState(0);
 
     const { theme } = useTheme();
@@ -454,26 +410,14 @@ export default function RouteDetailPage() {
 
     const isLight = mounted && theme === 'light';
 
-    // NEU (Bilingual): zentrale, sprachabhängige Werte für diese Route — einmal pro Render
-    // berechnet und überall im JSX statt der direkten route?.title / route?.description
-    // Zugriffe verwendet.
     const routeTitle = localizedRouteText(route, 'title', currentLang);
     const routeDescription = localizedRouteText(route, 'description', currentLang);
     const routeHighlightsText = localizedRouteText(route, 'route_highlights', currentLang);
 
-    // NEU (i18n UI-Texte): "An Iconic {route} Journey" existierte bisher nur als fest
-    // eingebauter englischer String. Statt Interpolation im t()-Aufruf (der aktuelle
-    // LanguageContext unterstützt keine Platzhalter-Parameter) werden hier zwei Varianten
-    // übersetzt und der Routenname (routeTitle, bereits sprachabhängig) client-seitig
-    // eingesetzt — dadurch bleibt auch die Wortstellung pro Sprache frei wählbar.
     const aboutHeading = routeTitle
         ? t('routeDetail.aboutHeadingWithName').replace('{route}', routeTitle)
         : t('routeDetail.aboutHeadingNoName');
 
-    // Geht zur vorherigen Seite in der Browser-History zurück (egal ob das
-    // Explore, My Trips, die Homepage oder eine Such-URL mit Filtern war).
-    // Fällt nur auf /explore zurück, wenn es gar keine History gibt
-    // (z.B. Direktaufruf der URL oder Öffnen in neuem Tab).
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
             router.back();
@@ -486,8 +430,6 @@ export default function RouteDetailPage() {
 
     const navOpacity = useTransform(scrollY, [250, 450], [0, 1]);
     const navY = useTransform(scrollY, [250, 450], [-20, 0]);
-    // Motion kann CSS-Variablen nicht animieren/interpolieren (siehe motion.dev/troubleshooting/color-not-animatable),
-    // daher hier den tatsächlichen RGBA-Wert je nach Theme verwenden statt 'var(--nav-scrolled-bg)'.
     const scrolledBgColor = isLight ? 'rgba(244,240,232,0.85)' : 'rgba(12,11,9,0.85)';
     const navBg = useTransform(scrollY, [250, 450], ['rgba(0,0,0,0)', scrolledBgColor]);
     const navBlur = useTransform(scrollY, [250, 450], ['blur(0px)', 'blur(20px)']);
@@ -500,8 +442,6 @@ export default function RouteDetailPage() {
         setNavInteractive(latest > 350);
     });
 
-    // NEU – nur für die Mobile-Ansicht: identischer Schwellenwert (40px) und
-    // dieselbe Logik wie navScrolled auf der About-Page.
     useMotionValueEvent(scrollY, 'change', (latest) => {
         setMobileNavScrolled(latest > 40);
     });
@@ -619,18 +559,12 @@ export default function RouteDetailPage() {
         }
     };
 
-    // NEU (Bilingual): Kapitel werden jetzt sprachabhängig aus chapter1_en/_de .. chapter5_en/_de
-    // gelesen (mit Fallback-Kette wie überall sonst), statt pauschal alle "chapterX"-Keys aus dem
-    // Objekt zu durchsuchen. Format pro Feld bleibt gleich: Zeile 1 = Titel, Rest = Text.
     const chapters = [1, 2, 3, 4, 5]
         .map((n) => ({ n, value: localizedRouteText(route, `chapter${n}`, currentLang) }))
         .filter((c) => c.value.trim() !== '')
         .map(({ n, value }) => {
             const lines = value.split('\n');
             const title = lines[0] ?? '';
-            // Euer echtes Format ist 2-zeilig (Titel + Fließtext) — dann ist "short" (Vorschau in der
-            // eingeklappten Zeile) und "full" (Text beim Aufklappen) derselbe Text. Falls doch mal 3
-            // Zeilen gepflegt werden (Titel / Kurztext / Volltext), wird das ebenfalls unterstützt.
             const rest = lines.slice(1).join('\n');
             const short = lines.length >= 3 ? (lines[1] ?? '') : rest;
             const full = lines.length >= 3 ? lines.slice(2).join('\n') : rest;
@@ -642,9 +576,6 @@ export default function RouteDetailPage() {
         .map((s: string) => s.trim())
         .filter(Boolean);
 
-    // Sammelt alle vorhandenen image1..image5 (oder beliebig viele imageN) aus Supabase,
-    // überspringt leere/NULL-Werte. Unabhängig von Kapiteln — läuft routenweit durch.
-    // Fällt auf route.image_url zurück, falls keine imageN-Spalten gefüllt sind.
     const impressionImages: string[] = (() => {
         if (!route) return [];
 
@@ -682,7 +613,6 @@ export default function RouteDetailPage() {
                     --sans:  'Inter', system-ui, sans-serif;
                 }
 
-                /* DARK THEME (Standard) */
                 .dark {
                     --bg:    #0c0b09;
                     --bg2:   #111009;
@@ -694,7 +624,6 @@ export default function RouteDetailPage() {
                     --nav-scrolled-bg: rgba(12,11,9,0.85);
                 }
 
-                /* LIGHT THEME — warmes Creme, dunkler Text */
                 .light {
                     --bg:    #F4F0E8;
                     --bg2:   #EDE8DC;
@@ -706,7 +635,6 @@ export default function RouteDetailPage() {
                     --nav-scrolled-bg: rgba(244,240,232,0.85);
                 }
 
-                /* THEME SWITCH — glasmorpher Apple-Stil (identisch zur Homepage) */
                 .theme-switch { position:relative; display:flex; align-items:center; width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 70%, transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); cursor:pointer; transition:background .35s, border-color .35s; flex-shrink:0; }
                 .theme-switch:hover { border-color: var(--gold); }
                 .theme-switch-knob { position:absolute; top:4.5px; left:2.5px; width:22px; height:22px; border-radius:50%; background:linear-gradient(to bottom, rgba(255,255,255,0.96), rgba(237,229,212,0.85)); box-shadow:0 4px 10px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; transition:transform .45s cubic-bezier(0.22,1,0.36,1); }
@@ -714,7 +642,6 @@ export default function RouteDetailPage() {
                 .theme-switch-icon { width:14px; height:14px; }
                 .theme-switch-placeholder { width:66px; height:33px; border-radius:999px; background:color-mix(in srgb, var(--border) 50%, transparent); border:1px solid var(--border); flex-shrink:0; }
 
-                /* NAV LINKS — identisch zur Homepage */
                 .nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
                 .nav-link::after { content:""; position:absolute; left:0; bottom:-8px; width:0; height:1px; background:var(--gold); transition:width .25s; }
                 .nav-link:hover { color:var(--cream); }
@@ -725,10 +652,6 @@ export default function RouteDetailPage() {
 
             <div className="bg-[var(--bg)] text-[var(--cream)] font-sans selection:bg-emerald-500/30 overflow-x-hidden">
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE TOP BAR — NEU, nur unter lg sichtbar.
-                    Ersetzt Back-Button + Nav rein optisch für kleine Screens.
-                   ══════════════════════════════════════════════════════════ */}
                 <div
                     className={`lg:hidden fixed top-0 left-0 w-full z-[70] flex items-start justify-between gap-2 px-4 h-[68px] pt-5 transition-all duration-300 ${mobileNavScrolled
                         ? 'bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] backdrop-blur-xl border-b border-[var(--border)]'
@@ -764,7 +687,6 @@ export default function RouteDetailPage() {
                     </button>
                 </div>
 
-                {/* Popup-Menü — zentriertes Drawer mit Backdrop, identisch zur About-Page */}
                 <div
                     className={`lg:hidden fixed inset-0 z-[400] bg-black/55 backdrop-blur-[2px] transition-opacity duration-300 ${showMobileMenu ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                     onClick={() => setShowMobileMenu(false)}
@@ -775,7 +697,7 @@ export default function RouteDetailPage() {
                         }`}
                 >
                     <div className="flex items-center justify-between mb-[22px]">
-                        <span className="text-[12px] font-extrabold tracking-[0.18em] text-[var(--cream)]">EXPLORE SCENIC ROUTES</span>
+                        <span className="text-[12px] font-extrabold tracking-[0.18em] text-[var(--cream)]">Explore SCENIC ROUTES</span>
                         <button
                             onClick={() => setShowMobileMenu(false)}
                             aria-label="Menü schließen"
@@ -882,7 +804,6 @@ export default function RouteDetailPage() {
                     )}
                 </div>
 
-                {/* ── Back Button (nur Desktop, unverändert) ── */}
                 <div className="hidden lg:block fixed top-6 left-10 z-[60]">
                     <button
                         onClick={handleBack}
@@ -900,7 +821,6 @@ export default function RouteDetailPage() {
                     </button>
                 </div>
 
-                {/* ── Scroll-triggered Navbar (nur Desktop, unverändert) ── */}
                 <motion.nav
                     style={{
                         opacity: navOpacity,
@@ -932,7 +852,6 @@ export default function RouteDetailPage() {
                         <div className="flex items-center gap-5">
                             {!user && <ThemeSwitch />}
 
-                            {/* ── User Menu ── */}
                             <div className="relative route-user-menu-wrap">
                                 <button
                                     onClick={() => {
@@ -1039,9 +958,6 @@ export default function RouteDetailPage() {
                     </div>
                 </motion.nav>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE HERO — NEU
-                   ══════════════════════════════════════════════════════════ */}
                 <section className="lg:hidden">
                     <div className="relative w-full h-[560px] overflow-hidden">
                         <img
@@ -1098,7 +1014,6 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── 1. Hero (volle Höhe, neues Design) ── */}
                 <section className="hidden lg:block relative h-screen w-full overflow-hidden">
                     <img
                         src={route?.image_url}
@@ -1129,7 +1044,6 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── 2. Quick Facts Bar (neues Design) ── */}
                 <div className="hidden lg:block w-full bg-[var(--bg)] border-b border-[var(--border)]">
                     <div className="max-w-7xl mx-auto px-12 py-8 flex items-center justify-between gap-8">
                         <div className="grid grid-cols-5 gap-8 flex-1">
@@ -1159,7 +1073,6 @@ export default function RouteDetailPage() {
                     </div>
                 </div>
 
-                {/* ── 2b. Overview (neues Design) ── */}
                 <section className="hidden lg:block max-w-7xl mx-auto px-12 py-24">
                     <div className="space-y-8">
                         <div className="space-y-4">
@@ -1175,24 +1088,22 @@ export default function RouteDetailPage() {
                             {routeDescription}
                         </p>
 
-                        {/* ── Access & Fees / Driving Notes / Route Insights (neues 3-Karten-Design) ── */}
                         <div className="grid grid-cols-3 gap-8 pt-4">
-                            {/* Access & Fees */}
                             <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] p-7 flex flex-col">
                                 <div className="flex items-center gap-4 mb-6">
                                     <span className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                         <Ticket size={20} strokeWidth={1.4} />
                                     </span>
-                                    <h3 className="font-serif text-xl text-[var(--cream)]">Access & Fees</h3>
+                                    <h3 className="font-serif text-xl text-[var(--cream)]">{t("routeDetail.accessFeesTitle")}</h3>
                                 </div>
 
                                 <div className="space-y-4 flex-1">
                                     {[
-                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(localizedRouteText(route, 'toll_fee', currentLang), DUMMY.tollFee) },
-                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
-                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(localizedRouteText(route, 'opening_access', currentLang), DUMMY.openingAccess) },
-                                        { icon: <Car size={15} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
-                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
+                                        { icon: <Ticket size={15} strokeWidth={1.6} />, label: t("routeDetail.tollFeeLabel"), value: routeText(localizedRouteText(route, 'toll_fee', currentLang), DUMMY.tollFee) },
+                                        { icon: <Sun size={15} strokeWidth={1.6} />, label: t("routeDetail.accessSeasonLabel"), value: routeText(route?.['access_season'], DUMMY.accessSeason) },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: t("routeDetail.openingAccessLabel"), value: routeText(localizedRouteText(route, 'opening_access', currentLang), DUMMY.openingAccess) },
+                                        { icon: <Car size={15} strokeWidth={1.6} />, label: t("routeDetail.vehicleRestrictionsLabel"), value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
+                                        { icon: <Clock size={15} strokeWidth={1.6} />, label: t("routeDetail.closurePeriodLabel"), value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
                                             <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1205,21 +1116,20 @@ export default function RouteDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Driving Notes */}
                             <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] p-7 flex flex-col">
                                 <div className="flex items-center gap-4 mb-6">
                                     <span className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                         <Car size={20} strokeWidth={1.4} />
                                     </span>
-                                    <h3 className="font-serif text-xl text-[var(--cream)]">Driving Notes</h3>
+                                    <h3 className="font-serif text-xl text-[var(--cream)]">{t("routeDetail.drivingNotesTitle")}</h3>
                                 </div>
 
                                 <div className="space-y-4 flex-1">
                                     {[
-                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
-                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(localizedRouteText(route, 'difficulty', currentLang), DUMMY.difficulty) },
-                                        { icon: <Users size={15} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
-                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
+                                        { icon: <RouteIcon size={15} strokeWidth={1.6} />, label: t("routeDetail.roadSurfaceLabel"), value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                        { icon: <Gauge size={15} strokeWidth={1.6} />, label: t("routeDetail.difficultyLabel"), value: routeText(localizedRouteText(route, 'difficulty', currentLang), DUMMY.difficulty) },
+                                        { icon: <Users size={15} strokeWidth={1.6} />, label: t("routeDetail.trafficLabel"), value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
+                                        { icon: <Fuel size={15} strokeWidth={1.6} />, label: t("routeDetail.fuelServicesLabel"), value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-start gap-3 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
                                             <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1232,7 +1142,6 @@ export default function RouteDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Route Insights */}
                             <div className="rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg2)] overflow-hidden flex flex-col">
                                 <div className="p-7 relative">
                                     <span className="absolute top-0 right-6 w-8 h-10 bg-emerald-500 flex items-start justify-center pt-2" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)' }}>
@@ -1244,7 +1153,7 @@ export default function RouteDetailPage() {
                                             <Mountain size={20} strokeWidth={1.4} />
                                         </span>
                                         <div>
-                                            <h3 className="font-serif text-xl text-[var(--cream)] leading-tight">Route Insights</h3>
+                                            <h3 className="font-serif text-xl text-[var(--cream)] leading-tight">{t("routeDetail.routeInsightsTitle")}</h3>
                                             <p className="text-xs text-[var(--dim)] mt-0.5">{routeTitle}</p>
                                         </div>
                                     </div>
@@ -1252,7 +1161,7 @@ export default function RouteDetailPage() {
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
                                             <span className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                                                <Star size={14} strokeWidth={1.6} className="text-[var(--dim)]" /> Scenic Score
+                                                <Star size={14} strokeWidth={1.6} className="text-[var(--dim)]" /> {t("routeDetail.scenicScore")}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 {Array.from({ length: 5 }).map((_, i) => (
@@ -1268,10 +1177,10 @@ export default function RouteDetailPage() {
                                             </span>
                                         </div>
                                         {[
-                                            { icon: <Mountain size={14} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
-                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
-                                            { icon: <Users size={14} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
-                                            { icon: <CloudRain size={14} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
+                                            { icon: <Mountain size={14} strokeWidth={1.6} />, label: t("routeDetail.elevationGainLabel"), value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
+                                            { icon: <RouteIcon size={14} strokeWidth={1.6} />, label: t("routeDetail.roadSurfaceLabel"), value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                            { icon: <Users size={14} strokeWidth={1.6} />, label: t("routeDetail.trafficLabel"), value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
+                                            { icon: <CloudRain size={14} strokeWidth={1.6} />, label: t("routeDetail.weatherAdviceLabel"), value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-center justify-between text-sm border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
                                                 <span className="flex items-center gap-2 text-[var(--muted)]">
@@ -1287,14 +1196,13 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ── 2c. Route Overview / Karte (neues Design, an Mockup-Position) ── */}
                 <section id="route-map-desktop" className="hidden lg:block max-w-7xl mx-auto px-12 pb-24 scroll-mt-32">
                     <div className="space-y-4 mb-8">
                         <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)]">
-                            Route Overview
+                            {t("routeDetail.routeWord")} {t("routeDetail.overviewWord")}
                         </p>
                         <h2 className="text-5xl font-serif italic text-[var(--cream)] leading-tight">
-                            Route <span className="text-emerald-500">Overview</span>
+                            {t("routeDetail.routeWord")} <span className="text-emerald-500">{t("routeDetail.overviewWord")}</span>
                         </h2>
                     </div>
 
@@ -1336,7 +1244,7 @@ export default function RouteDetailPage() {
                                     {route?.['end_point']}
                                 </p>
                                 <p className={`text-xs md:text-sm flex items-center gap-2 flex-wrap ${isLight ? 'text-[#6b6b6b]' : 'text-zinc-400'}`}>
-                                    <span className="text-emerald-500">One way</span>
+                                    <span className="text-emerald-500">{t("routeDetail.oneWay")}</span>
                                     <span className="opacity-40">·</span>
                                     <span>{formatDistance(route?.distance_km, unit)}</span>
                                 </p>
@@ -1349,15 +1257,14 @@ export default function RouteDetailPage() {
                                 className={`shrink-0 flex items-center gap-2 font-bold text-xs uppercase tracking-wider px-5 py-3.5 rounded-full transition-all duration-300 active:scale-95 shadow-lg hover:bg-emerald-400 hover:text-black ${isLight ? 'bg-[#1a1a1a] text-white' : 'bg-white text-black'}`}
                             >
                                 <Navigation size={14} />
-                                View Route
+                                {t("routeDetail.viewRoute")}
                             </a>
                         </div>
                     </div>
                 </section>
 
-                {/* ── 2d. Must-See Stops (neues Design) — nutzt echte Kapitel-Daten, sonst Dummy-Fallback ── */}
                 <section className="hidden lg:block max-w-7xl mx-auto px-12 pb-24">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)] mb-8">Must-See Stops</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-[var(--dim)] mb-8">{t("routeDetail.mustSeeStops")}</p>
                     <div className="border border-[var(--border)] rounded-[1.5rem] overflow-hidden">
                         {(chapters.length > 0
                             ? chapters.map((c) => ({ title: c.title, short: c.short, full: c.body || c.short }))
@@ -1400,9 +1307,6 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE ABOUT THE ROUTE — NEU
-                   ══════════════════════════════════════════════════════════ */}
                 <section className="lg:hidden px-5 pt-10 pb-8 space-y-8">
                     <div className="space-y-3">
                         <div className="space-y-1.5">
@@ -1419,11 +1323,7 @@ export default function RouteDetailPage() {
                     </p>
                 </section>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE ACCESS & FEES / DRIVING NOTES / ROUTE INSIGHTS — NEU
-                   ══════════════════════════════════════════════════════════ */}
                 <section className="lg:hidden px-5 pb-10 space-y-5">
-                    {/* Access & Fees */}
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5">
                         <button
                             type="button"
@@ -1433,7 +1333,7 @@ export default function RouteDetailPage() {
                             <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                 <Ticket size={17} strokeWidth={1.4} />
                             </span>
-                            <h3 className="font-serif text-lg text-[var(--cream)] flex-1 text-left">Access & Fees</h3>
+                            <h3 className="font-serif text-lg text-[var(--cream)] flex-1 text-left">{t("routeDetail.accessFeesTitle")}</h3>
                             <ChevronDown
                                 size={17}
                                 className={`text-[var(--dim)] shrink-0 transition-transform duration-300 ${mobileInfoOpen === 'access' ? 'rotate-180 text-emerald-500' : ''}`}
@@ -1450,11 +1350,11 @@ export default function RouteDetailPage() {
                                 >
                                     <div className="space-y-3 pt-4">
                                         {[
-                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: 'Toll / Fee', value: routeText(localizedRouteText(route, 'toll_fee', currentLang), DUMMY.tollFee) },
-                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: 'Season', value: routeText(route?.['access_season'], DUMMY.accessSeason) },
-                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Opening / Access', value: routeText(localizedRouteText(route, 'opening_access', currentLang), DUMMY.openingAccess) },
-                                            { icon: <Car size={13} strokeWidth={1.6} />, label: 'Vehicle Restrictions', value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
-                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: 'Closure Period', value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
+                                            { icon: <Ticket size={13} strokeWidth={1.6} />, label: t("routeDetail.tollFeeLabel"), value: routeText(localizedRouteText(route, 'toll_fee', currentLang), DUMMY.tollFee) },
+                                            { icon: <Sun size={13} strokeWidth={1.6} />, label: t("routeDetail.accessSeasonLabel"), value: routeText(route?.['access_season'], DUMMY.accessSeason) },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: t("routeDetail.openingAccessLabel"), value: routeText(localizedRouteText(route, 'opening_access', currentLang), DUMMY.openingAccess) },
+                                            { icon: <Car size={13} strokeWidth={1.6} />, label: t("routeDetail.vehicleRestrictionsLabel"), value: routeText(localizedRouteText(route, 'vehicle_restrictions', currentLang), DUMMY.vehicleRestrictions) },
+                                            { icon: <Clock size={13} strokeWidth={1.6} />, label: t("routeDetail.closurePeriodLabel"), value: routeText(localizedRouteText(route, 'closure_period', currentLang), DUMMY.closurePeriod) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
                                                 <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1470,7 +1370,6 @@ export default function RouteDetailPage() {
                         </AnimatePresence>
                     </div>
 
-                    {/* Driving Notes */}
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5">
                         <button
                             type="button"
@@ -1480,7 +1379,7 @@ export default function RouteDetailPage() {
                             <span className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--border)_40%,transparent)] flex items-center justify-center text-[var(--cream)] shrink-0">
                                 <Car size={17} strokeWidth={1.4} />
                             </span>
-                            <h3 className="font-serif text-lg text-[var(--cream)] flex-1 text-left">Driving Notes</h3>
+                            <h3 className="font-serif text-lg text-[var(--cream)] flex-1 text-left">{t("routeDetail.drivingNotesTitle")}</h3>
                             <ChevronDown
                                 size={17}
                                 className={`text-[var(--dim)] shrink-0 transition-transform duration-300 ${mobileInfoOpen === 'driving' ? 'rotate-180 text-emerald-500' : ''}`}
@@ -1497,10 +1396,10 @@ export default function RouteDetailPage() {
                                 >
                                     <div className="space-y-3 pt-4">
                                         {[
-                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
-                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: 'Difficulty', value: routeText(localizedRouteText(route, 'difficulty', currentLang), DUMMY.difficulty) },
-                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
-                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: 'Fuel / Services', value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: t("routeDetail.roadSurfaceLabel"), value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                            { icon: <Gauge size={13} strokeWidth={1.6} />, label: t("routeDetail.difficultyLabel"), value: routeText(localizedRouteText(route, 'difficulty', currentLang), DUMMY.difficulty) },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: t("routeDetail.trafficLabel"), value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
+                                            { icon: <Fuel size={13} strokeWidth={1.6} />, label: t("routeDetail.fuelServicesLabel"), value: routeText(localizedRouteText(route, 'fuel_services', currentLang), DUMMY.fuelServices) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-start gap-2.5 pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
                                                 <span className="text-[var(--dim)] mt-0.5 shrink-0">{icon}</span>
@@ -1516,7 +1415,6 @@ export default function RouteDetailPage() {
                         </AnimatePresence>
                     </div>
 
-                    {/* Route Insights */}
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5 relative">
                         <span className="absolute top-0 right-5 w-7 h-9 bg-emerald-500 flex items-start justify-center pt-1.5" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)' }}>
                             <Star size={11} className="text-black fill-black" />
@@ -1531,7 +1429,7 @@ export default function RouteDetailPage() {
                                 <Mountain size={17} strokeWidth={1.4} />
                             </span>
                             <div className="flex-1 text-left">
-                                <h3 className="font-serif text-lg text-[var(--cream)] leading-tight">Route Insights</h3>
+                                <h3 className="font-serif text-lg text-[var(--cream)] leading-tight">{t("routeDetail.routeInsightsTitle")}</h3>
                                 <p className="text-[11px] text-[var(--dim)] mt-0.5">{routeTitle}</p>
                             </div>
                             <ChevronDown
@@ -1552,7 +1450,7 @@ export default function RouteDetailPage() {
                                     <div className="space-y-3 pt-4">
                                         <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
                                             <span className="flex items-center gap-2 text-[12.5px] text-[var(--muted)]">
-                                                <Star size={13} strokeWidth={1.6} className="text-[var(--dim)]" /> Scenic Score
+                                                <Star size={13} strokeWidth={1.6} className="text-[var(--dim)]" /> {t("routeDetail.scenicScore")}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 {Array.from({ length: 5 }).map((_, i) => (
@@ -1568,10 +1466,10 @@ export default function RouteDetailPage() {
                                             </span>
                                         </div>
                                         {[
-                                            { icon: <Mountain size={13} strokeWidth={1.6} />, label: 'Elevation Gain', value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
-                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: 'Road Surface', value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
-                                            { icon: <Users size={13} strokeWidth={1.6} />, label: 'Traffic', value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
-                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: 'Weather Advice', value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
+                                            { icon: <Mountain size={13} strokeWidth={1.6} />, label: t("routeDetail.elevationGainLabel"), value: `${routeNum(route?.['elevation_gain_m'], DUMMY.elevationGain)} m` },
+                                            { icon: <RouteIcon size={13} strokeWidth={1.6} />, label: t("routeDetail.roadSurfaceLabel"), value: routeText(localizedRouteText(route, 'road_surface', currentLang), DUMMY.roadSurface) },
+                                            { icon: <Users size={13} strokeWidth={1.6} />, label: t("routeDetail.trafficLabel"), value: routeText(localizedRouteText(route, 'traffic_level', currentLang), DUMMY.trafficLevel) },
+                                            { icon: <CloudRain size={13} strokeWidth={1.6} />, label: t("routeDetail.weatherAdviceLabel"), value: routeText(localizedRouteText(route, 'weather_advice', currentLang), DUMMY.weatherAdvice) },
                                         ].map(({ icon, label, value }) => (
                                             <div key={label} className="flex items-center justify-between text-[12.5px] border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
                                                 <span className="flex items-center gap-2 text-[var(--muted)]">
@@ -1587,14 +1485,11 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE MAP — NEU
-                   ══════════════════════════════════════════════════════════ */}
                 <section id="route-map-mobile" className="lg:hidden px-5 pt-4 pb-10 scroll-mt-20">
                     <div className="space-y-3 mb-5">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">Navigation</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--dim)]">{t("routeDetail.navigationLabel")}</p>
                         <h2 className="text-[26px] font-serif italic text-[var(--cream)] leading-tight">
-                            Route <span className="text-emerald-500">Overview</span>
+                            {t("routeDetail.routeWord")} <span className="text-emerald-500">{t("routeDetail.overviewWord")}</span>
                         </h2>
                         <div className="h-px w-14 bg-emerald-500/40" />
                     </div>
@@ -1650,17 +1545,14 @@ export default function RouteDetailPage() {
                                 className={`shrink-0 flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider px-4 py-2.5 rounded-full active:scale-95 transition-transform ${isLight ? 'bg-[#1a1a1a] text-white' : 'bg-white text-black'}`}
                             >
                                 <ArrowRight size={13} />
-                                Route
+                                {t("routeDetail.routeWord")}
                             </a>
                         </div>
                     </div>
                 </section>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE MUST-SEE STOPS — NEU
-                   ══════════════════════════════════════════════════════════ */}
                 <section className="lg:hidden px-5 pt-8 pb-8">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[var(--dim)] mb-4">Must-See Stops</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[var(--dim)] mb-4">{t("routeDetail.mustSeeStops")}</p>
                     <div className="border border-[var(--border)] rounded-2xl overflow-hidden">
                         {(chapters.length > 0
                             ? chapters.map((c) => ({ title: c.title, short: c.short, full: c.body || c.short }))
@@ -1705,9 +1597,6 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                {/* ══════════════════════════════════════════════════════════
-                    MOBILE FOOTER — NEU
-                   ══════════════════════════════════════════════════════════ */}
                 <footer className="lg:hidden relative bg-[var(--bg)] border-t border-[var(--border)] px-5 pt-12 pb-28">
                     <div className="flex flex-col items-center text-center">
                         <img
@@ -1804,7 +1693,6 @@ export default function RouteDetailPage() {
                     </div>
                 </footer>
 
-                {/* ── Footer (nur Desktop, unverändert) ── */}
                 <footer className="hidden lg:block relative bg-gradient-to-b from-[var(--bg)] via-[var(--bg2)] to-[var(--bg)] border-t border-[var(--border)] overflow-hidden">
                     <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
                         backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(16,185,129,0.15) 1px, transparent 0)',
@@ -1815,7 +1703,6 @@ export default function RouteDetailPage() {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-20 border-b border-[var(--border)]">
                             <div className="lg:col-span-4 space-y-8">
 
-                                {/* ── Logo: Gold im Dark Mode, Schwarz im Light Mode ── */}
                                 <Link href="/" className="flex items-center w-fit">
                                     <div style={{ width: '220px', height: '147px', display: 'flex', alignItems: 'center' }}>
                                         <img
@@ -1871,7 +1758,6 @@ export default function RouteDetailPage() {
                             <p>© {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}</p>
 
                             <div className="flex items-center gap-6 flex-wrap justify-center">
-                                {/* ── Sprachauswahl ── */}
                                 <div className="relative route-lang-wrap">
                                     <button
                                         onClick={() => setShowLangMenu((p) => !p)}
@@ -1908,7 +1794,6 @@ export default function RouteDetailPage() {
                     </div>
                 </footer>
 
-                {/* ── Floating Heart (nur Desktop) ── */}
                 <div className="hidden lg:block fixed bottom-16 right-16 z-50">
                     <motion.button
                         whileHover={{ scale: 1.12 }}

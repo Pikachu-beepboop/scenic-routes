@@ -405,6 +405,37 @@ export const translations = {
   // (siehe route-detail-page.tsx). So kann die Wortstellung pro Sprache frei gewählt werden.
   "routeDetail.aboutHeadingWithName": { en: "An Iconic {route} Journey",   de: "Eine legendäre Reise: {route}",         ru: "Незабываемое путешествие: {route}" },
   "routeDetail.aboutHeadingNoName":   { en: "An Iconic Journey",           de: "Eine legendäre Reise",                  ru: "Незабываемое путешествие" },
+
+  // Access & Fees / Driving Notes / Route Insights — Kartentitel
+  "routeDetail.accessFeesTitle":     { en: "Access & Fees",   de: "Zugang & Gebühren",     ru: "Доступ и сборы" },
+  "routeDetail.drivingNotesTitle":   { en: "Driving Notes",   de: "Fahrhinweise",          ru: "Заметки о вождении" },
+  "routeDetail.routeInsightsTitle":  { en: "Route Insights",  de: "Routen-Einblicke",      ru: "Информация о маршруте" },
+
+  // Access & Fees — Feldbezeichnungen
+  "routeDetail.tollFeeLabel":             { en: "Toll / Fee",           de: "Maut / Gebühr",              ru: "Плата / Сбор" },
+  "routeDetail.accessSeasonLabel":        { en: "Season",               de: "Saison",                     ru: "Сезон" },
+  "routeDetail.openingAccessLabel":       { en: "Opening / Access",     de: "Öffnung / Zugang",           ru: "Доступ / Часы" },
+  "routeDetail.vehicleRestrictionsLabel": { en: "Vehicle Restrictions", de: "Fahrzeugbeschränkungen",     ru: "Ограничения для транспорта" },
+  "routeDetail.closurePeriodLabel":       { en: "Closure Period",       de: "Sperrzeitraum",              ru: "Период закрытия" },
+
+  // Driving Notes / Route Insights — Feldbezeichnungen
+  "routeDetail.roadSurfaceLabel":    { en: "Road Surface",    de: "Straßenbelag",      ru: "Дорожное покрытие" },
+  "routeDetail.difficultyLabel":     { en: "Difficulty",      de: "Schwierigkeit",     ru: "Сложность" },
+  "routeDetail.trafficLabel":        { en: "Traffic",         de: "Verkehr",           ru: "Трафик" },
+  "routeDetail.fuelServicesLabel":   { en: "Fuel / Services", de: "Tanken / Service",  ru: "Заправки / Сервис" },
+  "routeDetail.elevationGainLabel":  { en: "Elevation Gain",  de: "Höhenmeter",        ru: "Набор высоты" },
+  "routeDetail.weatherAdviceLabel":  { en: "Weather Advice",  de: "Wetterhinweis",     ru: "Погодные рекомендации" },
+
+  // Must-See Stops
+  "routeDetail.mustSeeStops": { en: "Must-See Stops", de: "Sehenswerte Stopps", ru: "Обязательные остановки" },
+
+  // Route Overview / Karte
+  "routeDetail.routeWord":       { en: "Route",      de: "Route",             ru: "Маршрут" },
+  "routeDetail.overviewWord":    { en: "Overview",   de: "Übersicht",         ru: "Обзор" },
+  "routeDetail.oneWay":          { en: "One way",    de: "Einfache Strecke",  ru: "В одну сторону" },
+  "routeDetail.viewRoute":       { en: "View Route", de: "Route ansehen",     ru: "Смотреть маршрут" },
+  "routeDetail.navigationLabel": { en: "Navigation", de: "Navigation",        ru: "Навигация" },
+
 } as const;
 
 export type TranslationKey = keyof typeof translations;
