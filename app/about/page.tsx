@@ -34,16 +34,16 @@ function YoutubeIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWi
 }
 
 const TEAM = [
-  { initials: "LA", name: "Lavr",     roleKey: "about.team.role1" as const, bioKey: "about.team.bio1" as const },
-  { initials: "UM", name: "Usman",    roleKey: "about.team.role2" as const, bioKey: "about.team.bio2" as const },
+  { initials: "LA", name: "Lavr", roleKey: "about.team.role1" as const, bioKey: "about.team.bio1" as const },
+  { initials: "UM", name: "Usman", roleKey: "about.team.role2" as const, bioKey: "about.team.bio2" as const },
   { initials: "MB", name: "Madalina", roleKey: "about.team.role3" as const, bioKey: "about.team.bio3" as const },
 ];
 
 const STATS = [
   { value: "90+", labelKey: "about.stats.routes" as const },
-  { value: "10+",  labelKey: "about.stats.countries" as const },
+  { value: "10+", labelKey: "about.stats.countries" as const },
   { value: "10+", labelKey: "about.stats.travellers" as const },
-  { value: "6",    labelKey: "about.stats.continents" as const },
+  { value: "6", labelKey: "about.stats.continents" as const },
 ];
 
 const VALUES = [
@@ -99,11 +99,11 @@ const FOOTER_COLUMNS = [
 ];
 
 export default function AboutPage() {
-  const [user,         setUser]         = useState<any>(null);
-  const [avatarUrl,    setAvatarUrl]    = useState("");
+  const [user, setUser] = useState<any>(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [navScrolled,  setNavScrolled]  = useState(false);
-  const [mounted,      setMounted]      = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const { t, lang, setLang } = useLanguage();
   const { theme } = useTheme();
@@ -537,7 +537,7 @@ export default function AboutPage() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['nav.explore','/explore'],['nav.about','/about']].map(([key,h])=>(
+            {[['nav.explore', '/explore'], ['nav.about', '/about']].map(([key, h]) => (
               <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
             ))}
             {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
@@ -546,16 +546,16 @@ export default function AboutPage() {
             {!user && <ThemeSwitch />}
             {user ? (
               <div className="user-menu-wrap">
-                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                <button className="user-avatar" onClick={() => setShowUserMenu(p => !p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
                   <div className="user-dropdown">
                     <div className="ud-header">
                       <div className="ud-avatar">
-                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                        {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{minWidth:0}}>
+                      <div style={{ minWidth: 0 }}>
                         <p className="ud-name">{displayName}</p>
                         <p className="ud-email">{user.email}</p>
                         <p className="ud-role">{t("common.roleExplorer")}</p>
@@ -568,18 +568,18 @@ export default function AboutPage() {
                     </div>
 
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}>
                         <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}
                       </Link>
-                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}>
                         <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}
                       </Link>
-                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}>
+                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}>
                         <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}
                       </Link>
-                      <div className="ud-divider"/>
+                      <div className="ud-divider" />
                       <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}
+                        <span className="ud-link-icon" style={{ color: '#e08080' }}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}
                       </button>
                     </div>
                   </div>
@@ -692,48 +692,48 @@ export default function AboutPage() {
             identisch zum bisherigen Markup. */}
         <div className="hero-stack">
 
-        {/* HERO */}
-        <section className="about-hero">
-          <div className="about-hero-bg">
-            <img src="/3.jpg" alt="Scenic road" onError={e=>{e.currentTarget.src="/Amalfi coast road.jpg";}}/>
-          </div>
-          <div className="about-hero-content">
-            <p className="about-eyebrow">{t("about.eyebrow")}</p>
-            <h1 className="about-h1">
-              {t("about.h1.line1")}<br/>
-              <em>{t("about.h1.emphasis")}</em>
-            </h1>
-            <p className="about-hero-sub">
-              {t("about.hero.sub")}
-            </p>
-            <div className="about-hero-actions">
-              <Link href="/explore" className="btn-gold-filled">{t("about.hero.explore")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
+          {/* HERO */}
+          <section className="about-hero">
+            <div className="about-hero-bg">
+              <img src="/3.jpg" alt="Scenic road" onError={e => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+            </div>
+            <div className="about-hero-content">
+              <p className="about-eyebrow">{t("about.eyebrow")}</p>
+              <h1 className="about-h1">
+                {t("about.h1.line1")}<br />
+                <em>{t("about.h1.emphasis")}</em>
+              </h1>
+              <p className="about-hero-sub">
+                {t("about.hero.sub")}
+              </p>
+              <div className="about-hero-actions">
+                <Link href="/explore" className="btn-gold-filled">{t("about.hero.explore")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
+              </div>
+            </div>
+          </section>
+
+          {/* STATS (Desktop) */}
+          <div className="stats-section">
+            <div className="stats-inner">
+              {STATS.map(({ value, labelKey }) => (
+                <div className="stat-item" key={labelKey}>
+                  <div className="stat-num">{value}</div>
+                  <div className="stat-label">{t(labelKey)}</div>
+                </div>
+              ))}
             </div>
           </div>
-        </section>
 
-        {/* STATS (Desktop) */}
-        <div className="stats-section">
-          <div className="stats-inner">
-            {STATS.map(({value,labelKey})=>(
+          {/* NEU (Mobile): Stats als schwebende Card über dem Hero-Rand, eigenes
+            Markup, per .mobile-only auf PC unsichtbar */}
+          <div className="mobile-stats-card mobile-only">
+            {STATS.map(({ value, labelKey }) => (
               <div className="stat-item" key={labelKey}>
                 <div className="stat-num">{value}</div>
                 <div className="stat-label">{t(labelKey)}</div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* NEU (Mobile): Stats als schwebende Card über dem Hero-Rand, eigenes
-            Markup, per .mobile-only auf PC unsichtbar */}
-        <div className="mobile-stats-card mobile-only">
-          {STATS.map(({ value, labelKey }) => (
-            <div className="stat-item" key={labelKey}>
-              <div className="stat-num">{value}</div>
-              <div className="stat-label">{t(labelKey)}</div>
-            </div>
-          ))}
-        </div>
 
         </div>{/* /hero-stack */}
 
@@ -741,9 +741,9 @@ export default function AboutPage() {
         <section className="section values-section">
           <div className="container">
             <p className="section-eyebrow">{t("about.values.eyebrow")}</p>
-            <h2 className="section-h2">{t("about.values.heading1")}<br/>{t("about.values.heading2")}</h2>
+            <h2 className="section-h2">{t("about.values.heading1")}<br />{t("about.values.heading2")}</h2>
             <div className="values-grid">
-              {VALUES.map(({num,titleKey,textKey}, i)=>{
+              {VALUES.map(({ num, titleKey, textKey }, i) => {
                 const isOpen = openValueIndex === i;
                 return (
                   <div className="value-card" key={titleKey}>
@@ -775,17 +775,17 @@ export default function AboutPage() {
         <section className="section mission-section">
           <div className="container">
             <p className="section-eyebrow">{t("about.mission.eyebrow")}</p>
-            <h2 className="section-h2">{t("about.mission.heading1")}<br/>{t("about.mission.heading2")}</h2>
+            <h2 className="section-h2">{t("about.mission.heading1")}<br />{t("about.mission.heading2")}</h2>
             <div className="mission-grid">
               <div className="mission-image">
-                <img src="/Garden Route.jpg" alt="Road" onError={e=>{e.currentTarget.src="/Trollstigen.jpg";}}/>
+                <img src="/Garden Route.jpg" alt="Road" onError={e => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
               </div>
               <div>
                 <p className="mission-text">
                   {t("about.mission.p1")}
-                  <br/><br/>
-                  <strong>Scenic Routes</strong> {t("about.mission.p2")}
-                  <br/><br/>
+                  <br /><br />
+                  <strong>Explore Scenic Routes</strong> {t("about.mission.p2")}
+                  <br /><br />
                   {t("about.mission.p3")}
                 </p>
               </div>
@@ -799,7 +799,7 @@ export default function AboutPage() {
             <div className="team-header">
               <div>
                 <p className="section-eyebrow">{t("about.team.eyebrow")}</p>
-                <h2 className="section-h2">{t("about.team.heading1")}<br/>{t("about.team.heading2")}</h2>
+                <h2 className="section-h2">{t("about.team.heading1")}<br />{t("about.team.heading2")}</h2>
               </div>
               <p className="team-sub">
                 {t("about.team.sub")}
@@ -808,7 +808,7 @@ export default function AboutPage() {
 
             {/* Desktop-Grid — unverändert */}
             <div className="team-grid">
-              {TEAM.map(({initials,name,roleKey,bioKey})=>(
+              {TEAM.map(({ initials, name, roleKey, bioKey }) => (
                 <div className="team-card" key={name}>
                   <div className="team-avatar">{initials}</div>
                   <div className="team-name">{name}</div>
@@ -841,7 +841,7 @@ export default function AboutPage() {
                 />
               ))}
             </div>
-              {/*
+            {/*
             <div className="team-footer-bar">
               <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
                 <div style={{display:"flex"}}>
@@ -857,7 +857,7 @@ export default function AboutPage() {
             </div>
             */}
           </div>
-          
+
         </section>
 
         {/* CTA */}
@@ -865,7 +865,7 @@ export default function AboutPage() {
           <div className="container">
             <div className="cta-inner">
               <p className="section-eyebrow">{t("about.cta.eyebrow")}</p>
-              <h2 className="cta-h2">{t("about.cta.heading1")}<br/>{t("about.cta.heading2")}</h2>
+              <h2 className="cta-h2">{t("about.cta.heading1")}<br />{t("about.cta.heading2")}</h2>
               <p className="cta-sub">{t("about.cta.sub")}</p>
               <div className="cta-actions">
                 <Link href="/explore" className="btn-gold-filled">{t("about.cta.browseRoutes")} <ArrowRight size={13} strokeWidth={2.5} /></Link>
@@ -969,6 +969,12 @@ export default function AboutPage() {
                         onClick={() => { setLang("de"); setShowLangMenu(false); }}
                       >
                         Deutsch
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "ru" ? "active" : ""}`}
+                        onClick={() => { setLang("ru"); setShowLangMenu(false); }}
+                      >
+                        Русский
                       </button>
                     </div>
                   )}

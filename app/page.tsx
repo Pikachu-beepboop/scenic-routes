@@ -94,15 +94,15 @@ const FALLBACK_ROUTES = [
 ];
 
 const TESTIMONIALS = [
-  { quoteKey: "home.testimonial.quote1" as const, name: "Sarah G.",  roleKey: "home.testimonial.role1" as const },
+  { quoteKey: "home.testimonial.quote1" as const, name: "Sarah G.", roleKey: "home.testimonial.role1" as const },
   { quoteKey: "home.testimonial.quote2" as const, name: "Marcus K.", roleKey: "home.testimonial.role2" as const },
-  { quoteKey: "home.testimonial.quote3" as const, name: "Alex M.",   roleKey: "home.testimonial.role3" as const },
+  { quoteKey: "home.testimonial.quote3" as const, name: "Alex M.", roleKey: "home.testimonial.role3" as const },
 ];
 
 const FEATURES = [
-  { icon: Compass,  titleKey: "home.features.curated.title" as const, textKey: "home.features.curated.text" as const },
-  { icon: MapIcon,  titleKey: "home.features.detail.title" as const,  textKey: "home.features.detail.text" as const },
-  { icon: Wind,     titleKey: "home.features.freedom.title" as const, textKey: "home.features.freedom.text" as const },
+  { icon: Compass, titleKey: "home.features.curated.title" as const, textKey: "home.features.curated.text" as const },
+  { icon: MapIcon, titleKey: "home.features.detail.title" as const, textKey: "home.features.detail.text" as const },
+  { icon: Wind, titleKey: "home.features.freedom.title" as const, textKey: "home.features.freedom.text" as const },
   { icon: BookOpen, titleKey: "home.features.stories.title" as const, textKey: "home.features.stories.text" as const },
 ];
 
@@ -921,7 +921,7 @@ export default function HomePage() {
       <main className="pg">
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="nav-logo">
-          <span>EXPLORE</span>
+            <span>EXPLORE</span>
             <span>SCENIC</span>
             <span>ROUTES</span>
           </Link>
@@ -1019,15 +1019,15 @@ export default function HomePage() {
                       >
                         <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}
                       </Link>
-                        {isAdmin && (
-                              <Link
-                                href="/admin"
-                                className="ud-link"
-                                onClick={() => setShowUserMenu(false)}
-                              >
-                                <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> {t("nav.adminPanel")}
-                              </Link>
-                            )}
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          className="ud-link"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> {t("nav.adminPanel")}
+                        </Link>
+                      )}
                       <div className="ud-divider" />
 
                       <button className="ud-logout" onClick={handleLogout}>
@@ -1468,6 +1468,12 @@ export default function HomePage() {
                         onClick={() => { setLang("de"); setShowLangMenu(false); }}
                       >
                         Deutsch
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "ru" ? "active" : ""}`}
+                        onClick={() => { setLang("ru"); setShowLangMenu(false); }}
+                      >
+                        Русский
                       </button>
                     </div>
                   )}

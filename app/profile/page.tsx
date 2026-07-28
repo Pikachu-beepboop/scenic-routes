@@ -9,6 +9,7 @@ import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useTheme } from "next-themes";
 import { useUnit } from "../UnitContext";
 import { useLanguage } from "../LanguageContext";
+import type { TranslationKey } from "@/lib/translations";
 import {
   User, Award, Settings as SettingsIcon, Map, LogOut,
   Bell, ShieldCheck, LifeBuoy, Info,
@@ -278,39 +279,39 @@ function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
   );
 }
 
-const SUBTAB_META: Record<string, { title: string; subtitle: string; icon: ReactNode }> = {
-  profile:       { title: "Profile",             subtitle: "Manage your personal information.",                    icon: <User size={20} strokeWidth={1.8} /> },
-  pass:          { title: "Traveller Pass",      subtitle: "Your digital passport — stamps, routes and identity.", icon: <Award size={20} strokeWidth={1.8} /> },
-  preferences:   { title: "Preferences",         subtitle: "Units, language, map style and recommendations.",      icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
-  email:         { title: "Email Address",       subtitle: "Manage your email address associated with your account.", icon: <Mail size={20} strokeWidth={1.8} /> },
-  password:      { title: "Password",            subtitle: "Change the password used to sign in.",                 icon: <Lock size={20} strokeWidth={1.8} /> },
-  twofa:         { title: "Two-Factor Authentication", subtitle: "Add an extra layer of security to your account.", icon: <Smartphone size={20} strokeWidth={1.8} /> },
-  sessions:      { title: "Sessions",            subtitle: "See where you're signed in and manage active sessions.", icon: <Monitor size={20} strokeWidth={1.8} /> },
-  notifications: { title: "Notifications",       subtitle: "Choose what you want to be notified about.",           icon: <Bell size={20} strokeWidth={1.8} /> },
-  privacy:       { title: "Privacy",              subtitle: "Control your visibility and data.",                    icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
-  support:       { title: "Support & Feedback",  subtitle: "Get help or send us your feedback.",                   icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
-  about:         { title: "About",               subtitle: "Version, legal and app information.",                  icon: <Info size={20} strokeWidth={1.8} /> },
+const SUBTAB_META: Record<string, { titleKey: TranslationKey; subtitleKey: TranslationKey; icon: ReactNode }> = {
+  profile:       { titleKey: "profile.subtab.profile.title",       subtitleKey: "profile.subtab.profile.subtitle",       icon: <User size={20} strokeWidth={1.8} /> },
+  pass:          { titleKey: "profile.subtab.pass.title",          subtitleKey: "profile.subtab.pass.subtitle",          icon: <Award size={20} strokeWidth={1.8} /> },
+  preferences:   { titleKey: "prefs.title",                        subtitleKey: "prefs.subtitle",                        icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
+  email:         { titleKey: "profile.subtab.email.title",         subtitleKey: "profile.subtab.email.subtitle",         icon: <Mail size={20} strokeWidth={1.8} /> },
+  password:      { titleKey: "profile.subtab.password.title",      subtitleKey: "profile.subtab.password.subtitle",      icon: <Lock size={20} strokeWidth={1.8} /> },
+  twofa:         { titleKey: "profile.subtab.twofa.title",         subtitleKey: "profile.subtab.twofa.subtitle",         icon: <Smartphone size={20} strokeWidth={1.8} /> },
+  sessions:      { titleKey: "profile.subtab.sessions.title",      subtitleKey: "profile.subtab.sessions.subtitle",      icon: <Monitor size={20} strokeWidth={1.8} /> },
+  notifications: { titleKey: "profile.subtab.notifications.title", subtitleKey: "profile.subtab.notifications.subtitle", icon: <Bell size={20} strokeWidth={1.8} /> },
+  privacy:       { titleKey: "profile.subtab.privacy.title",       subtitleKey: "profile.subtab.privacy.subtitle",       icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
+  support:       { titleKey: "profile.subtab.support.title",       subtitleKey: "profile.subtab.support.subtitle",       icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
+  about:         { titleKey: "profile.subtab.about.title",         subtitleKey: "profile.subtab.about.subtitle",         icon: <Info size={20} strokeWidth={1.8} /> },
 };
 
 const NAV_GROUPS = [
   {
     id: "account",
-    label: "Account",
+    labelKey: "profile.nav.account" as TranslationKey,
     icon: <User size={15} strokeWidth={1.8} />,
     items: [
-      { id: "profile" as const,     label: "Profile" },
-      { id: "preferences" as const, label: "Preferences" },
+      { id: "profile" as const,     labelKey: "profile.subtab.profile.title" as TranslationKey },
+      { id: "preferences" as const, labelKey: "prefs.title" as TranslationKey },
     ],
   },
   {
     id: "security",
-    label: "Security",
+    labelKey: "profile.nav.security" as TranslationKey,
     icon: <ShieldCheck size={15} strokeWidth={1.8} />,
     items: [
-      { id: "email" as const,    label: "Email Address" },
-      { id: "password" as const, label: "Password" },
-      { id: "twofa" as const,    label: "Two-Factor Authentication" },
-      { id: "sessions" as const, label: "Sessions" },
+      { id: "email" as const,    labelKey: "profile.subtab.email.title" as TranslationKey },
+      { id: "password" as const, labelKey: "profile.subtab.password.title" as TranslationKey },
+      { id: "twofa" as const,    labelKey: "profile.subtab.twofa.title" as TranslationKey },
+      { id: "sessions" as const, labelKey: "profile.subtab.sessions.title" as TranslationKey },
     ],
   },
 ];
@@ -399,7 +400,7 @@ export default function ProfilePage() {
 
   const { theme } = useTheme();
   const { unit, setUnit } = useUnit();
-  const { lang, setLang } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -656,7 +657,8 @@ export default function ProfilePage() {
   );
 
   const initials = (username || user?.email || "U")[0].toUpperCase();
-  const meta = SUBTAB_META[subTab];
+  const metaRaw = SUBTAB_META[subTab];
+  const meta = { title: t(metaRaw.titleKey), subtitle: t(metaRaw.subtitleKey), icon: metaRaw.icon };
 
   return (
     <>
@@ -936,9 +938,9 @@ export default function ProfilePage() {
             <span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span>
           </Link>
           <div className="pp-nav-links">
-            <Link href="/explore"  className="pp-nav-link">Explore Routes</Link>
-            <Link href="/about"    className="pp-nav-link">About</Link>
-            <Link href="/my-trips" className="pp-nav-link">My Trips</Link>
+            <Link href="/explore"  className="pp-nav-link">{t("nav.explore")}</Link>
+            <Link href="/about"    className="pp-nav-link">{t("nav.about")}</Link>
+            <Link href="/my-trips" className="pp-nav-link">{t("nav.myTrips")}</Link>
           </div>
           <div className="pp-nav-right">
             <ThemeSwitch />
@@ -971,39 +973,39 @@ export default function ProfilePage() {
               <div style={{ minWidth: 0 }}>
                 <p className="pp-mobile-name">{username || user?.email?.split("@")[0]}</p>
                 <p className="pp-mobile-email">{user?.email}</p>
-                <p className="pp-mobile-role">Scenic Route Explorer</p>
+                <p className="pp-mobile-role">{t("common.roleExplorer")}</p>
               </div>
             </div>
 
             <div className="pp-mobile-theme-row">
-              <span className="pp-mobile-theme-label">Theme</span>
+              <span className="pp-mobile-theme-label">{t("common.theme")}</span>
               <ThemeSwitch />
             </div>
 
             <div className="pp-mobile-links">
-              <p className="pp-mobile-section-label">Navigate</p>
+              <p className="pp-mobile-section-label">{t("profile.mobile.navigate")}</p>
               <Link href="/explore" className="pp-mobile-link" onClick={() => setMobileMenuOpen(false)}>
                 <span className="pp-mobile-link-icon"><Map size={14} strokeWidth={1.8} /></span>
-                Explore Routes
+                {t("nav.explore")}
                 <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
               </Link>
               <Link href="/about" className="pp-mobile-link" onClick={() => setMobileMenuOpen(false)}>
                 <span className="pp-mobile-link-icon"><Info size={14} strokeWidth={1.8} /></span>
-                About
+                {t("nav.about")}
                 <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
               </Link>
               <Link href="/my-trips" className="pp-mobile-link" onClick={() => setMobileMenuOpen(false)}>
                 <span className="pp-mobile-link-icon"><Map size={14} strokeWidth={1.8} /></span>
-                My Trips
+                {t("nav.myTrips")}
                 <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
               </Link>
 
               <div className="pp-mobile-divider" />
 
-              <p className="pp-mobile-section-label">Account</p>
+              <p className="pp-mobile-section-label">{t("profile.mobile.account")}</p>
               {([
-                { id: "profile",     label: "Profile",     icon: <User size={14} strokeWidth={1.8} /> },
-                { id: "preferences", label: "Preferences", icon: <SettingsIcon size={14} strokeWidth={1.8} /> },
+                { id: "profile",     label: t("profile.subtab.profile.title"), icon: <User size={14} strokeWidth={1.8} /> },
+                { id: "preferences", label: t("prefs.title"),                   icon: <SettingsIcon size={14} strokeWidth={1.8} /> },
               ] as const).map(({ id, label, icon }) => (
                 <button
                   key={id}
@@ -1016,12 +1018,12 @@ export default function ProfilePage() {
                 </button>
               ))}
 
-              <p className="pp-mobile-section-label">Security</p>
+              <p className="pp-mobile-section-label">{t("profile.mobile.security")}</p>
               {([
-                { id: "email",    label: "Email Address",             icon: <Mail size={14} strokeWidth={1.8} /> },
-                { id: "password", label: "Password",                  icon: <Lock size={14} strokeWidth={1.8} /> },
-                { id: "twofa",    label: "Two-Factor Authentication", icon: <Smartphone size={14} strokeWidth={1.8} /> },
-                { id: "sessions", label: "Sessions",                  icon: <Monitor size={14} strokeWidth={1.8} /> },
+                { id: "email",    label: t("profile.subtab.email.title"),    icon: <Mail size={14} strokeWidth={1.8} /> },
+                { id: "password", label: t("profile.subtab.password.title"), icon: <Lock size={14} strokeWidth={1.8} /> },
+                { id: "twofa",    label: t("profile.subtab.twofa.title"),    icon: <Smartphone size={14} strokeWidth={1.8} /> },
+                { id: "sessions", label: t("profile.subtab.sessions.title"), icon: <Monitor size={14} strokeWidth={1.8} /> },
               ] as const).map(({ id, label, icon }) => (
                 <button
                   key={id}
@@ -1034,13 +1036,13 @@ export default function ProfilePage() {
                 </button>
               ))}
 
-              <p className="pp-mobile-section-label">More</p>
+              <p className="pp-mobile-section-label">{t("profile.mobile.more")}</p>
               {([
-                { id: "pass",          label: "Traveller Pass",     icon: <Award size={14} strokeWidth={1.8} /> },
-                { id: "notifications", label: "Notifications",      icon: <Bell size={14} strokeWidth={1.8} /> },
-                { id: "privacy",       label: "Privacy",             icon: <ShieldCheck size={14} strokeWidth={1.8} /> },
-                { id: "support",       label: "Support & Feedback", icon: <LifeBuoy size={14} strokeWidth={1.8} /> },
-                { id: "about",         label: "About",              icon: <Info size={14} strokeWidth={1.8} /> },
+                { id: "pass",          label: t("profile.subtab.pass.title"),          icon: <Award size={14} strokeWidth={1.8} /> },
+                { id: "notifications", label: t("profile.subtab.notifications.title"), icon: <Bell size={14} strokeWidth={1.8} /> },
+                { id: "privacy",       label: t("profile.subtab.privacy.title"),       icon: <ShieldCheck size={14} strokeWidth={1.8} /> },
+                { id: "support",       label: t("profile.subtab.support.title"),       icon: <LifeBuoy size={14} strokeWidth={1.8} /> },
+                { id: "about",         label: t("profile.subtab.about.title"),         icon: <Info size={14} strokeWidth={1.8} /> },
               ] as const).map(({ id, label, icon }) => (
                 <button
                   key={id}
@@ -1060,7 +1062,7 @@ export default function ProfilePage() {
                 onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
               >
                 <span className="pp-mobile-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span>
-                Sign Out
+                {t("nav.signOut")}
               </button>
             </div>
           </div>
@@ -1080,7 +1082,7 @@ export default function ProfilePage() {
                 </div>
                 {subTab === "profile" && (
                 <button className="st-save-btn" disabled={saving} onClick={handleSaveProfile}>
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? t("profile.save.saving") : t("common.saveChanges")}
                 </button>
                 )}
               </div>
@@ -1088,17 +1090,17 @@ export default function ProfilePage() {
               <div className="st-body">
               <div className="pp-mobile-subnav mobile-only">
                 {([
-                  { id: "profile",       label: "Profile",       icon: <User size={13} strokeWidth={1.8} /> },
-                  { id: "preferences",   label: "Preferences",   icon: <SettingsIcon size={13} strokeWidth={1.8} /> },
-                  { id: "email",         label: "Email",         icon: <Mail size={13} strokeWidth={1.8} /> },
-                  { id: "password",      label: "Password",      icon: <Lock size={13} strokeWidth={1.8} /> },
-                  { id: "twofa",         label: "2FA",            icon: <Smartphone size={13} strokeWidth={1.8} /> },
-                  { id: "sessions",      label: "Sessions",       icon: <Monitor size={13} strokeWidth={1.8} /> },
-                  { id: "pass",          label: "Pass",           icon: <Award size={13} strokeWidth={1.8} /> },
-                  { id: "notifications", label: "Notifications", icon: <Bell size={13} strokeWidth={1.8} /> },
-                  { id: "privacy",       label: "Privacy",        icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
-                  { id: "support",       label: "Support",        icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
-                  { id: "about",         label: "About",          icon: <Info size={13} strokeWidth={1.8} /> },
+                  { id: "profile",       label: t("profile.subtab.profile.title"),       icon: <User size={13} strokeWidth={1.8} /> },
+                  { id: "preferences",   label: t("prefs.title"),                         icon: <SettingsIcon size={13} strokeWidth={1.8} /> },
+                  { id: "email",         label: t("profile.nav.emailShort"),              icon: <Mail size={13} strokeWidth={1.8} /> },
+                  { id: "password",      label: t("profile.nav.passwordShort"),           icon: <Lock size={13} strokeWidth={1.8} /> },
+                  { id: "twofa",         label: t("profile.nav.twofaShort"),              icon: <Smartphone size={13} strokeWidth={1.8} /> },
+                  { id: "sessions",      label: t("profile.nav.sessionsShort"),           icon: <Monitor size={13} strokeWidth={1.8} /> },
+                  { id: "pass",          label: t("profile.nav.passShort"),               icon: <Award size={13} strokeWidth={1.8} /> },
+                  { id: "notifications", label: t("profile.nav.notificationsShort"),      icon: <Bell size={13} strokeWidth={1.8} /> },
+                  { id: "privacy",       label: t("profile.nav.privacyShort"),            icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
+                  { id: "support",       label: t("profile.nav.supportShort"),            icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
+                  { id: "about",         label: t("profile.nav.aboutShort"),              icon: <Info size={13} strokeWidth={1.8} /> },
                 ] as const).map(({ id, label, icon }) => (
                   <button
                     key={id}
@@ -1111,7 +1113,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="st-subnav">
-                <p className="st-subnav-label">Settings</p>
+                <p className="st-subnav-label">{t("profile.nav.settings")}</p>
 
                 {NAV_GROUPS.map((group) => {
                   const isOpen = group.id === "account" ? accountGroupOpen : securityGroupOpen;
@@ -1122,7 +1124,7 @@ export default function ProfilePage() {
                   return (
                     <div key={group.id} className="st-subnav-group">
                       <button className="st-subnav-group-title" onClick={toggleOpen}>
-                        {group.icon} <span>{group.label}</span>
+                        {group.icon} <span>{t(group.labelKey)}</span>
                         <ChevronDown size={14} className={`st-subnav-chevron ${isOpen ? "open" : ""}`} />
                       </button>
                       {isOpen && (
@@ -1133,7 +1135,7 @@ export default function ProfilePage() {
                               className={`st-subnav-item st-subnav-item-sub ${subTab === item.id ? "active" : ""}`}
                               onClick={() => setSubTab(item.id)}
                             >
-                              {item.label}
+                              {t(item.labelKey)}
                             </button>
                           ))}
                         </div>
@@ -1145,11 +1147,11 @@ export default function ProfilePage() {
                 <div className="st-subnav-divider" />
 
                 {([
-                  { id: "pass",          label: "Traveller Pass",     icon: <Award size={15} strokeWidth={1.8} /> },
-                  { id: "notifications", label: "Notifications",      icon: <Bell size={15} strokeWidth={1.8} /> },
-                  { id: "privacy",       label: "Privacy",             icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
-                  { id: "support",       label: "Support & Feedback", icon: <LifeBuoy size={15} strokeWidth={1.8} /> },
-                  { id: "about",         label: "About",              icon: <Info size={15} strokeWidth={1.8} /> },
+                  { id: "pass",          label: t("profile.subtab.pass.title"),    icon: <Award size={15} strokeWidth={1.8} /> },
+                  { id: "notifications", label: t("profile.subtab.notifications.title"), icon: <Bell size={15} strokeWidth={1.8} /> },
+                  { id: "privacy",       label: t("profile.subtab.privacy.title"), icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
+                  { id: "support",       label: t("profile.subtab.support.title"), icon: <LifeBuoy size={15} strokeWidth={1.8} /> },
+                  { id: "about",         label: t("profile.subtab.about.title"),   icon: <Info size={15} strokeWidth={1.8} /> },
                 ] as const).map(({ id, label, icon }) => (
                   <button
                     key={id}
@@ -1163,10 +1165,10 @@ export default function ProfilePage() {
                 <div className="st-subnav-divider" />
 
                 <button className="st-subnav-item" onClick={() => router.push("/my-trips")}>
-                  <Map size={15} strokeWidth={1.8} /> My Trips
+                  <Map size={15} strokeWidth={1.8} /> {t("profile.nav.myTrips")}
                 </button>
                 <button className="st-subnav-logout" onClick={handleLogout}>
-                  <LogOut size={15} strokeWidth={1.8} /> Sign Out
+                  <LogOut size={15} strokeWidth={1.8} /> {t("nav.signOut")}
                 </button>
               </div>
 
@@ -1176,11 +1178,11 @@ export default function ProfilePage() {
                 // checklist rather than hardcoded, so it stays honest even
                 // though the underlying stat cards below are still placeholders.
                 const completionChecks = [
-                  { label: "Add profile picture", done: !!avatarPreview },
-                  { label: "Add about you",        done: aboutYou.trim().length > 0 },
-                  { label: "Add country",          done: country.trim().length > 0 },
-                  { label: "Connect your email",   done: !!user?.email_confirmed_at },
-                  { label: "Set preferences",      done: false }, // TODO: wire once a "preferences saved" flag exists
+                  { label: t("profile.completion.addPhoto"),     done: !!avatarPreview },
+                  { label: t("profile.completion.addAbout"),      done: aboutYou.trim().length > 0 },
+                  { label: t("profile.completion.addCountry"),    done: country.trim().length > 0 },
+                  { label: t("profile.completion.connectEmail"),  done: !!user?.email_confirmed_at },
+                  { label: t("profile.completion.setPreferences"), done: false }, // TODO: wire once a "preferences saved" flag exists
                 ];
                 const completionPct = Math.round((completionChecks.filter(c => c.done).length / completionChecks.length) * 100);
                 const memberSince = user?.created_at
@@ -1207,10 +1209,10 @@ export default function ProfilePage() {
                           </div>
                           <div>
                             <p className="st-profile-name">{displayName || username || user?.email?.split("@")[0]}</p>
-                            <p className="st-profile-role">Scenic Route Explorer</p>
+                            <p className="st-profile-role">{t("common.roleExplorer")}</p>
                             <p className="st-profile-email">{user?.email}</p>
                             <div className="st-profile-meta-row">
-                              <span><Calendar size={11} strokeWidth={1.8} /> Member since {memberSince}</span>
+                              <span><Calendar size={11} strokeWidth={1.8} /> {t("profile.info.memberSince")} {memberSince}</span>
                               {country && <span><MapPin size={11} strokeWidth={1.8} /> {country}</span>}
                             </div>
                           </div>
@@ -1218,24 +1220,24 @@ export default function ProfilePage() {
                       </div>
 
                       <div className="st-card st-subcard">
-                        <p className="st-card-title">Profile Information</p>
+                        <p className="st-card-title">{t("profile.info.title")}</p>
 
                         <div className="st-field">
-                          <label className="st-field-label">Display Name</label>
-                          <input className="st-input" type="text" placeholder="Your display name" value={displayName} onChange={e => setDisplayName(e.target.value)} />
+                          <label className="st-field-label">{t("profile.info.displayName")}</label>
+                          <input className="st-input" type="text" placeholder={t("profile.info.displayNamePh")} value={displayName} onChange={e => setDisplayName(e.target.value)} />
                         </div>
 
                         <div className="st-field">
-                          <label className="st-field-label">Username</label>
-                          <input className="st-input" type="text" placeholder="Your username" value={username} onChange={e => setUsername(e.target.value)} />
+                          <label className="st-field-label">{t("profile.info.username")}</label>
+                          <input className="st-input" type="text" placeholder={t("profile.info.usernamePh")} value={username} onChange={e => setUsername(e.target.value)} />
                         </div>
 
                         <div className="st-field-row">
                           <div className="st-field">
-                            <label className="st-field-label">Country</label>
+                            <label className="st-field-label">{t("profile.info.country")}</label>
                             <div className="st-select-wrap">
                               <select className="st-input st-select-full" value={country} onChange={e => setCountry(e.target.value)}>
-                                <option value="">Select country</option>
+                                <option value="">{t("profile.info.selectCountry")}</option>
                                 {["Germany","Pakistan","United States","United Kingdom","France","Italy","Spain","Switzerland","Austria","Norway","Canada","Australia","Other"].map(c => (
                                   <option key={c} value={c}>{c}</option>
                                 ))}
@@ -1244,7 +1246,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
                           <div className="st-field">
-                            <label className="st-field-label">Time Zone</label>
+                            <label className="st-field-label">{t("profile.info.timezone")}</label>
                             <div className="st-select-wrap">
                               <select className="st-input st-select-full" value={timezone} onChange={e => setTimezone(e.target.value)}>
                                 {["UTC-8","UTC-5","UTC+0","UTC+1","UTC+2","UTC+5","UTC+8","UTC+9"].map(tz => (
@@ -1258,12 +1260,12 @@ export default function ProfilePage() {
 
                         <div className="st-field">
                           <div className="st-field-label-row">
-                            <label className="st-field-label">About You</label>
+                            <label className="st-field-label">{t("profile.info.aboutYou")}</label>
                             <span className="st-char-count">{aboutYou.length}/{ABOUT_MAX}</span>
                           </div>
                           <textarea
                             className="st-input st-textarea"
-                            placeholder="Mountain lover. Scenic roads enthusiast."
+                            placeholder={t("profile.info.aboutYouPh")}
                             value={aboutYou}
                             maxLength={ABOUT_MAX}
                             onChange={e => setAboutYou(e.target.value)}
@@ -1278,7 +1280,7 @@ export default function ProfilePage() {
                     {/* Right column — stats, completion, pass */}
                     <div className="st-profile-col st-profile-col-side">
                       <div className="st-card st-subcard st-stats-card">
-                        <p className="st-card-title">Traveller Stats</p>
+                        <p className="st-card-title">{t("profile.stats.title")}</p>
                         {/* TODO: replace placeholders with real counts once wired
                             (trips = completed routes, countries = distinct route
                             countries, distance = sum of route lengths). Saved
@@ -1286,32 +1288,32 @@ export default function ProfilePage() {
                         <div className="st-stats-grid">
                           <div className="st-stat-item">
                             <div className="st-stat-icon"><Compass size={16} strokeWidth={1.8} /></div>
-                            <div><p className="st-stat-num">18</p><p className="st-stat-label">Trips</p></div>
+                            <div><p className="st-stat-num">18</p><p className="st-stat-label">{t("profile.stats.trips")}</p></div>
                           </div>
                           <div className="st-stat-item">
                             <div className="st-stat-icon"><Globe size={16} strokeWidth={1.8} /></div>
-                            <div><p className="st-stat-num">4</p><p className="st-stat-label">Countries</p></div>
+                            <div><p className="st-stat-num">4</p><p className="st-stat-label">{t("profile.stats.countries")}</p></div>
                           </div>
                           <div className="st-stat-item">
                             <div className="st-stat-icon"><Bookmark size={16} strokeWidth={1.8} /></div>
-                            <div><p className="st-stat-num">{stamps.length}</p><p className="st-stat-label">Saved Routes</p></div>
+                            <div><p className="st-stat-num">{stamps.length}</p><p className="st-stat-label">{t("profile.stats.saved")}</p></div>
                           </div>
                           <div className="st-stat-item">
                             <div className="st-stat-icon"><TrendingUp size={16} strokeWidth={1.8} /></div>
-                            <div><p className="st-stat-num">4,328 km</p><p className="st-stat-label">Distance Traveled</p></div>
+                            <div><p className="st-stat-num">4,328 km</p><p className="st-stat-label">{t("profile.stats.distance")}</p></div>
                           </div>
                         </div>
                       </div>
 
                       <div className="st-card st-subcard st-completion-card">
                         <div className="st-completion-head">
-                          <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />Profile Completion</p>
+                          <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />{t("profile.completion.title")}</p>
                           <span className="st-completion-pct">{completionPct}%</span>
                         </div>
                         <div className="st-completion-track">
                           <div className="st-completion-fill" style={{ width: `${completionPct}%` }} />
                         </div>
-                        <p className="st-completion-hint">Complete your profile to unlock badges and personalize your experience.</p>
+                        <p className="st-completion-hint">{t("profile.completion.hint")}</p>
                         <div className="st-checklist">
                           {completionChecks.map((c) => (
                             <div key={c.label} className="st-checklist-item">
@@ -1326,13 +1328,13 @@ export default function ProfilePage() {
                         <div className="st-pass-mini-head">
                           <div className="st-header-icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Award size={17} strokeWidth={1.8} /></div>
                           <div style={{ flex: 1 }}>
-                            <p className="st-profile-name" style={{ fontSize: 15 }}>Traveller Pass</p>
-                            <p className="st-row-sub" style={{ marginTop: 1 }}>Your passport to explore the world.</p>
+                            <p className="st-profile-name" style={{ fontSize: 15 }}>{t("profile.passMini.title")}</p>
+                            <p className="st-row-sub" style={{ marginTop: 1 }}>{t("profile.passMini.sub")}</p>
                           </div>
-                          <span className="st-badge st-badge-verified">Active</span>
+                          <span className="st-badge st-badge-verified">{t("profile.passMini.active")}</span>
                         </div>
                         <button className="st-btn st-btn-secondary" style={{ width: "100%", justifyContent: "space-between" }} onClick={() => setSubTab("pass")}>
-                          View My Passport <ChevronRight size={14} />
+                          {t("profile.passMini.view")} <ChevronRight size={14} />
                         </button>
                       </div>
                     </div>
@@ -1341,15 +1343,15 @@ export default function ProfilePage() {
                   <div className="st-danger-banner">
                     <AlertTriangle size={18} strokeWidth={1.8} color="#e08080" />
                     <div style={{ flex: 1 }}>
-                      <p className="st-row-label" style={{ color: "#e08080" }}>Danger Zone</p>
-                      <p className="st-row-sub">Permanently delete your account and all of your data. This action cannot be undone.</p>
+                      <p className="st-row-label" style={{ color: "#e08080" }}>{t("profile.danger.title")}</p>
+                      <p className="st-row-sub">{t("profile.danger.text")}</p>
                     </div>
                     <button
                       className="st-btn"
                       style={{ background: "rgba(224,128,128,0.12)", border: "1px solid rgba(224,128,128,0.4)", color: "#e08080", flexShrink: 0 }}
                       onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(""); setDeleteError(""); }}
                     >
-                      Delete Account
+                      {t("profile.danger.delete")}
                     </button>
                   </div>
 
@@ -1358,10 +1360,10 @@ export default function ProfilePage() {
                       className="st-btn st-btn-secondary"
                       onClick={() => { setDisplayName(username); setAboutYou(""); setCountry(""); setTimezone("UTC+0"); }}
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                     <button className="st-btn st-btn-primary" disabled={saving} onClick={handleSaveProfile}>
-                      {saving ? "Saving..." : "Save Changes"}
+                      {saving ? t("common.saving") : t("common.saveChanges")}
                     </button>
                   </div>
                 </div>
@@ -1371,37 +1373,37 @@ export default function ProfilePage() {
               {subTab === "email" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Current Email Address</p>
+                    <p className="st-card-title">{t("profile.email.current")}</p>
                     <div className="st-row">
                       <div>
                         <p className="st-row-label" style={{ fontSize: 14 }}>{user?.email}</p>
                       </div>
                       {user?.email_confirmed_at ? (
-                        <span className="st-badge st-badge-verified"><CheckCircle2 size={12} strokeWidth={2} /> Verified</span>
+                        <span className="st-badge st-badge-verified"><CheckCircle2 size={12} strokeWidth={2} /> {t("profile.email.verified")}</span>
                       ) : (
-                        <span className="st-badge st-badge-unverified">Unverified</span>
+                        <span className="st-badge st-badge-unverified">{t("profile.email.unverified")}</span>
                       )}
                     </div>
 
                     <div className="st-divider" />
 
-                    <p className="st-card-title">New Email Address</p>
+                    <p className="st-card-title">{t("profile.email.newTitle")}</p>
                     <div className="st-field">
                       <input
                         className="st-input"
                         type="email"
-                        placeholder="Enter new email address"
+                        placeholder={t("profile.email.newPh")}
                         value={newEmailInput}
                         onChange={e => setNewEmailInput(e.target.value)}
                       />
                     </div>
 
-                    <p className="st-card-title">Confirm With Password</p>
+                    <p className="st-card-title">{t("profile.email.confirmTitle")}</p>
                     <div className="st-field">
                       <input
                         className="st-input"
                         type="password"
-                        placeholder="Enter your current password"
+                        placeholder={t("profile.email.confirmPh")}
                         value={confirmEmailPassword}
                         onChange={e => setConfirmEmailPassword(e.target.value)}
                       />
@@ -1412,7 +1414,7 @@ export default function ProfilePage() {
 
                     <div className="st-info-banner">
                       <Mail size={14} strokeWidth={1.8} />
-                      <span>We will send a verification link to your new email address.</span>
+                      <span>{t("profile.email.info")}</span>
                     </div>
 
                     <div className="st-action-row">
@@ -1420,10 +1422,10 @@ export default function ProfilePage() {
                         className="st-btn st-btn-secondary"
                         onClick={() => { setNewEmailInput(""); setConfirmEmailPassword(""); setEmailError(""); setEmailSuccess(""); }}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                       <button className="st-btn st-btn-primary" disabled={emailSaving} onClick={handleChangeEmail}>
-                        <Mail size={13} strokeWidth={2} /> {emailSaving ? "Sending..." : "Change Email"}
+                        <Mail size={13} strokeWidth={2} /> {emailSaving ? t("profile.email.sending") : t("profile.email.change")}
                       </button>
                     </div>
                   </div>
@@ -1433,14 +1435,14 @@ export default function ProfilePage() {
               {subTab === "password" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Change Password</p>
+                    <p className="st-card-title">{t("profile.password.title")}</p>
                     <div className="st-field">
-                      <label className="st-field-label">New Password</label>
-                      <input className="st-input" type="password" placeholder="Enter a new password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                      <label className="st-field-label">{t("profile.password.new")}</label>
+                      <input className="st-input" type="password" placeholder={t("profile.password.newPh")} value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                     </div>
                     <div className="st-field">
-                      <label className="st-field-label">Confirm New Password</label>
-                      <input className="st-input" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                      <label className="st-field-label">{t("profile.password.confirm")}</label>
+                      <input className="st-input" type="password" placeholder={t("profile.password.confirmPh")} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                     </div>
 
                     {passwordError   && <p className="st-error">{passwordError}</p>}
@@ -1451,10 +1453,10 @@ export default function ProfilePage() {
                         className="st-btn st-btn-secondary"
                         onClick={() => { setNewPassword(""); setConfirmPassword(""); setPasswordError(""); setPasswordSuccess(""); }}
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                       <button className="st-btn st-btn-primary" disabled={passwordSaving} onClick={handleChangePassword}>
-                        <Lock size={13} strokeWidth={2} /> {passwordSaving ? "Saving..." : "Change Password"}
+                        <Lock size={13} strokeWidth={2} /> {passwordSaving ? t("profile.password.saving") : t("profile.password.change")}
                       </button>
                     </div>
                   </div>
@@ -1464,11 +1466,11 @@ export default function ProfilePage() {
               {subTab === "twofa" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Two-Factor Authentication</p>
+                    <p className="st-card-title">{t("profile.twofa.title")}</p>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">Authenticator App</p>
-                        <p className="st-row-sub">Coming soon — we're working on adding two-factor authentication.</p>
+                        <p className="st-row-label">{t("profile.twofa.app")}</p>
+                        <p className="st-row-sub">{t("profile.twofa.comingSoon")}</p>
                       </div>
                       <button className="st-toggle" disabled style={{ opacity: 0.4, cursor: "not-allowed" }}>
                         <span className="st-toggle-knob" />
@@ -1481,13 +1483,13 @@ export default function ProfilePage() {
               {subTab === "sessions" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Active Sessions</p>
+                    <p className="st-card-title">{t("profile.sessions.title")}</p>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">This device</p>
-                        <p className="st-row-sub">Current session · Active now</p>
+                        <p className="st-row-label">{t("profile.sessions.thisDevice")}</p>
+                        <p className="st-row-sub">{t("profile.sessions.currentSession")}</p>
                       </div>
-                      <span className="st-badge st-badge-verified">Active</span>
+                      <span className="st-badge st-badge-verified">{t("profile.sessions.active")}</span>
                     </div>
 
                     {sessionsError   && <p className="st-error">{sessionsError}</p>}
@@ -1495,7 +1497,7 @@ export default function ProfilePage() {
 
                     <div className="st-action-row">
                       <button className="st-btn st-btn-primary" disabled={sessionsSaving} onClick={handleSignOutOthers}>
-                        <LogOut size={13} strokeWidth={2} /> {sessionsSaving ? "Signing out..." : "Sign Out Of All Other Sessions"}
+                        <LogOut size={13} strokeWidth={2} /> {sessionsSaving ? t("profile.sessions.signingOut") : t("profile.sessions.signOutOthers")}
                       </button>
                     </div>
                   </div>
@@ -1519,36 +1521,37 @@ export default function ProfilePage() {
               {subTab === "preferences" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Preferences</p>
+                    <p className="st-card-title">{t("prefs.title")}</p>
                     <div className="st-row">
-                      <span className="st-row-label">Distance Unit</span>
+                      <span className="st-row-label">{t("prefs.distanceUnit")}</span>
                       <select
                         className="st-select"
                         value={unit}
                         onChange={(e) => setUnit(e.target.value as "km" | "mi")}
                       >
-                        <option value="km">Kilometers</option>
-                        <option value="mi">Miles</option>
+                        <option value="km">{t("prefs.km")}</option>
+                        <option value="mi">{t("prefs.mi")}</option>
                       </select>
                     </div>
                     <div className="st-row">
-                      <span className="st-row-label">Language</span>
+                      <span className="st-row-label">{t("prefs.language")}</span>
                       <select
                         className="st-select"
                         value={lang}
-                        onChange={(e) => setLang(e.target.value as "en" | "de")}
+                        onChange={(e) => setLang(e.target.value as "en" | "de" | "ru")}
                       >
                         <option value="en">English</option>
                         <option value="de">Deutsch</option>
+                        <option value="ru">Русский</option>
                       </select>
                     </div>
                     <div className="st-row">
-                      <span className="st-row-label">Start Page</span>
-                      <select className="st-select" defaultValue="explore"><option value="explore">Explore</option><option value="trips">My Trips</option></select>
+                      <span className="st-row-label">{t("prefs.startPage")}</span>
+                      <select className="st-select" defaultValue="explore"><option value="explore">{t("nav.explore")}</option><option value="trips">{t("nav.myTrips")}</option></select>
                     </div>
                     <div className="st-row">
-                      <span className="st-row-label">Default Map Style</span>
-                      <select className="st-select" defaultValue="scenic"><option value="scenic">Scenic</option><option value="satellite">Satellite</option></select>
+                      <span className="st-row-label">{t("prefs.mapStyle")}</span>
+                      <select className="st-select" defaultValue="scenic"><option value="scenic">{t("prefs.scenic")}</option><option value="satellite">{t("prefs.satellite")}</option></select>
                     </div>
                   </div>
                 </div>
@@ -1557,30 +1560,30 @@ export default function ProfilePage() {
               {subTab === "notifications" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Notifications</p>
+                    <p className="st-card-title">{t("profile.notif.title")}</p>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">New Routes Nearby</p>
-                        <p className="st-row-sub">Get notified about newly recommended routes near you.</p>
+                        <p className="st-row-label">{t("profile.notif.nearby")}</p>
+                        <p className="st-row-sub">{t("profile.notif.nearbyText")}</p>
                       </div>
                       <button className={`st-toggle ${toggles.nearbyRoutes ? "on" : ""}`} onClick={() => toggleSwitch("nearbyRoutes")}><span className="st-toggle-knob" /></button>
                     </div>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">Trip Reminders</p>
-                        <p className="st-row-sub">Get reminders for upcoming planned trips.</p>
+                        <p className="st-row-label">{t("profile.notif.reminders")}</p>
+                        <p className="st-row-sub">{t("profile.notif.remindersText")}</p>
                       </div>
                       <button className={`st-toggle ${toggles.tripReminders ? "on" : ""}`} onClick={() => toggleSwitch("tripReminders")}><span className="st-toggle-knob" /></button>
                     </div>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">Community Updates</p>
-                        <p className="st-row-sub">News and updates from Scenic Routes.</p>
+                        <p className="st-row-label">{t("profile.notif.community")}</p>
+                        <p className="st-row-sub">{t("profile.notif.communityText")}</p>
                       </div>
                       <button className={`st-toggle ${toggles.communityUpdates ? "on" : ""}`} onClick={() => toggleSwitch("communityUpdates")}><span className="st-toggle-knob" /></button>
                     </div>
                     <div className="st-row st-row-clickable">
-                      <span className="st-row-label">Email Settings</span>
+                      <span className="st-row-label">{t("profile.notif.emailSettings")}</span>
                       <ChevronRight size={15} color="var(--dim)" />
                     </div>
                   </div>
@@ -1590,11 +1593,11 @@ export default function ProfilePage() {
               {subTab === "privacy" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Privacy & Security</p>
+                    <p className="st-card-title">{t("profile.privacy.title")}</p>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">Google Maps</p>
-                        <p className="st-row-sub">Load maps from Google Maps on route pages. Google may process your IP address and device information.</p>
+                        <p className="st-row-label">{t("profile.privacy.maps")}</p>
+                        <p className="st-row-sub">{t("profile.privacy.mapsText")}</p>
                       </div>
                       <button
                         className={`st-toggle ${googleMapsConsent ? "on" : ""}`}
@@ -1606,8 +1609,8 @@ export default function ProfilePage() {
                     </div>
                     <div className="st-row">
                       <div>
-                        <p className="st-row-label">Track Activity</p>
-                        <p className="st-row-sub">Save your activity for personal statistics.</p>
+                        <p className="st-row-label">{t("profile.privacy.track")}</p>
+                        <p className="st-row-sub">{t("profile.privacy.trackText")}</p>
                       </div>
                       <button className={`st-toggle ${toggles.activityTracking ? "on" : ""}`} onClick={() => toggleSwitch("activityTracking")}><span className="st-toggle-knob" /></button>
                     </div>
@@ -1618,21 +1621,21 @@ export default function ProfilePage() {
               {subTab === "support" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">Support & Feedback</p>
+                    <p className="st-card-title">{t("profile.support.title")}</p>
                     <div className="st-row st-row-clickable">
-                      <span className="st-row-label">FAQ</span>
+                      <span className="st-row-label">{t("profile.support.faq")}</span>
                       <ChevronRight size={15} color="var(--dim)" />
                     </div>
                     <div className="st-row st-row-clickable">
-                      <span className="st-row-label">Contact Us</span>
+                      <span className="st-row-label">{t("profile.support.contact")}</span>
                       <ChevronRight size={15} color="var(--dim)" />
                     </div>
                     <div className="st-row st-row-clickable">
-                      <span className="st-row-label">Tutorials & Help Articles</span>
+                      <span className="st-row-label">{t("profile.support.tutorials")}</span>
                       <ChevronRight size={15} color="var(--dim)" />
                     </div>
                     <div className="st-row st-row-clickable">
-                      <span className="st-row-label">Send Feedback</span>
+                      <span className="st-row-label">{t("profile.support.feedback")}</span>
                       <ChevronRight size={15} color="var(--dim)" />
                     </div>
                   </div>
@@ -1642,11 +1645,11 @@ export default function ProfilePage() {
               {subTab === "about" && (
                 <div className="st-content">
                   <div className="st-card">
-                    <p className="st-card-title">About</p>
-                    <div className="st-row"><span className="st-row-label">Version</span><span className="st-row-value">1.0.0</span></div>
-                    <div className="st-row st-row-clickable"><span className="st-row-label">Terms of Use</span><ChevronRight size={15} color="var(--dim)" /></div>
-                    <div className="st-row st-row-clickable"><span className="st-row-label">Privacy Policy</span><ChevronRight size={15} color="var(--dim)" /></div>
-                    <div className="st-row st-row-clickable"><span className="st-row-label">Impressum</span><ChevronRight size={15} color="var(--dim)" /></div>
+                    <p className="st-card-title">{t("profile.about.title")}</p>
+                    <div className="st-row"><span className="st-row-label">{t("profile.about.version")}</span><span className="st-row-value">1.0.0</span></div>
+                    <div className="st-row st-row-clickable"><span className="st-row-label">{t("profile.about.terms")}</span><ChevronRight size={15} color="var(--dim)" /></div>
+                    <div className="st-row st-row-clickable"><span className="st-row-label">{t("profile.about.privacy")}</span><ChevronRight size={15} color="var(--dim)" /></div>
+                    <div className="st-row st-row-clickable"><span className="st-row-label">{t("profile.about.imprint")}</span><ChevronRight size={15} color="var(--dim)" /></div>
                   </div>
                 </div>
               )}
@@ -1671,14 +1674,14 @@ export default function ProfilePage() {
               }}
             >
               <p style={{ fontFamily: "var(--serif)", fontSize: 24, fontWeight: 400, color: "#e08080", marginBottom: 10 }}>
-                Delete your account?
+                {t("profile.delete.title")}
               </p>
               <p style={{ fontSize: 13, color: "var(--dim)", lineHeight: 1.6, marginBottom: 18 }}>
-                This will permanently delete your account, saved routes, and profile data. This action cannot be undone.
+                {t("profile.delete.text")}
               </p>
 
               <label style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--dim)", display: "block", marginBottom: 6 }}>
-                Type DELETE to confirm
+                {t("profile.delete.typeConfirm")}
               </label>
               <input
                 className="st-input"
@@ -1701,7 +1704,7 @@ export default function ProfilePage() {
                     letterSpacing: "0.08em", cursor: deleting ? "not-allowed" : "pointer",
                   }}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   onClick={handleDeleteAccount}
@@ -1715,7 +1718,7 @@ export default function ProfilePage() {
                     opacity: deleteConfirmText !== "DELETE" || deleting ? 0.6 : 1,
                   }}
                 >
-                  {deleting ? "Deleting…" : "Delete Account"}
+                  {deleting ? t("profile.delete.deleting") : t("profile.danger.delete")}
                 </button>
               </div>
             </div>

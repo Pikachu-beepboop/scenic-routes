@@ -871,7 +871,7 @@ function ExplorePageInner() {
         {/* NAV */}
         <nav className={`nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="nav-logo">
-          <span>EXPLORE</span>
+            <span>EXPLORE</span>
             <span>SCENIC</span>
             <span>ROUTES</span>
           </Link>
@@ -1267,8 +1267,8 @@ function ExplorePageInner() {
                     <div className="filter-section">
                       <p className="filter-section-title">{t("explore.minRating")}</p>
                       <div className="filter-stars">
-                        {[1,2,3,4,5].map((s) => (
-                          <button key={s} className={`filter-star ${s <= filters.minRating ? "active" : ""}`} onClick={() => setFilters((p) => ({...p, minRating: p.minRating === s ? 0 : s}))}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <button key={s} className={`filter-star ${s <= filters.minRating ? "active" : ""}`} onClick={() => setFilters((p) => ({ ...p, minRating: p.minRating === s ? 0 : s }))}>
                             <Star size={20} strokeWidth={1.8} fill={s <= filters.minRating ? "currentColor" : "none"} />
                           </button>
                         ))}
@@ -1338,7 +1338,7 @@ function ExplorePageInner() {
             <div className="empty-state">
               <h3>{t("explore.noRoutesFound")}</h3>
               <p>{t("explore.tryAdjusting")}</p>
-              <button className="filter-apply-btn" style={{ width:"auto", padding:"14px 28px", borderRadius:999, display:"inline-flex" }} onClick={clearAllFilters}>{t("explore.clearFilters")}</button>
+              <button className="filter-apply-btn" style={{ width: "auto", padding: "14px 28px", borderRadius: 999, display: "inline-flex" }} onClick={clearAllFilters}>{t("explore.clearFilters")}</button>
             </div>
           ) : (
             <>
@@ -1483,6 +1483,12 @@ function ExplorePageInner() {
                         onClick={() => { setLang("de"); setShowLangMenu(false); }}
                       >
                         Deutsch
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "ru" ? "active" : ""}`}
+                        onClick={() => { setLang("ru"); setShowLangMenu(false); }}
+                      >
+                        Русский
                       </button>
                     </div>
                   )}

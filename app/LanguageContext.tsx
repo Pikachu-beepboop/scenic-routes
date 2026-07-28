@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { translations, type TranslationKey } from "@/lib/translations";
 
-export type Language = "en" | "de";
+export type Language = "en" | "de" | "ru";
 
 interface LanguageContextValue {
   lang: Language;
@@ -27,7 +27,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "en" || saved === "de") {
+    if (saved === "en" || saved === "de" || saved === "ru") {
       setLangState(saved);
     }
   }, []);

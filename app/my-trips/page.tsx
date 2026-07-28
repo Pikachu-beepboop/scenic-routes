@@ -538,7 +538,7 @@ export default function MyTripsPage() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['nav.explore','/explore'],['nav.about','/about']].map(([key,h])=>(
+            {[['nav.explore', '/explore'], ['nav.about', '/about']].map(([key, h]) => (
               <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
             ))}
             {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
@@ -547,16 +547,16 @@ export default function MyTripsPage() {
             {!user && <ThemeSwitch />}
             {user ? (
               <div className="user-menu-wrap">
-                <button className="user-avatar" onClick={()=>setShowUserMenu(p=>!p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                <button className="user-avatar" onClick={() => setShowUserMenu(p => !p)}>
+                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                 </button>
                 {showUserMenu && (
                   <div className="user-dropdown">
                     <div className="ud-header">
                       <div className="ud-avatar">
-                        {avatarUrl ? <img src={avatarUrl} alt="avatar"/> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
+                        {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{minWidth:0}}>
+                      <div style={{ minWidth: 0 }}>
                         <p className="ud-name">{displayName}</p>
                         <p className="ud-email">{user.email}</p>
                         <p className="ud-role">{t("common.roleExplorer")}</p>
@@ -569,11 +569,11 @@ export default function MyTripsPage() {
                     </div>
 
                     <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}</Link>
-                      <Link href="/my-trips" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}</Link>
-                      <Link href="/explore" className="ud-link" onClick={()=>setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}</Link>
-                      <div className="ud-divider"/>
-                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{color:'#e08080'}}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}</button>
+                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}</Link>
+                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}</Link>
+                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}</Link>
+                      <div className="ud-divider" />
+                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{ color: '#e08080' }}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}</button>
                     </div>
                   </div>
                 )}
@@ -954,6 +954,12 @@ export default function MyTripsPage() {
                         onClick={() => { setLang("de"); setShowLangMenu(false); }}
                       >
                         Deutsch
+                      </button>
+                      <button
+                        className={`footer-lang-option ${lang === "ru" ? "active" : ""}`}
+                        onClick={() => { setLang("ru"); setShowLangMenu(false); }}
+                      >
+                        Русский
                       </button>
                     </div>
                   )}
