@@ -823,6 +823,21 @@ export default function HomePage() {
           .footer-top > div:first-child { grid-column:1 / -1; }
         }
 
+        /* FIX: Lücke zwischen Tablet-Breakpoint (1024px, Desktop-Bild verschwindet)
+           und Mobile-Breakpoint (680px, Mobile-Bild erscheint) — Geräte in diesem
+           Bereich (z.B. iPad Pro 11" M4 in Portrait bei 834px) zeigten im
+           "Build your route"-Bereich bisher gar kein Bild, weder Desktop- noch
+           Mobile-Variante. Zeigt hier zusätzlich das Mobile-Bild an, exakt wie im
+           mobilen Design (max-width:680px), ohne dessen Regeln zu verändern. */
+        @media (min-width:681px) and (max-width:1024px) {
+          /* Statt der rotierten Mobile-Bild-Karte: half/half Layout wie im
+             Desktop-Design (Bild links, Content rechts), nur mit etwas
+             kompakteren Innenabständen für die schmalere rechte Spalte. */
+          .builder-inner { grid-template-columns:1fr 1fr; }
+          .builder-image-bg { display:block; }
+          .builder-content { grid-column:2; padding:50px 28px; }
+        }
+
         @media (max-width:760px) {
           .popular-header { align-items:flex-start; flex-direction:column; }
           .popular-card { height:520px; border-radius:26px; }
