@@ -905,6 +905,43 @@ export default function ProfilePage() {
 
         .pp-pass-scale-wrap { }
 
+        /* Traveller Pass — locked / coming soon overlay */
+        .pp-pass-locked-wrap {
+          position:relative;
+          overflow:hidden;
+          border-radius:28px;
+          padding-bottom:36px;
+        }
+        .pp-pass-blur-layer {
+          filter:blur(10px);
+          pointer-events:none;
+          user-select:none;
+        }
+        .pp-pass-overlay {
+          position:absolute; inset:0; z-index:20;
+          display:flex; align-items:center; justify-content:center;
+          padding:24px;
+          cursor:default;
+        }
+        .pp-pass-overlay-card {
+          display:flex; flex-direction:column; align-items:center;
+          gap:10px; text-align:center;
+          padding:32px 40px;
+          background:var(--bg2);
+          border:1px solid var(--border);
+          border-radius:20px;
+          box-shadow:0 24px 60px rgba(0,0,0,0.45);
+        }
+        .light .pp-pass-overlay-card { background:#FFFFFF; }
+        .pp-pass-overlay-badge {
+          width:52px; height:52px; border-radius:50%;
+          background:rgba(201,168,106,0.14); border:1px solid rgba(201,168,106,0.35);
+          display:flex; align-items:center; justify-content:center; color:var(--gold);
+          margin-bottom:4px;
+        }
+        .pp-pass-overlay-text { font-family:var(--serif); font-size:26px; font-weight:500; color:var(--cream); letter-spacing:0.02em; }
+        .pp-pass-overlay-sub { font-size:13px; color:var(--muted); max-width:280px; line-height:1.6; }
+
         @media (max-width:760px) {
           .pp-mobile-menu-btn { display:flex; }
           .pp-mobile-subnav { display:flex; }
@@ -1506,14 +1543,36 @@ export default function ProfilePage() {
 
               {subTab === "pass" && (
                 <div className="st-content wide">
-                  <div className="pp-pass-scale-wrap">
-                    <TravellerPass
-                      username={username}
-                      email={user?.email || ""}
-                      avatarPreview={avatarPreview}
-                      initials={initials}
-                      stamps={stamps}
-                    />
+                  <div className="pp-pass-locked-wrap">
+                    <div className="pp-pass-blur-layer">
+                      <div className="pp-pass-scale-wrap">
+                        <TravellerPass
+                          username={username}
+                          email={user?.email || ""}
+                          avatarPreview={avatarPreview}
+                          initials={initials}
+                          stamps={stamps}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pp-pass-overlay">
+                      <div className="pp-pass-overlay-card">
+                        <div className="pp-pass-overlay-badge">
+                          <Award size={22} strokeWidth={1.6} />
+                        </div>
+                        <p className="pp-pass-overlay-text">
+                          {lang === "de" ? "Demnächst verfügbar" : lang === "ru" ? "Скоро будет доступно" : "Coming Soon"}
+                        </p>
+                        <p className="pp-pass-overlay-sub">
+                          {lang === "de"
+                            ? "Der Traveller Pass wird gerade vorbereitet."
+                            : lang === "ru"
+                            ? "Пропуск Путешественника находится в разработке."
+                            : "Your Traveller Pass is being prepared."}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
