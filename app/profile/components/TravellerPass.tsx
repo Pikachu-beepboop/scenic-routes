@@ -7,6 +7,9 @@ import type { Stamp } from "../types";
 const PASSPORT_PAGES = ["cover", "id", "stamps"] as const;
 type PassportPageId = typeof PASSPORT_PAGES[number];
 
+// чтобы паспорт было видно можно просто изменить на = true
+const TRAVELLER_PASS_ENABLED = false;
+
 export default function TravellerPass({ username, email, avatarPreview, initials, stamps }: {
   username: string; email: string; avatarPreview: string; initials: string; stamps: Stamp[];
 }) {
@@ -201,7 +204,7 @@ export default function TravellerPass({ username, email, avatarPreview, initials
     );
   }
 
-  return (
+  const passportContent = (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:20,width:"100%",maxWidth:540,margin:"0 auto"}}>
 
       <div style={{display:"flex",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden",background:"color-mix(in srgb, var(--bg2) 60%, transparent)"}}>
@@ -252,6 +255,79 @@ export default function TravellerPass({ username, email, avatarPreview, initials
             <div className="pp-flip-shade" />
           </div>
         )}
+      </div>
+    </div>
+  );
+
+  if (TRAVELLER_PASS_ENABLED) {
+    return passportContent;
+  }
+
+  // --- Coming-Soon-Zustand: Inhalt bleibt im DOM (Layout/Höhe bleiben
+  // erhalten), wird aber geblurrt, nicht interagierbar und mit einem
+  // zentrierten "Coming Soon"-Badge überdeckt. ---
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <div
+        aria-hidden="true"
+        style={{
+          filter: "blur(100px) saturate(70%)",
+          pointerEvents: "none",
+          userSelect: "none",
+          transform: "scale(1.01)",
+        }}
+      >
+        {passportContent}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
+            textAlign: "center",
+            maxWidth: 340,
+            padding: "36px 32px",
+            borderRadius: 16,
+            border: "1px solid var(--border)",
+            background: "color-mix(in srgb, var(--bg2) 88%, transparent)",
+            backdropFilter: "blur(6px)",
+            boxShadow: "0 24px 60px rgba(0,0,0,.45)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: ".18em",
+              textTransform: "uppercase",
+              color: "#C9A86A",
+              padding: "6px 16px",
+              border: "1px solid rgba(201,168,106,.4)",
+              borderRadius: 999,
+              background: "rgba(201,168,106,.08)",
+            }}
+          >
+            Coming Soon
+          </div>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "var(--fg)" }}>
+            Traveller Pass is on its way
+          </h3>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--dim)" }}>
+            We're putting the finishing touches on your digital passport. Check back soon.
+          </p>
+        </div>
       </div>
     </div>
   );
