@@ -1,6 +1,6 @@
 "use client";
 
-import type { Language } from "../../LanguageContext";
+import type { Language } from "../../../LanguageContext";
 
 export default function PreferencesTab({
   unit, setUnit, lang, setLang,
