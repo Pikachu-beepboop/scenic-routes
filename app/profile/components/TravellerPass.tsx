@@ -271,7 +271,7 @@ export default function TravellerPass({ username, email, avatarPreview, initials
       <div
         aria-hidden="true"
         style={{
-          filter: "blur(100px) saturate(70%)",
+          filter: "blur(25px) saturate(70%)",
           pointerEvents: "none",
           userSelect: "none",
           transform: "scale(1.01)",
