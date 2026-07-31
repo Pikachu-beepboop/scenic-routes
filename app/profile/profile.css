@@ -111,7 +111,7 @@
         .st-btn:disabled { opacity:0.6; cursor:not-allowed; }
         .st-btn-secondary { background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); }
         .st-btn-secondary:hover { background:color-mix(in srgb, var(--border) 60%, transparent); }
-        .st-btn-primary { background:var(--gold); color:#1a1404; }
+        .st-btn-primary { background:var(--gold); color:#000000; }
         .st-btn-primary:hover:not(:disabled) { background:#d8b978; transform:translateY(-1px); }
 
         .st-content { display:grid; grid-template-columns:1fr; max-width:560px; padding-left:28px; }
@@ -197,7 +197,7 @@
         .st-pass-mini-card { gap:14px; }
         .st-pass-mini-head { display:flex; align-items:center; gap:12px; }
 
-        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); margin-top: 20px; }
+        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); }
 
         @media (max-width:900px) { .st-profile-grid { grid-template-columns:1fr; } }
 
