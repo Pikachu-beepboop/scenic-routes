@@ -229,7 +229,7 @@ export const translations = {
   // Subtab-Überschriften (Titel + Untertitel im Header der Megacard)
   "profile.subtab.profile.title":         { en: "Profile",                    de: "Profil",                          ru: "Профиль" },
   "profile.subtab.profile.subtitle":      { en: "Manage your personal information.", de: "Verwalte deine persönlichen Informationen.", ru: "Управляй своей личной информацией." },
-  "profile.subtab.pass.title":            { en: "Traveller Pass",             de: "Reisepass",                       ru: "Пропуск путешественника" },
+  "profile.subtab.pass.title":            { en: "Traveller Pass",             de: "Reisepass",                       ru: "Паспорт Путешественника" },
   "profile.subtab.pass.subtitle":         { en: "Your digital passport — stamps, routes and identity.", de: "Dein digitaler Reisepass — Stempel, Routen und Identität.", ru: "Твой цифровой паспорт — штампы, маршруты и личность." },
   "profile.subtab.email.title":           { en: "Email Address",              de: "E-Mail-Adresse",                  ru: "Адрес электронной почты" },
   "profile.subtab.email.subtitle":        { en: "Manage your email address associated with your account.", de: "Verwalte die E-Mail-Adresse deines Kontos.", ru: "Управляй адресом электронной почты своего аккаунта." },
@@ -257,7 +257,7 @@ export const translations = {
   "profile.nav.passwordShort": { en: "Password", de: "Passwort",     ru: "Пароль" },
   "profile.nav.twofaShort":   { en: "2FA",       de: "2FA",           ru: "2FA" },
   "profile.nav.sessionsShort": { en: "Sessions", de: "Sitzungen",    ru: "Сеансы" },
-  "profile.nav.passShort":    { en: "Pass",      de: "Pass",          ru: "Пропуск" },
+  "profile.nav.passShort":    { en: "Pass",      de: "Pass",          ru: "Паспорт" },
   "profile.nav.notificationsShort": { en: "Notifications", de: "Benachrichtigungen", ru: "Уведомления" },
   "profile.nav.privacyShort": { en: "Privacy",   de: "Datenschutz",   ru: "Конфиденциальность" },
   "profile.nav.supportShort": { en: "Support",   de: "Support",       ru: "Поддержка" },
@@ -303,7 +303,7 @@ export const translations = {
   "profile.completion.setPreferences": { en: "Set preferences",  de: "Einstellungen festlegen", ru: "Настроить параметры" },
 
   // Traveller-Pass-Mini-Karte
-  "profile.passMini.title": { en: "Traveller Pass",                   de: "Reisepass",                    ru: "Пропуск путешественника" },
+  "profile.passMini.title": { en: "Traveller Pass",                   de: "Reisepass",                    ru: "Паспорт Путешественника" },
   "profile.passMini.sub":   { en: "Your passport to explore the world.", de: "Dein Pass, um die Welt zu entdecken.", ru: "Твой паспорт для путешествий по миру." },
   "profile.passMini.active": { en: "Active",                          de: "Aktiv",                        ru: "Активен" },
   "profile.passMini.view":  { en: "View My Passport",                 de: "Meinen Pass ansehen",          ru: "Посмотреть мой паспорт" },

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Stamp } from "../types";
+import { useLanguage } from "../../LanguageContext";
 
 const PASSPORT_PAGES = ["cover", "id", "stamps"] as const;
 type PassportPageId = typeof PASSPORT_PAGES[number];
@@ -17,6 +18,7 @@ export default function TravellerPass({ username, email, avatarPreview, initials
   const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [direction, setDirection] = useState<"fwd" | "back">("fwd");
   const [flipping, setFlipping] = useState(false);
+  const { lang } = useLanguage();
 
   const page = PASSPORT_PAGES[pageIndex];
 
@@ -266,6 +268,25 @@ export default function TravellerPass({ username, email, avatarPreview, initials
   // --- Coming-Soon-Zustand: Inhalt bleibt im DOM (Layout/Höhe bleiben
   // erhalten), wird aber geblurrt, nicht interagierbar und mit einem
   // zentrierten "Coming Soon"-Badge überdeckt. ---
+  const comingSoonTexts = {
+    en: {
+      badge: "Coming Soon",
+      title: "Traveller Pass is on its way",
+      text: "We're putting the finishing touches on your digital passport. Check back soon.",
+    },
+    de: {
+      badge: "Bald verfügbar",
+      title: "Dein Traveller Pass ist bald da",
+      text: "Wir legen letzte Hand an dein digitales Reisepass an. Schau bald wieder vorbei.",
+    },
+    ru: {
+      badge: "Скоро",
+      title: "Паспорт Путешественника уже в пути",
+      text: "Мы вносим последние штрихи в ваш цифровой паспорт. Загляните позже.",
+    },
+  } as const;
+  const cs = comingSoonTexts[lang] ?? comingSoonTexts.en;
+
   return (
     <div style={{ position: "relative", width: "100%" }}>
       <div
@@ -319,13 +340,13 @@ export default function TravellerPass({ username, email, avatarPreview, initials
               background: "rgba(201,168,106,.08)",
             }}
           >
-            Coming Soon
+            {cs.badge}
           </div>
           <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "var(--fg)" }}>
-            Traveller Pass is on its way
+            {cs.title}
           </h3>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--dim)" }}>
-            We're putting the finishing touches on your digital passport. Check back soon.
+            {cs.text}
           </p>
         </div>
       </div>
