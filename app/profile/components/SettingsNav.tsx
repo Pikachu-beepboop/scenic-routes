@@ -4,52 +4,8 @@ import {
   User, Settings as SettingsIcon, Mail, Lock, Smartphone, Monitor,
   Award, Bell, ShieldCheck, LifeBuoy, Info, Map, LogOut, ChevronDown,
 } from "lucide-react";
+import { useLanguage } from "../../LanguageContext";
 import type { SubTabId } from "../types";
-
-const MOBILE_TABS = [
-  { id: "profile" as const,       label: "Profile",       icon: <User size={13} strokeWidth={1.8} /> },
-  { id: "preferences" as const,   label: "Preferences",   icon: <SettingsIcon size={13} strokeWidth={1.8} /> },
-  { id: "email" as const,         label: "Email",         icon: <Mail size={13} strokeWidth={1.8} /> },
-  { id: "password" as const,      label: "Password",      icon: <Lock size={13} strokeWidth={1.8} /> },
-  { id: "twofa" as const,         label: "2FA",            icon: <Smartphone size={13} strokeWidth={1.8} /> },
-  { id: "sessions" as const,      label: "Sessions",       icon: <Monitor size={13} strokeWidth={1.8} /> },
-  { id: "pass" as const,          label: "Pass",           icon: <Award size={13} strokeWidth={1.8} /> },
-  { id: "notifications" as const, label: "Notifications", icon: <Bell size={13} strokeWidth={1.8} /> },
-  { id: "privacy" as const,       label: "Privacy",        icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
-  { id: "support" as const,       label: "Support",        icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
-  { id: "about" as const,         label: "About",          icon: <Info size={13} strokeWidth={1.8} /> },
-];
-
-const NAV_GROUPS = [
-  {
-    id: "account",
-    label: "Account",
-    icon: <User size={15} strokeWidth={1.8} />,
-    items: [
-      { id: "profile" as const,     label: "Profile" },
-      { id: "preferences" as const, label: "Preferences" },
-    ],
-  },
-  {
-    id: "security",
-    label: "Security",
-    icon: <ShieldCheck size={15} strokeWidth={1.8} />,
-    items: [
-      { id: "email" as const,    label: "Email Address" },
-      { id: "password" as const, label: "Password" },
-      { id: "twofa" as const,    label: "Two-Factor Authentication" },
-      { id: "sessions" as const, label: "Sessions" },
-    ],
-  },
-];
-
-const MORE_ITEMS = [
-  { id: "pass" as const,          label: "Traveller Pass",     icon: <Award size={15} strokeWidth={1.8} /> },
-  { id: "notifications" as const, label: "Notifications",      icon: <Bell size={15} strokeWidth={1.8} /> },
-  { id: "privacy" as const,       label: "Privacy",             icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
-  { id: "support" as const,       label: "Support & Feedback", icon: <LifeBuoy size={15} strokeWidth={1.8} /> },
-  { id: "about" as const,         label: "About",              icon: <Info size={15} strokeWidth={1.8} /> },
-];
 
 export default function SettingsNav({
   subTab, setSubTab,
@@ -63,6 +19,55 @@ export default function SettingsNav({
   onNavigateTrips: () => void;
   handleLogout: () => void;
 }) {
+  const { t } = useLanguage();
+
+  // Diese Arrays greifen auf t() zu und müssen daher innerhalb der
+  // Komponente (nach jedem Sprachwechsel neu) gebaut werden.
+  const MOBILE_TABS = [
+    { id: "profile" as const,       label: t("profile.subtab.profile.title"), icon: <User size={13} strokeWidth={1.8} /> },
+    { id: "preferences" as const,   label: t("prefs.title"),                  icon: <SettingsIcon size={13} strokeWidth={1.8} /> },
+    { id: "email" as const,         label: t("profile.nav.emailShort"),       icon: <Mail size={13} strokeWidth={1.8} /> },
+    { id: "password" as const,      label: t("profile.nav.passwordShort"),    icon: <Lock size={13} strokeWidth={1.8} /> },
+    { id: "twofa" as const,         label: t("profile.nav.twofaShort"),       icon: <Smartphone size={13} strokeWidth={1.8} /> },
+    { id: "sessions" as const,      label: t("profile.nav.sessionsShort"),    icon: <Monitor size={13} strokeWidth={1.8} /> },
+    { id: "pass" as const,          label: t("profile.nav.passShort"),        icon: <Award size={13} strokeWidth={1.8} /> },
+    { id: "notifications" as const, label: t("profile.nav.notificationsShort"), icon: <Bell size={13} strokeWidth={1.8} /> },
+    { id: "privacy" as const,       label: t("profile.nav.privacyShort"),     icon: <ShieldCheck size={13} strokeWidth={1.8} /> },
+    { id: "support" as const,       label: t("profile.nav.supportShort"),     icon: <LifeBuoy size={13} strokeWidth={1.8} /> },
+    { id: "about" as const,         label: t("profile.nav.aboutShort"),       icon: <Info size={13} strokeWidth={1.8} /> },
+  ];
+
+  const NAV_GROUPS = [
+    {
+      id: "account",
+      label: t("profile.nav.account"),
+      icon: <User size={15} strokeWidth={1.8} />,
+      items: [
+        { id: "profile" as const,     label: t("profile.subtab.profile.title") },
+        { id: "preferences" as const, label: t("prefs.title") },
+      ],
+    },
+    {
+      id: "security",
+      label: t("profile.nav.security"),
+      icon: <ShieldCheck size={15} strokeWidth={1.8} />,
+      items: [
+        { id: "email" as const,    label: t("profile.subtab.email.title") },
+        { id: "password" as const, label: t("profile.subtab.password.title") },
+        { id: "twofa" as const,    label: t("profile.subtab.twofa.title") },
+        { id: "sessions" as const, label: t("profile.subtab.sessions.title") },
+      ],
+    },
+  ];
+
+  const MORE_ITEMS = [
+    { id: "pass" as const,          label: t("profile.subtab.pass.title"),          icon: <Award size={15} strokeWidth={1.8} /> },
+    { id: "notifications" as const, label: t("profile.subtab.notifications.title"), icon: <Bell size={15} strokeWidth={1.8} /> },
+    { id: "privacy" as const,       label: t("profile.subtab.privacy.title"),       icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
+    { id: "support" as const,       label: t("profile.subtab.support.title"),       icon: <LifeBuoy size={15} strokeWidth={1.8} /> },
+    { id: "about" as const,         label: t("profile.subtab.about.title"),         icon: <Info size={15} strokeWidth={1.8} /> },
+  ];
+
   return (
     <>
       {/* Horizontal scrollable tab strip — mobile only */}
@@ -80,7 +85,7 @@ export default function SettingsNav({
 
       {/* Vertical grouped sidebar — desktop only */}
       <div className="st-subnav">
-        <p className="st-subnav-label">Settings</p>
+        <p className="st-subnav-label">{t("profile.nav.settings")}</p>
 
         {NAV_GROUPS.map((group) => {
           const isOpen = group.id === "account" ? accountGroupOpen : securityGroupOpen;
@@ -126,10 +131,10 @@ export default function SettingsNav({
         <div className="st-subnav-divider" />
 
         <button className="st-subnav-item" onClick={onNavigateTrips}>
-          <Map size={15} strokeWidth={1.8} /> My Trips
+          <Map size={15} strokeWidth={1.8} /> {t("profile.nav.myTrips")}
         </button>
         <button className="st-subnav-logout" onClick={handleLogout}>
-          <LogOut size={15} strokeWidth={1.8} /> Sign Out
+          <LogOut size={15} strokeWidth={1.8} /> {t("nav.signOut")}
         </button>
       </div>
     </>

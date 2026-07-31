@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "../../LanguageContext";
+
 export default function DeleteAccountModal({
   show, setShow, deleteConfirmText, setDeleteConfirmText,
   deleteError, deleting, handleDeleteAccount,
@@ -8,6 +10,8 @@ export default function DeleteAccountModal({
   deleteConfirmText: string; setDeleteConfirmText: (v: string) => void;
   deleteError: string; deleting: boolean; handleDeleteAccount: () => void;
 }) {
+  const { t } = useLanguage();
+
   if (!show) return null;
 
   return (
@@ -25,14 +29,14 @@ export default function DeleteAccountModal({
         }}
       >
         <p style={{ fontFamily: "var(--serif)", fontSize: 24, fontWeight: 400, color: "#e08080", marginBottom: 10 }}>
-          Delete your account?
+          {t("profile.delete.title")}
         </p>
         <p style={{ fontSize: 13, color: "var(--dim)", lineHeight: 1.6, marginBottom: 18 }}>
-          This will permanently delete your account, saved routes, and profile data. This action cannot be undone.
+          {t("profile.delete.text")}
         </p>
 
         <label style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--dim)", display: "block", marginBottom: 6 }}>
-          Type DELETE to confirm
+          {t("profile.delete.typeConfirm")}
         </label>
         <input
           className="st-input"
@@ -55,7 +59,7 @@ export default function DeleteAccountModal({
               letterSpacing: "0.08em", cursor: deleting ? "not-allowed" : "pointer",
             }}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleDeleteAccount}
@@ -69,7 +73,7 @@ export default function DeleteAccountModal({
               opacity: deleteConfirmText !== "DELETE" || deleting ? 0.6 : 1,
             }}
           >
-            {deleting ? "Deleting…" : "Delete Account"}
+            {deleting ? t("profile.delete.deleting") : t("profile.danger.delete")}
           </button>
         </div>
       </div>

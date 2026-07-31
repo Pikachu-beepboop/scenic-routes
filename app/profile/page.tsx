@@ -34,20 +34,6 @@ import PrivacyTab from "./components/tabs/PrivacyTab";
 import SupportTab from "./components/tabs/SupportTab";
 import AboutTab from "./components/tabs/AboutTab";
 
-const SUBTAB_META: Record<string, { title: string; subtitle: string; icon: ReactNode }> = {
-  profile:       { title: "Profile",             subtitle: "Manage your personal information.",                    icon: <User size={20} strokeWidth={1.8} /> },
-  pass:          { title: "Traveller Pass",      subtitle: "Your digital passport — stamps, routes and identity.", icon: <Award size={20} strokeWidth={1.8} /> },
-  preferences:   { title: "Preferences",         subtitle: "Units, language, map style and recommendations.",      icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
-  email:         { title: "Email Address",       subtitle: "Manage your email address associated with your account.", icon: <Mail size={20} strokeWidth={1.8} /> },
-  password:      { title: "Password",            subtitle: "Change the password used to sign in.",                 icon: <Lock size={20} strokeWidth={1.8} /> },
-  twofa:         { title: "Two-Factor Authentication", subtitle: "Add an extra layer of security to your account.", icon: <Smartphone size={20} strokeWidth={1.8} /> },
-  sessions:      { title: "Sessions",            subtitle: "See where you're signed in and manage active sessions.", icon: <Monitor size={20} strokeWidth={1.8} /> },
-  notifications: { title: "Notifications",       subtitle: "Choose what you want to be notified about.",           icon: <Bell size={20} strokeWidth={1.8} /> },
-  privacy:       { title: "Privacy",              subtitle: "Control your visibility and data.",                    icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
-  support:       { title: "Support & Feedback",  subtitle: "Get help or send us your feedback.",                   icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
-  about:         { title: "About",               subtitle: "Version, legal and app information.",                  icon: <Info size={20} strokeWidth={1.8} /> },
-};
-
 export default function ProfilePage() {
   const [user, setUser]                   = useState<any>(null);
   const [loading, setLoading]             = useState(true);
@@ -129,8 +115,25 @@ export default function ProfilePage() {
 
   const { theme } = useTheme();
   const { unit, setUnit } = useUnit();
-  const { lang, setLang } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   const [mounted, setMounted] = useState(false);
+
+  // Subtab-Metadaten (Titel/Untertitel im Header der Megacard) — greifen auf
+  // t() zu, müssen also in der Komponente gebaut werden, damit sie bei einem
+  // Sprachwechsel automatisch neu übersetzt werden.
+  const SUBTAB_META: Record<SubTabId, { title: string; subtitle: string; icon: ReactNode }> = {
+    profile:       { title: t("profile.subtab.profile.title"),       subtitle: t("profile.subtab.profile.subtitle"),       icon: <User size={20} strokeWidth={1.8} /> },
+    pass:          { title: t("profile.subtab.pass.title"),          subtitle: t("profile.subtab.pass.subtitle"),          icon: <Award size={20} strokeWidth={1.8} /> },
+    preferences:   { title: t("prefs.title"),                        subtitle: t("prefs.subtitle"),                        icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
+    email:         { title: t("profile.subtab.email.title"),         subtitle: t("profile.subtab.email.subtitle"),         icon: <Mail size={20} strokeWidth={1.8} /> },
+    password:      { title: t("profile.subtab.password.title"),      subtitle: t("profile.subtab.password.subtitle"),      icon: <Lock size={20} strokeWidth={1.8} /> },
+    twofa:         { title: t("profile.subtab.twofa.title"),         subtitle: t("profile.subtab.twofa.subtitle"),         icon: <Smartphone size={20} strokeWidth={1.8} /> },
+    sessions:      { title: t("profile.subtab.sessions.title"),      subtitle: t("profile.subtab.sessions.subtitle"),      icon: <Monitor size={20} strokeWidth={1.8} /> },
+    notifications: { title: t("profile.subtab.notifications.title"), subtitle: t("profile.subtab.notifications.subtitle"), icon: <Bell size={20} strokeWidth={1.8} /> },
+    privacy:       { title: t("profile.subtab.privacy.title"),       subtitle: t("profile.subtab.privacy.subtitle"),       icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
+    support:       { title: t("profile.subtab.support.title"),       subtitle: t("profile.subtab.support.subtitle"),       icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
+    about:         { title: t("profile.subtab.about.title"),         subtitle: t("profile.subtab.about.subtitle"),         icon: <Info size={20} strokeWidth={1.8} /> },
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -399,9 +402,9 @@ export default function ProfilePage() {
           <span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span>
         </Link>
         <div className="pp-nav-links">
-          <Link href="/explore"  className="pp-nav-link">Explore Routes</Link>
-          <Link href="/about"    className="pp-nav-link">About</Link>
-          <Link href="/my-trips" className="pp-nav-link">My Trips</Link>
+          <Link href="/explore"  className="pp-nav-link">{t("nav.explore")}</Link>
+          <Link href="/about"    className="pp-nav-link">{t("nav.about")}</Link>
+          <Link href="/my-trips" className="pp-nav-link">{t("nav.myTrips")}</Link>
         </div>
         <div className="pp-nav-right">
           <ThemeSwitch />
@@ -441,7 +444,7 @@ export default function ProfilePage() {
               </div>
               {subTab === "profile" && (
                 <button className="st-save-btn" disabled={saving} onClick={handleSaveProfile}>
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? t("common.saving") : t("common.saveChanges")}
                 </button>
               )}
             </div>

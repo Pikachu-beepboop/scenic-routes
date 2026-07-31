@@ -1,14 +1,18 @@
 "use client";
 
+import { useLanguage } from "../../../LanguageContext";
+
 export default function TwoFATab() {
+  const { t } = useLanguage();
+
   return (
     <div className="st-content">
       <div className="st-card">
-        <p className="st-card-title">Two-Factor Authentication</p>
+        <p className="st-card-title">{t("profile.twofa.title")}</p>
         <div className="st-row">
           <div>
-            <p className="st-row-label">Authenticator App</p>
-            <p className="st-row-sub">Coming soon — we're working on adding two-factor authentication.</p>
+            <p className="st-row-label">{t("profile.twofa.app")}</p>
+            <p className="st-row-sub">{t("profile.twofa.comingSoon")}</p>
           </div>
           <button className="st-toggle" disabled style={{ opacity: 0.4, cursor: "not-allowed" }}>
             <span className="st-toggle-knob" />

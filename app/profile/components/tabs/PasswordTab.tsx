@@ -1,6 +1,7 @@
 "use client";
 
 import { Lock } from "lucide-react";
+import { useLanguage } from "../../../LanguageContext";
 
 export default function PasswordTab({
   newPassword, setNewPassword,
@@ -15,17 +16,19 @@ export default function PasswordTab({
   passwordSuccess: string; setPasswordSuccess: (v: string) => void;
   passwordSaving: boolean; handleChangePassword: () => void;
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="st-content">
       <div className="st-card">
-        <p className="st-card-title">Change Password</p>
+        <p className="st-card-title">{t("profile.password.title")}</p>
         <div className="st-field">
-          <label className="st-field-label">New Password</label>
-          <input className="st-input" type="password" placeholder="Enter a new password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+          <label className="st-field-label">{t("profile.password.new")}</label>
+          <input className="st-input" type="password" placeholder={t("profile.password.newPh")} value={newPassword} onChange={e => setNewPassword(e.target.value)} />
         </div>
         <div className="st-field">
-          <label className="st-field-label">Confirm New Password</label>
-          <input className="st-input" type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+          <label className="st-field-label">{t("profile.password.confirm")}</label>
+          <input className="st-input" type="password" placeholder={t("profile.password.confirmPh")} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
         </div>
 
         {passwordError   && <p className="st-error">{passwordError}</p>}
@@ -36,10 +39,10 @@ export default function PasswordTab({
             className="st-btn st-btn-secondary"
             onClick={() => { setNewPassword(""); setConfirmPassword(""); setPasswordError(""); setPasswordSuccess(""); }}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="st-btn st-btn-primary" disabled={passwordSaving} onClick={handleChangePassword}>
-            <Lock size={13} strokeWidth={2} /> {passwordSaving ? "Saving..." : "Change Password"}
+            <Lock size={13} strokeWidth={2} /> {passwordSaving ? t("profile.password.saving") : t("profile.password.change")}
           </button>
         </div>
       </div>
