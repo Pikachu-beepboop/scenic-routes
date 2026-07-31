@@ -771,7 +771,7 @@ export default function ProfilePage() {
         .st-info-banner { display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-radius:10px; background:color-mix(in srgb, var(--border) 30%, transparent); border:1px solid var(--border); font-size:12px; color:var(--dim); line-height:1.5; }
         .st-info-banner svg { flex-shrink:0; margin-top:1px; color:var(--gold); }
 
-        .st-action-row { display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
+        .st-action-row { display:flex; justify-content:flex-end; gap:10px; margin-top:10px; }
         .st-btn { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:10px; font-size:12px; font-weight:700; letter-spacing:0.02em; transition:all .2s; }
         .st-btn:disabled { opacity:0.6; cursor:not-allowed; }
         .st-btn-secondary { background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); }
@@ -781,7 +781,7 @@ export default function ProfilePage() {
 
         .st-content { display:grid; grid-template-columns:1fr; max-width:560px; padding-left:28px; }
         .st-content.wide { max-width:none; padding-left:28px; }
-        .st-card { background:none; border:none; border-radius:0; padding:0; display:flex; flex-direction:column; gap:16px; }
+        .st-card { background:none; border:none; border-radius:0; padding:0; display:flex; flex-direction:column; gap:14px; }
         .st-card-title { font-size:9px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
 
         .st-profile-head { display:flex; align-items:center; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--border); position:relative; }
@@ -862,7 +862,7 @@ export default function ProfilePage() {
         .st-pass-mini-card { gap:14px; }
         .st-pass-mini-head { display:flex; align-items:center; gap:12px; }
 
-        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); }
+        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); margin-bottom: 24px; margin-top: 20px; }
 
         @media (max-width:900px) { .st-profile-grid { grid-template-columns:1fr; } }
 
@@ -913,7 +913,7 @@ export default function ProfilePage() {
           padding-bottom:36px;
         }
         .pp-pass-blur-layer {
-          filter:blur(10px);
+          filter:blur(1000px);
           pointer-events:none;
           user-select:none;
         }
@@ -1361,6 +1361,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
+                         {/*}
                       <div className="st-card st-subcard st-pass-mini-card">
                         <div className="st-pass-mini-head">
                           <div className="st-header-icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Award size={17} strokeWidth={1.8} /></div>
@@ -1374,8 +1375,11 @@ export default function ProfilePage() {
                           {t("profile.passMini.view")} <ChevronRight size={14} />
                         </button>
                       </div>
+                      */}
+
                     </div>
                   </div>
+                  
 
                   <div className="st-danger-banner">
                     <AlertTriangle size={18} strokeWidth={1.8} color="#e08080" />
