@@ -193,7 +193,7 @@ export default function ProfileTab({
               ))}
             </div>
           </div>
-
+              {/*}
           <div className="st-card st-subcard st-pass-mini-card">
             <div className="st-pass-mini-head">
               <div className="st-header-icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Award size={17} strokeWidth={1.8} /></div>
@@ -207,6 +207,7 @@ export default function ProfileTab({
               {t("profile.passMini.view")} <ChevronRight size={14} />
             </button>
           </div>
+          */}
         </div>
       </div>
 
