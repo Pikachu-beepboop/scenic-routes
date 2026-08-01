@@ -148,6 +148,21 @@
         .st-row-value { font-size:12px; color:var(--dim); display:flex; align-items:center; gap:6px; flex-shrink:0; }
         .st-row-clickable { cursor:pointer; transition:opacity .2s; text-decoration:none; color:inherit; }
         .st-row-clickable:hover { opacity:0.7; }
+
+        .st-accordion { border-bottom:1px solid var(--border); }
+        .st-accordion:last-child { border-bottom:none; }
+        .st-accordion .st-row { border-bottom:none; }
+        button.st-accordion-trigger { width:100%; text-align:left; background:none; }
+        .st-chevron { transition:transform .2s; flex-shrink:0; }
+        .st-chevron-open { transform:rotate(90deg); }
+        .st-accordion-panel { padding:0 0 16px; animation:st-accordion-in .18s ease; }
+        @keyframes st-accordion-in { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+        .st-faq-item { margin-bottom:14px; }
+        .st-faq-item:last-child { margin-bottom:0; }
+        .st-faq-q { font-size:12.5px; font-weight:700; color:var(--cream); margin:0 0 4px; }
+        .st-faq-a { font-size:12.5px; color:var(--muted); line-height:1.6; margin:0; }
+        .st-contact-email { display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; font-weight:600; color:var(--gold); text-decoration:none; }
+        .st-contact-email:hover { text-decoration:underline; }
         .st-row-danger .st-row-label { color:#e08080; }
         .st-select { background:none; border:none; font:inherit; font-size:12px; color:var(--dim); cursor:pointer; }
 

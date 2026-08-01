@@ -29,3 +29,11 @@ export function isTabHidden(id: SubTabId): boolean {
  */
 export const HIDE_UNFINISHED_PREFERENCES = true;
 
+/**
+ * "Tutorials & Help Articles" hat noch keine Zielseite/Inhalte.
+ * Bis das steht, bleibt die Zeile in Support & Feedback ausgeblendet.
+ *
+ * Wieder einblenden: einfach auf `false` setzen.
+ */
+export const HIDE_TUTORIALS_ROW = true;
+
