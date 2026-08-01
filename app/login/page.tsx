@@ -404,6 +404,7 @@ function LoginPageInner() {
         {/* NAV */}
         <nav className={`lp-nav ${navScrolled ? "scrolled" : ""}`}>
           <Link href="/" className="lp-nav-logo">
+            <span>EXPLORE</span>
             <span>SCENIC</span>
             <span>ROUTES</span>
           </Link>
