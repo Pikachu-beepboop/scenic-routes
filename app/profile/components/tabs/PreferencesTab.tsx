@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage, type Language } from "../../../LanguageContext";
+import { HIDE_UNFINISHED_PREFERENCES } from "../../betaConfig";
 
 export default function PreferencesTab({
   unit, setUnit, lang, setLang,
@@ -31,20 +32,24 @@ export default function PreferencesTab({
             <option value="ru">Русский</option>
           </select>
         </div>
-        <div className="st-row">
-          <span className="st-row-label">{t("prefs.startPage")}</span>
-          <select className="st-select" defaultValue="explore">
-            <option value="explore">{t("nav.explore")}</option>
-            <option value="trips">{t("nav.myTrips")}</option>
-          </select>
-        </div>
-        <div className="st-row">
-          <span className="st-row-label">{t("prefs.mapStyle")}</span>
-          <select className="st-select" defaultValue="scenic">
-            <option value="scenic">{t("prefs.scenic")}</option>
-            <option value="satellite">{t("prefs.satellite")}</option>
-          </select>
-        </div>
+        {!HIDE_UNFINISHED_PREFERENCES && (
+          <>
+            <div className="st-row">
+              <span className="st-row-label">{t("prefs.startPage")}</span>
+              <select className="st-select" defaultValue="explore">
+                <option value="explore">{t("nav.explore")}</option>
+                <option value="trips">{t("nav.myTrips")}</option>
+              </select>
+            </div>
+            <div className="st-row">
+              <span className="st-row-label">{t("prefs.mapStyle")}</span>
+              <select className="st-select" defaultValue="scenic">
+                <option value="scenic">{t("prefs.scenic")}</option>
+                <option value="satellite">{t("prefs.satellite")}</option>
+              </select>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

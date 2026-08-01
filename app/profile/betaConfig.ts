@@ -19,3 +19,13 @@ export const HIDDEN_TABS: SubTabId[] = [
 export function isTabHidden(id: SubTabId): boolean {
   return HIDDEN_TABS.includes(id);
 }
+
+/**
+ * Diese beiden Preferences-Felder sind (noch) nicht mit echtem
+ * State/Speicherung verbunden (rein optisch). Bis sie fertig
+ * verdrahtet sind, bleiben sie in der Testversion ausgeblendet.
+ *
+ * Wieder einblenden: einfach auf `false` setzen.
+ */
+export const HIDE_UNFINISHED_PREFERENCES = true;
+
