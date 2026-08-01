@@ -212,7 +212,7 @@
         .st-pass-mini-card { gap:14px; }
         .st-pass-mini-head { display:flex; align-items:center; gap:12px; }
 
-        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); }
+        .st-danger-banner { display:flex; align-items:flex-start; gap:14px; padding:18px 20px; border-radius:16px; background:rgba(224,128,128,0.06); border:1px solid rgba(224,128,128,0.28); margin-top:20px; }
 
         @media (max-width:900px) { .st-profile-grid { grid-template-columns:1fr; } }
 
