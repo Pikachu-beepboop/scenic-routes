@@ -141,19 +141,23 @@ const FOOTER_COLUMNS = [
     id: "support",
     headingKey: "footer.col.support" as const,
     links: [
-      { key: "footer.link.faq" as const, href: "#", protected: false },
-      { key: "footer.link.contact" as const, href: "#", protected: false },
-      { key: "footer.link.reportProblem" as const, href: "#", protected: false },
-      { key: "footer.link.reportRouteIssue" as const, href: "#", protected: false },
+      // FAQ, Contact und Report Route Issue führen alle zur öffentlichen
+      // /support-Seite (kein Login nötig) — die denselben Support-Inhalt
+      // zeigt wie der "support"-Tab auf der Profile-Page, aber ohne
+      // Login-Zwang. Es gibt dort keine eigenen Anker pro Punkt, daher
+      // führen alle drei Links auf dieselbe Seite.
+      { key: "footer.link.faq" as const, href: "/support", protected: false },
+      { key: "footer.link.contact" as const, href: "/support", protected: false },
+      { key: "footer.link.reportRouteIssue" as const, href: "/support", protected: false },
     ],
   },
   {
     id: "legal",
     headingKey: "footer.col.legal" as const,
     links: [
-      { key: "footer.link.termsOfUse" as const, href: "#", protected: false },
-      { key: "footer.link.privacyPolicy" as const, href: "#", protected: false },
-      { key: "footer.link.imprint" as const, href: "#", protected: false },
+      { key: "footer.link.termsOfUse" as const, href: "/legal/terms", protected: false },
+      { key: "footer.link.privacyPolicy" as const, href: "/legal/privacy", protected: false },
+      { key: "footer.link.imprint" as const, href: "/legal/imprint", protected: false },
     ],
   },
 ];
@@ -1464,9 +1468,9 @@ export default function HomePage() {
                     <div className={`footer-col-links ${isOpen ? "open" : ""}`}>
                       <div style={{ paddingTop: 14 }}>
                         {links.map(({ key, href, protected: isProtected }) => {
-                          // Geschützte Links (My Trips, Profile, Traveller Pass) gehen
-                          // ohne Session erst zum Login, mit redirect zurück zum Ziel —
-                          // gleiches Verhalten wie in der Navbar (loginHref).
+                          // Geschützte Links (My Trips, Profile, Traveller Pass, Support)
+                          // gehen ohne Session erst zum Login, mit redirect zurück zum
+                          // Ziel — gleiches Verhalten wie in der Navbar (loginHref).
                           const finalHref =
                             isProtected && !user
                               ? `/login?redirect=${encodeURIComponent(href)}`

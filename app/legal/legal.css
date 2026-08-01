@@ -36,6 +36,13 @@
   color: var(--gold, #C9A86A);
   text-decoration: none;
   margin-bottom: 28px;
+  /* NEU: Button-Reset, da .lp-back jetzt ein <button> statt ein <a> ist
+     (für die dynamische Zurück-Navigation via router.back()) */
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 .lp-back:hover { text-decoration: underline; }
 
