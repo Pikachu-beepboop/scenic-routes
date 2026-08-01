@@ -67,12 +67,6 @@ export default function EmailTab({
         </div>
 
         <div className="st-action-row">
-          <button
-            className="st-btn st-btn-secondary"
-            onClick={() => { setNewEmailInput(""); setConfirmEmailPassword(""); setEmailError(""); setEmailSuccess(""); }}
-          >
-            {t("common.cancel")}
-          </button>
           <button className="st-btn st-btn-primary" disabled={emailSaving} onClick={handleChangeEmail}>
             <Mail size={13} strokeWidth={2} /> {emailSaving ? t("profile.email.sending") : t("profile.email.change")}
           </button>

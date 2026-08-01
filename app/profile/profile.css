@@ -109,10 +109,10 @@
         .st-action-row { display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
         .st-btn { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:10px; font-size:12px; font-weight:700; letter-spacing:0.02em; transition:all .2s; }
         .st-btn:disabled { opacity:0.6; cursor:not-allowed; }
-        .st-btn-secondary { background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); }
-        .st-btn-secondary:hover { background:color-mix(in srgb, var(--border) 60%, transparent); }
-        .st-btn-primary { background:var(--gold); color:#000000; }
-        .st-btn-primary:hover:not(:disabled) { background:#d8b978; transform:translateY(-1px); }
+        button.st-btn-secondary { background:color-mix(in srgb, var(--border) 40%, transparent); color:var(--cream); }
+        button.st-btn-secondary:hover { background:color-mix(in srgb, var(--border) 60%, transparent); }
+        button.st-btn-primary { background:none; color:var(--gold); }
+        button.st-btn-primary:hover:not(:disabled) { background:var(--gold); color:#1a1404; transform:translateY(-1px); }
 
         .st-content { display:grid; grid-template-columns:1fr; max-width:560px; padding-left:28px; }
         .st-content.wide { max-width:none; padding-left:28px; }

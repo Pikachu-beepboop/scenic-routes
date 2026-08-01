@@ -35,12 +35,6 @@ export default function PasswordTab({
         {passwordSuccess && <p className="st-success">{passwordSuccess}</p>}
 
         <div className="st-action-row">
-          <button
-            className="st-btn st-btn-secondary"
-            onClick={() => { setNewPassword(""); setConfirmPassword(""); setPasswordError(""); setPasswordSuccess(""); }}
-          >
-            {t("common.cancel")}
-          </button>
           <button className="st-btn st-btn-primary" disabled={passwordSaving} onClick={handleChangePassword}>
             <Lock size={13} strokeWidth={2} /> {passwordSaving ? t("profile.password.saving") : t("profile.password.change")}
           </button>

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../LanguageContext";
 import type { SubTabId } from "../types";
+import { isTabHidden } from "../betaConfig";
 
 export default function SettingsNav({
   subTab, setSubTab,
@@ -72,7 +73,7 @@ export default function SettingsNav({
     <>
       {/* Horizontal scrollable tab strip — mobile only */}
       <div className="pp-mobile-subnav mobile-only">
-        {MOBILE_TABS.map(({ id, label, icon }) => (
+        {MOBILE_TABS.filter(({ id }) => !isTabHidden(id)).map(({ id, label, icon }) => (
           <button
             key={id}
             className={`pp-mobile-subnav-item ${subTab === id ? "active" : ""}`}
@@ -101,7 +102,7 @@ export default function SettingsNav({
               </button>
               {isOpen && (
                 <div className="st-subnav-sub">
-                  {group.items.map((item) => (
+                  {group.items.filter((item) => !isTabHidden(item.id)).map((item) => (
                     <button
                       key={item.id}
                       className={`st-subnav-item st-subnav-item-sub ${subTab === item.id ? "active" : ""}`}
@@ -118,7 +119,7 @@ export default function SettingsNav({
 
         <div className="st-subnav-divider" />
 
-        {MORE_ITEMS.map(({ id, label, icon }) => (
+        {MORE_ITEMS.filter(({ id }) => !isTabHidden(id)).map(({ id, label, icon }) => (
           <button
             key={id}
             className={`st-subnav-item ${subTab === id ? "active" : ""}`}

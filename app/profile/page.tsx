@@ -442,11 +442,6 @@ export default function ProfilePage() {
                   <p className="st-subtitle">{meta.subtitle}</p>
                 </div>
               </div>
-              {subTab === "profile" && (
-                <button className="st-save-btn" disabled={saving} onClick={handleSaveProfile}>
-                  {saving ? t("common.saving") : t("common.saveChanges")}
-                </button>
-              )}
             </div>
 
             <div className="st-body">

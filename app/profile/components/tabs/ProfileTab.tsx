@@ -227,12 +227,6 @@ export default function ProfileTab({
       </div>
 
       <div className="st-action-row">
-        <button
-          className="st-btn st-btn-secondary"
-          onClick={() => { setDisplayName(username); setAboutYou(""); setCountry(""); setTimezone("UTC+0"); }}
-        >
-          {t("common.cancel")}
-        </button>
         <button className="st-btn st-btn-primary" disabled={saving} onClick={handleSaveProfile}>
           {saving ? t("common.saving") : t("common.saveChanges")}
         </button>

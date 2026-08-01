@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../LanguageContext";
 import type { SubTabId } from "../types";
+import { isTabHidden } from "../betaConfig";
 
 export default function MobileNavDrawer({
   open, onClose, avatarPreview, initials, username, user,
@@ -105,7 +106,7 @@ export default function MobileNavDrawer({
             ))}
 
             <p className="pp-mobile-section-label">{t("profile.mobile.security")}</p>
-            {SECURITY_LINKS.map(({ id, label, icon }) => (
+            {SECURITY_LINKS.filter(({ id }) => !isTabHidden(id)).map(({ id, label, icon }) => (
               <button key={id} className={`pp-mobile-link ${subTab === id ? "active" : ""}`} onClick={() => goTo(id)}>
                 <span className="pp-mobile-link-icon">{icon}</span>
                 {label}
@@ -114,7 +115,7 @@ export default function MobileNavDrawer({
             ))}
 
             <p className="pp-mobile-section-label">{t("profile.mobile.more")}</p>
-            {MORE_LINKS.map(({ id, label, icon }) => (
+            {MORE_LINKS.filter(({ id }) => !isTabHidden(id)).map(({ id, label, icon }) => (
               <button key={id} className={`pp-mobile-link ${subTab === id ? "active" : ""}`} onClick={() => goTo(id)}>
                 <span className="pp-mobile-link-icon">{icon}</span>
                 {label}
