@@ -15,6 +15,8 @@ export const translations = {
   "nav.adminPanel": { en: "Admin Panel",     de: "Admin-Bereich",    ru: "Панель администратора" },
   "nav.navigate":   { en: "Navigate",        de: "Navigation",       ru: "Навигация" },
   "nav.account":    { en: "Account",         de: "Konto",            ru: "Аккаунт" },
+  "nav.openMenu":      { en: "Open menu",   de: "Menü öffnen",       ru: "Открыть меню" },
+  "nav.scenicRoadAlt": { en: "Scenic road", de: "Malerische Straße", ru: "Живописная дорога" },
 
   // Preferences-Seite / Preferences-Tab im Profil
   "prefs.title":        { en: "Preferences",                              de: "Einstellungen",                                ru: "Настройки" },
@@ -34,6 +36,7 @@ export const translations = {
   "common.cancel":       { en: "Cancel",                    de: "Abbrechen",                        ru: "Отмена" },
   "common.theme":        { en: "Theme",                     de: "Design",                           ru: "Тема" },
   "common.roleExplorer": { en: "Scenic Route Explorer",     de: "Landschaftsrouten-Entdecker",       ru: "Исследователь живописных маршрутов" },
+  "common.comingSoon":   { en: "Coming Soon",               de: "Demnächst verfügbar",              ru: "Скоро" },
 
   // Homepage — Hero
   "home.hero.line1":    { en: "Start",                                            de: "Starte",                                                  ru: "Начни" },
@@ -307,6 +310,10 @@ export const translations = {
   "profile.passMini.active": { en: "Active",                          de: "Aktiv",                        ru: "Активен" },
   "profile.passMini.view":  { en: "View My Passport",                 de: "Meinen Pass ansehen",          ru: "Посмотреть мой паспорт" },
 
+  // Traveller Pass — Coming-Soon-Overlay (Feature noch nicht fertig, siehe TravellerPass.tsx)
+  "profile.pass.comingSoonTitle": { en: "Traveller Pass is on its way", de: "Der Reisepass ist bald verfügbar", ru: "Пропуск путешественника скоро появится" },
+  "profile.pass.comingSoonText":  { en: "We're putting the finishing touches on your digital passport. Check back soon.", de: "Wir legen letzte Hand an deinen digitalen Reisepass. Schau bald wieder vorbei.", ru: "Мы вносим последние штрихи в ваш цифровой паспорт. Загляните позже." },
+
   // Danger Zone
   "profile.danger.title":  { en: "Danger Zone",     de: "Gefahrenzone",       ru: "Опасная зона" },
   "profile.danger.text":   { en: "Permanently delete your account and all of your data. This action cannot be undone.", de: "Lösche dein Konto und alle deine Daten dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.", ru: "Безвозвратно удали свой аккаунт и все данные. Это действие невозможно отменить." },
@@ -323,6 +330,10 @@ export const translations = {
   "profile.email.info":       { en: "We will send a verification link to your new email address.", de: "Wir senden einen Bestätigungslink an deine neue E-Mail-Adresse.", ru: "Мы отправим ссылку для подтверждения на твой новый адрес электронной почты." },
   "profile.email.change":     { en: "Change Email",            de: "E-Mail ändern",           ru: "Изменить почту" },
   "profile.email.sending":    { en: "Sending...",               de: "Wird gesendet...",        ru: "Отправка..." },
+  "profile.email.currentPasswordRequired": { en: "Please enter your current password to confirm.", de: "Bitte gib zur Bestätigung dein aktuelles Passwort ein.", ru: "Введите текущий пароль для подтверждения." },
+  "profile.email.newEmailRequired":        { en: "Please enter a new email address.",              de: "Bitte gib eine neue E-Mail-Adresse ein.",                ru: "Введите новый адрес электронной почты." },
+  "profile.email.incorrectPassword":       { en: "Incorrect password.",                            de: "Falsches Passwort.",                                     ru: "Неверный пароль." },
+  "profile.email.verificationSent":        { en: "A verification link has been sent to your new email address.", de: "Ein Bestätigungslink wurde an deine neue E-Mail-Adresse gesendet.", ru: "Ссылка для подтверждения отправлена на ваш новый адрес электронной почты." },
 
   // Password-Tab
   "profile.password.title":     { en: "Change Password",          de: "Passwort ändern",          ru: "Изменить пароль" },
@@ -332,6 +343,10 @@ export const translations = {
   "profile.password.confirmPh": { en: "Confirm new password",      de: "Neues Passwort bestätigen", ru: "Подтверди новый пароль" },
   "profile.password.change":    { en: "Change Password",           de: "Passwort ändern",          ru: "Изменить пароль" },
   "profile.password.saving":    { en: "Saving...",                  de: "Wird gespeichert...",      ru: "Сохранение..." },
+  "profile.password.fillBothFields": { en: "Please fill in both fields.",             de: "Bitte fülle beide Felder aus.",                ru: "Заполните оба поля." },
+  "profile.password.mismatch":       { en: "Passwords do not match.",                 de: "Die Passwörter stimmen nicht überein.",        ru: "Пароли не совпадают." },
+  "profile.password.tooShort":       { en: "Password must be at least 6 characters.", de: "Das Passwort muss mindestens 6 Zeichen lang sein.", ru: "Пароль должен содержать не менее 6 символов." },
+  "profile.password.updateSuccess":  { en: "Password updated successfully.",          de: "Passwort erfolgreich aktualisiert.",           ru: "Пароль успешно обновлён." },
 
   // 2FA-Tab
   "profile.twofa.title":      { en: "Two-Factor Authentication", de: "Zwei-Faktor-Authentifizierung", ru: "Двухфакторная аутентификация" },
@@ -345,6 +360,7 @@ export const translations = {
   "profile.sessions.active":         { en: "Active",                        de: "Aktiv",                     ru: "Активен" },
   "profile.sessions.signOutOthers":  { en: "Sign Out Of All Other Sessions", de: "Von allen anderen Sitzungen abmelden", ru: "Выйти из всех других сеансов" },
   "profile.sessions.signingOut":     { en: "Signing out...",                de: "Wird abgemeldet...",        ru: "Выход..." },
+  "profile.sessions.signedOutOthers": { en: "Signed out of all other sessions.", de: "Aus allen anderen Sitzungen abgemeldet.", ru: "Выполнен выход из всех остальных сеансов." },
 
   // Notifications-Tab
   "profile.notif.title":          { en: "Notifications",       de: "Benachrichtigungen",       ru: "Уведомления" },
@@ -396,6 +412,12 @@ export const translations = {
   "profile.delete.text":         { en: "This will permanently delete your account, saved routes, and profile data. This action cannot be undone.", de: "Dadurch werden dein Konto, deine gespeicherten Routen und Profildaten dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.", ru: "Это безвозвратно удалит твой аккаунт, сохранённые маршруты и данные профиля. Это действие невозможно отменить." },
   "profile.delete.typeConfirm":  { en: "Type DELETE to confirm", de: "Gib DELETE ein, um zu bestätigen", ru: "Введи DELETE для подтверждения" },
   "profile.delete.deleting":     { en: "Deleting…",              de: "Wird gelöscht…",           ru: "Удаление…" },
+  "profile.delete.sessionExpired": { en: "Your session has expired. Please log in again.",    de: "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.", ru: "Сессия истекла. Пожалуйста, войдите снова." },
+  "profile.delete.genericError":   { en: "Something went wrong while deleting your account.", de: "Beim Löschen deines Kontos ist ein Fehler aufgetreten.",    ru: "Произошла ошибка при удалении аккаунта." },
+
+  // Profile-Tab — allgemeine Fehler-/Erfolgsmeldungen beim Speichern
+  "profile.avatarUploadError": { en: "Error uploading avatar:",       de: "Fehler beim Hochladen des Avatars:", ru: "Ошибка загрузки аватара:" },
+  "profile.updateSuccess":     { en: "Profile updated successfully!", de: "Profil erfolgreich aktualisiert!",   ru: "Профиль успешно обновлён!" },
 
 // ==================== Route-Detail-Seite ====================
 

@@ -17,6 +17,7 @@ import {
 
 import "./profile.css";
 import type { Stamp, SubTabId } from "./types";
+import type { TranslationKey } from "@/lib/translations";
 
 import MobileNavDrawer from "./components/MobileNavDrawer";
 import SettingsNav from "./components/SettingsNav";
@@ -34,6 +35,24 @@ import PrivacyTab from "./components/tabs/PrivacyTab";
 import SupportTab from "./components/tabs/SupportTab";
 import AboutTab from "./components/tabs/AboutTab";
 
+// Titel/Untertitel kommen jetzt als Übersetzungs-Keys (aus der bestehenden
+// profile.subtab.*-Namensgruppe in lib/translations.ts) statt fest codiertem
+// Englisch — die tatsächlichen Strings werden im Component per t(key) aufgelöst,
+// damit SUBTAB_META modulweit (außerhalb des LanguageContext) definiert bleiben kann.
+const SUBTAB_META: Record<string, { titleKey: TranslationKey; subtitleKey: TranslationKey; icon: ReactNode }> = {
+  profile:       { titleKey: "profile.subtab.profile.title",       subtitleKey: "profile.subtab.profile.subtitle",       icon: <User size={20} strokeWidth={1.8} /> },
+  pass:          { titleKey: "profile.subtab.pass.title",          subtitleKey: "profile.subtab.pass.subtitle",          icon: <Award size={20} strokeWidth={1.8} /> },
+  preferences:   { titleKey: "prefs.title",                        subtitleKey: "prefs.subtitle",                        icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
+  email:         { titleKey: "profile.subtab.email.title",         subtitleKey: "profile.subtab.email.subtitle",         icon: <Mail size={20} strokeWidth={1.8} /> },
+  password:      { titleKey: "profile.subtab.password.title",      subtitleKey: "profile.subtab.password.subtitle",      icon: <Lock size={20} strokeWidth={1.8} /> },
+  twofa:         { titleKey: "profile.subtab.twofa.title",         subtitleKey: "profile.subtab.twofa.subtitle",         icon: <Smartphone size={20} strokeWidth={1.8} /> },
+  sessions:      { titleKey: "profile.subtab.sessions.title",      subtitleKey: "profile.subtab.sessions.subtitle",      icon: <Monitor size={20} strokeWidth={1.8} /> },
+  notifications: { titleKey: "profile.subtab.notifications.title", subtitleKey: "profile.subtab.notifications.subtitle", icon: <Bell size={20} strokeWidth={1.8} /> },
+  privacy:       { titleKey: "profile.subtab.privacy.title",       subtitleKey: "profile.subtab.privacy.subtitle",       icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
+  support:       { titleKey: "profile.subtab.support.title",       subtitleKey: "profile.subtab.support.subtitle",       icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
+  about:         { titleKey: "profile.subtab.about.title",         subtitleKey: "profile.subtab.about.subtitle",         icon: <Info size={20} strokeWidth={1.8} /> },
+};
+
 export default function ProfilePage() {
   const [user, setUser]                   = useState<any>(null);
   const [loading, setLoading]             = useState(true);
@@ -48,7 +67,7 @@ export default function ProfilePage() {
   // local-only and handleSaveProfile will silently skip them.
   const [displayName, setDisplayName]     = useState("");
   const [country, setCountry]             = useState("");
-  const [city, setCity]           = useState("");
+  const [city, setCity]                     = useState("");
   const [aboutYou, setAboutYou]           = useState("");
   const [newPassword, setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,6 +75,10 @@ export default function ProfilePage() {
   const [success, setSuccess]             = useState("");
   const [avatarFile, setAvatarFile]       = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
+  // Snapshot of what's actually persisted in the DB — used to compute Profile
+  // Completion so it only updates on Save Changes, not on every keystroke in
+  // the live-edited fields above (avatarUrl/country/aboutYou).
+  const [savedProfile, setSavedProfile] = useState({ avatarUrl: "", country: "", aboutYou: "" });
   const [navScrolled, setNavScrolled]     = useState(false);
   const [stamps, setStamps]               = useState<Stamp[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -115,25 +138,8 @@ export default function ProfilePage() {
 
   const { theme } = useTheme();
   const { unit, setUnit } = useUnit();
-  const { t, lang, setLang } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
-
-  // Subtab-Metadaten (Titel/Untertitel im Header der Megacard) — greifen auf
-  // t() zu, müssen also in der Komponente gebaut werden, damit sie bei einem
-  // Sprachwechsel automatisch neu übersetzt werden.
-  const SUBTAB_META: Record<SubTabId, { title: string; subtitle: string; icon: ReactNode }> = {
-    profile:       { title: t("profile.subtab.profile.title"),       subtitle: t("profile.subtab.profile.subtitle"),       icon: <User size={20} strokeWidth={1.8} /> },
-    pass:          { title: t("profile.subtab.pass.title"),          subtitle: t("profile.subtab.pass.subtitle"),          icon: <Award size={20} strokeWidth={1.8} /> },
-    preferences:   { title: t("prefs.title"),                        subtitle: t("prefs.subtitle"),                        icon: <SettingsIcon size={20} strokeWidth={1.8} /> },
-    email:         { title: t("profile.subtab.email.title"),         subtitle: t("profile.subtab.email.subtitle"),         icon: <Mail size={20} strokeWidth={1.8} /> },
-    password:      { title: t("profile.subtab.password.title"),      subtitle: t("profile.subtab.password.subtitle"),      icon: <Lock size={20} strokeWidth={1.8} /> },
-    twofa:         { title: t("profile.subtab.twofa.title"),         subtitle: t("profile.subtab.twofa.subtitle"),         icon: <Smartphone size={20} strokeWidth={1.8} /> },
-    sessions:      { title: t("profile.subtab.sessions.title"),      subtitle: t("profile.subtab.sessions.subtitle"),      icon: <Monitor size={20} strokeWidth={1.8} /> },
-    notifications: { title: t("profile.subtab.notifications.title"), subtitle: t("profile.subtab.notifications.subtitle"), icon: <Bell size={20} strokeWidth={1.8} /> },
-    privacy:       { title: t("profile.subtab.privacy.title"),       subtitle: t("profile.subtab.privacy.subtitle"),       icon: <ShieldCheck size={20} strokeWidth={1.8} /> },
-    support:       { title: t("profile.subtab.support.title"),       subtitle: t("profile.subtab.support.subtitle"),       icon: <LifeBuoy size={20} strokeWidth={1.8} /> },
-    about:         { title: t("profile.subtab.about.title"),         subtitle: t("profile.subtab.about.subtitle"),         icon: <Info size={20} strokeWidth={1.8} /> },
-  };
 
   useEffect(() => {
     setMounted(true);
@@ -191,6 +197,7 @@ export default function ProfilePage() {
       setCountry(data.country || "");
       setCity(data.city || "");
       setAboutYou(data.about || "");
+      setSavedProfile({ avatarUrl: data.avatar_url || "", country: data.country || "", aboutYou: data.about || "" });
     }
     setLoading(false);
   }
@@ -230,7 +237,7 @@ export default function ProfilePage() {
       const fileExt = avatarFile.name.split(".").pop();
       const fileName = `${user.id}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from("Avatars").upload(fileName, avatarFile, { upsert: true });
-      if (uploadError) { setError("Error uploading avatar: " + uploadError.message); setSaving(false); return; }
+      if (uploadError) { setError(t("profile.avatarUploadError") + " " + uploadError.message); setSaving(false); return; }
       const { data: urlData } = supabase.storage.from("Avatars").getPublicUrl(fileName);
       uploadedAvatarUrl = urlData.publicUrl;
     }
@@ -248,8 +255,9 @@ export default function ProfilePage() {
       .eq("id", user.id);
     if (profileError) { setError(profileError.message); setSaving(false); return; }
 
-    setSuccess("Profile updated successfully!");
+    setSuccess(t("profile.updateSuccess"));
     setAvatarUrl(uploadedAvatarUrl);
+    setSavedProfile({ avatarUrl: uploadedAvatarUrl, country, aboutYou });
     setSaving(false);
   }
 
@@ -257,12 +265,12 @@ export default function ProfilePage() {
     setEmailSaving(true); setEmailError(""); setEmailSuccess("");
 
     if (!confirmEmailPassword) {
-      setEmailError("Please enter your current password to confirm.");
+      setEmailError(t("profile.email.currentPasswordRequired"));
       setEmailSaving(false);
       return;
     }
     if (!newEmailInput || newEmailInput === user?.email) {
-      setEmailError("Please enter a new email address.");
+      setEmailError(t("profile.email.newEmailRequired"));
       setEmailSaving(false);
       return;
     }
@@ -273,7 +281,7 @@ export default function ProfilePage() {
       password: confirmEmailPassword,
     });
     if (verifyError) {
-      setEmailError("Incorrect password.");
+      setEmailError(t("profile.email.incorrectPassword"));
       setEmailSaving(false);
       return;
     }
@@ -285,7 +293,7 @@ export default function ProfilePage() {
       return;
     }
 
-    setEmailSuccess("A verification link has been sent to your new email address.");
+    setEmailSuccess(t("profile.email.verificationSent"));
     setNewEmailInput("");
     setConfirmEmailPassword("");
     setEmailSaving(false);
@@ -295,17 +303,17 @@ export default function ProfilePage() {
     setPasswordSaving(true); setPasswordError(""); setPasswordSuccess("");
 
     if (!newPassword || !confirmPassword) {
-      setPasswordError("Please fill in both fields.");
+      setPasswordError(t("profile.password.fillBothFields"));
       setPasswordSaving(false);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
+      setPasswordError(t("profile.password.mismatch"));
       setPasswordSaving(false);
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters.");
+      setPasswordError(t("profile.password.tooShort"));
       setPasswordSaving(false);
       return;
     }
@@ -317,7 +325,7 @@ export default function ProfilePage() {
       return;
     }
 
-    setPasswordSuccess("Password updated successfully.");
+    setPasswordSuccess(t("profile.password.updateSuccess"));
     setNewPassword("");
     setConfirmPassword("");
     setPasswordSaving(false);
@@ -333,7 +341,7 @@ export default function ProfilePage() {
       return;
     }
 
-    setSessionsSuccess("Signed out of all other sessions.");
+    setSessionsSuccess(t("profile.sessions.signedOutOthers"));
     setSessionsSaving(false);
   }
 
@@ -352,7 +360,7 @@ export default function ProfilePage() {
       const accessToken = sessionData.session?.access_token;
 
       if (!accessToken) {
-        setDeleteError("Your session has expired. Please log in again.");
+        setDeleteError(t("profile.delete.sessionExpired"));
         setDeleting(false);
         return;
       }
@@ -368,7 +376,7 @@ export default function ProfilePage() {
       const result = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setDeleteError(result?.error || "Something went wrong while deleting your account.");
+        setDeleteError(result?.error || t("profile.delete.genericError"));
         setDeleting(false);
         return;
       }
@@ -376,7 +384,7 @@ export default function ProfilePage() {
       await supabase.auth.signOut();
       router.push("/");
     } catch (err: any) {
-      setDeleteError(err?.message || "Something went wrong while deleting your account.");
+      setDeleteError(err?.message || t("profile.delete.genericError"));
       setDeleting(false);
     }
   }
@@ -389,12 +397,16 @@ export default function ProfilePage() {
   );
 
   const initials = (username || user?.email || "U")[0].toUpperCase();
-  const meta = SUBTAB_META[subTab];
+  const meta = {
+    title: t(SUBTAB_META[subTab].titleKey),
+    subtitle: t(SUBTAB_META[subTab].subtitleKey),
+    icon: SUBTAB_META[subTab].icon,
+  };
 
   return (
     <div className="pp">
       <div className="pp-bg">
-        <img src="/Stelvio Pass.jpg" alt="Scenic road" onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }} />
+        <img src="/Stelvio Pass.jpg" alt={t("nav.scenicRoadAlt")} onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }} />
       </div>
 
       <nav className={`pp-nav ${navScrolled ? "scrolled" : ""}`}>
@@ -413,7 +425,7 @@ export default function ProfilePage() {
         <button
           className="pp-mobile-menu-btn mobile-only"
           onClick={() => setMobileMenuOpen(true)}
-          aria-label="Menü öffnen"
+          aria-label={t("nav.openMenu")}
         >
           <Menu size={20} strokeWidth={1.8} />
         </button>
@@ -442,6 +454,11 @@ export default function ProfilePage() {
                   <p className="st-subtitle">{meta.subtitle}</p>
                 </div>
               </div>
+              {subTab === "profile" && (
+                <button className="st-save-btn" disabled={saving} onClick={handleSaveProfile}>
+                  {saving ? t("profile.save.saving") : t("common.saveChanges")}
+                </button>
+              )}
             </div>
 
             <div className="st-body">
@@ -463,6 +480,7 @@ export default function ProfilePage() {
                     stamps={stamps}
                     initials={initials}
                     avatarPreview={avatarPreview}
+                    savedProfile={savedProfile}
                     handleAvatarChange={handleAvatarChange}
                     displayName={displayName} setDisplayName={setDisplayName}
                     username={username} setUsername={setUsername}

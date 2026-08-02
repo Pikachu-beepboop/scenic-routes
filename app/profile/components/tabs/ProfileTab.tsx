@@ -38,7 +38,7 @@ const COUNTRY_CODES = [
 const LOCALE_MAP: Record<string, string> = { en: "en", de: "de", ru: "ru" };
 
 export default function ProfileTab({
-  user, stamps, initials, avatarPreview, handleAvatarChange,
+  user, stamps, initials, avatarPreview, savedProfile, handleAvatarChange,
   displayName, setDisplayName,
   username, setUsername,
   country, setCountry,
@@ -53,6 +53,7 @@ export default function ProfileTab({
   stamps: Stamp[];
   initials: string;
   avatarPreview: string;
+  savedProfile: { avatarUrl: string; country: string; aboutYou: string };
   handleAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   displayName: string; setDisplayName: (v: string) => void;
   username: string; setUsername: (v: string) => void;
@@ -99,11 +100,10 @@ export default function ProfileTab({
   // than hardcoded, so it stays honest even though the stat cards below
   // (Trips/Countries/Distance) are still placeholders.
   const completionChecks = [
-    { label: t("profile.completion.addPhoto"),    done: !!avatarPreview },
-    { label: t("profile.completion.addAbout"),     done: aboutYou.trim().length > 0 },
-    { label: t("profile.completion.addCountry"),   done: country.trim().length > 0 },
+    { label: t("profile.completion.addPhoto"),    done: !!savedProfile.avatarUrl },
+    { label: t("profile.completion.addAbout"),     done: savedProfile.aboutYou.trim().length > 0 },
+    { label: t("profile.completion.addCountry"),   done: savedProfile.country.trim().length > 0 },
     { label: t("profile.completion.connectEmail"), done: !!user?.email_confirmed_at },
-    { label: t("profile.completion.setPreferences"), done: false }, // TODO: wire once a "preferences saved" flag exists
   ];
   const completionPct = Math.round((completionChecks.filter(c => c.done).length / completionChecks.length) * 100);
   const memberSince = user?.created_at
@@ -245,14 +245,14 @@ export default function ProfileTab({
 
         
         <div className="st-profile-col st-profile-col-side">
+          {/* Traveller Stats card — hidden for now, values are still
+              hardcoded placeholders (18 trips / 4 countries / 4,328 km)
+              with no real data source wired up yet. Re-enable by
+              un-commenting once trips/countries/distance are computed
+              from real user data. */}
           {/*
           <div className="st-card st-subcard st-stats-card">
             <p className="st-card-title">{t("profile.stats.title")}</p>
-            {/* TODO: replace placeholders with real counts once wired
-                (trips = completed routes, countries = distinct route
-                countries, distance = sum of route lengths). Saved
-                Routes could use stamps.length today if desired. 
-            
             <div className="st-stats-grid">
               <div className="st-stat-item">
                 <div className="st-stat-icon"><Compass size={16} strokeWidth={1.8} /></div>
@@ -272,26 +272,28 @@ export default function ProfileTab({
               </div>
             </div>
           </div>
-              */}
-              
-          <div className="st-card st-subcard st-completion-card">
-            <div className="st-completion-head">
-              <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />{t("profile.completion.title")}</p>
-              <span className="st-completion-pct">{completionPct}%</span>
+          */}
+
+          {completionPct < 100 && (
+            <div className="st-card st-subcard st-completion-card">
+              <div className="st-completion-head">
+                <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />{t("profile.completion.title")}</p>
+                <span className="st-completion-pct">{completionPct}%</span>
+              </div>
+              <div className="st-completion-track">
+                <div className="st-completion-fill" style={{ width: `${completionPct}%` }} />
+              </div>
+              <p className="st-completion-hint">{t("profile.completion.hint")}</p>
+              <div className="st-checklist">
+                {completionChecks.map((c) => (
+                  <div key={c.label} className="st-checklist-item">
+                    {c.done ? <CheckCircle2 size={14} strokeWidth={2} color="var(--gold)" /> : <Circle size={14} strokeWidth={1.8} color="var(--dim)" />}
+                    <span style={{ opacity: c.done ? 1 : 0.6 }}>{c.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="st-completion-track">
-              <div className="st-completion-fill" style={{ width: `${completionPct}%` }} />
-            </div>
-            <p className="st-completion-hint">{t("profile.completion.hint")}</p>
-            <div className="st-checklist">
-              {completionChecks.map((c) => (
-                <div key={c.label} className="st-checklist-item">
-                  {c.done ? <CheckCircle2 size={14} strokeWidth={2} color="var(--gold)" /> : <Circle size={14} strokeWidth={1.8} color="var(--dim)" />}
-                  <span style={{ opacity: c.done ? 1 : 0.6 }}>{c.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
               {/*}
           <div className="st-card st-subcard st-pass-mini-card">
             <div className="st-pass-mini-head">
