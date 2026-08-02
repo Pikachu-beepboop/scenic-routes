@@ -271,7 +271,7 @@ function LoginPageInner() {
 
         /* NAV */
         .lp-nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
-        .lp-nav.scrolled { background:rgba(12,11,9,0.92); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
+        .lp-nav.scrolled { background:rgba(12,11,9,0.92); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .lp-nav-logo { display:flex; flex-direction:column; line-height:1; }
         .lp-nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .lp-nav-links { display:flex; gap:36px; }
@@ -283,7 +283,7 @@ function LoginPageInner() {
         @media (max-width:680px) { .lp-nav-links { display:none; } .lp-nav-right { display:none; } }
 
         /* HERO BG */
-        .lp-hero-bg { position:fixed; inset:0; z-index:0; }
+        .lp-hero-bg { position:fixed; inset:0; z-index:0; transform:translateZ(0); }
         .lp-hero-bg img { width:100%; height:100%; object-fit:cover; object-position:center 40%; filter:brightness(0.34) contrast(1.1) saturate(0.75); }
         .lp-hero-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(135deg, rgba(12,11,9,0.82) 0%, rgba(12,11,9,0.55) 50%, rgba(12,11,9,0.78) 100%); }
 
@@ -291,7 +291,7 @@ function LoginPageInner() {
         .lp-main { position:relative; z-index:10; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:100px clamp(20px,5vw,60px) 60px; gap:clamp(40px,6vw,100px); }
 
         /* LEFT COPY */
-        .lp-copy { flex:1; max-width:480px; opacity:0; transform:translateY(22px); transition:opacity .9s .1s, transform .9s .1s; }
+        .lp-copy { flex:1; max-width:480px; opacity:0; transform:translateY(22px); transition:opacity .9s .1s, transform .9s .1s; will-change:opacity, transform; }
         .lp-copy.visible { opacity:1; transform:translateY(0); }
         .lp-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.36em; text-transform:uppercase; color:var(--gold); margin-bottom:20px; }
         .lp-h1 { font-family:var(--serif); font-size:clamp(48px,6vw,82px); font-weight:300; line-height:0.9; letter-spacing:-0.04em; color:var(--cream); margin-bottom:20px; }
@@ -303,9 +303,9 @@ function LoginPageInner() {
         .lp-feat-text p { font-size:12px; color:var(--dim); line-height:1.6; font-weight:300; }
 
         /* CARD */
-        .lp-card { flex-shrink:0; width:100%; max-width:440px; opacity:0; transform:translateY(26px); transition:opacity .9s .25s, transform .9s .25s; }
+        .lp-card { flex-shrink:0; width:100%; max-width:440px; opacity:0; transform:translateY(26px); transition:opacity .9s .25s, transform .9s .25s; will-change:opacity, transform; }
         .lp-card.visible { opacity:1; transform:translateY(0); }
-        .lp-card-inner { background:rgba(14,12,10,0.85); backdrop-filter:blur(28px); border:1px solid rgba(237,229,212,0.10); border-radius:24px; padding:clamp(32px,5vw,48px); box-shadow:0 40px 100px rgba(0,0,0,0.55); }
+        .lp-card-inner { background:rgba(14,12,10,0.85); -webkit-backdrop-filter:blur(28px); backdrop-filter:blur(28px); border:1px solid rgba(237,229,212,0.10); border-radius:24px; padding:clamp(32px,5vw,48px); box-shadow:0 40px 100px rgba(0,0,0,0.55); }
 
         /* TABS */
         .lp-tabs { display:flex; gap:0; margin-bottom:32px; border-bottom:1px solid var(--border); }
