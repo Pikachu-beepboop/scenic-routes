@@ -396,7 +396,7 @@ export default function HomePage() {
     setMounted(true);
   }, []);
 
-  const heroImage = mounted && theme === "light" ? "/hero7.jpg" : "/hero7.jpg";
+  const heroImage = mounted && theme === "light" ? "/Hero7.jpg" : "/Hero7.jpg";
 
   const displayRoutes = useMemo<Route[]>(
     () => (routes.length ? routes : FALLBACK_ROUTES),
