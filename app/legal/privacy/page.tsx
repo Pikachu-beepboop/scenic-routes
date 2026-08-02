@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
         Deutschland
       </p>
       <p>
-        E-Mail: <span className="lp-fill">[DATENSCHUTZ- ODER KONTAKT-E-MAIL-ADRESSE]</span>
+        E-Mail: <span className="lp-fill">contact@explorescenicroutes.com</span>
       </p>
       <p>Der Verantwortliche ist als natürliche Person Betreiber der Website „Explore Scenic Routes“.</p>
 
@@ -585,11 +585,17 @@ export default function PrivacyPolicyPage() {
       </p>
       <p>Für den Verantwortlichen zuständige Aufsichtsbehörde:</p>
       <p>
-        <span className="lp-fill">[NAME DER ZUSTÄNDIGEN LANDESDATENSCHUTZBEHÖRDE]</span>
+        <span className="lp-fill">Bayerisches Landesamt für Datenschutzaufsicht (BayLDA)</span>
         <br />
-        <span className="lp-fill">[ANSCHRIFT]</span>
+        <span className="lp-fill">Promenade 18</span>
         <br />
-        <span className="lp-fill">[WEBSITE]</span>
+        <span className="lp-fill">91522 Ansbach</span> 
+        <br />
+        <span className="lp-fill">Deutschland</span>
+        <br />
+        <span className="lp-fill">Telefon: +49 981 180093-0</span>
+        <br />
+        <span className="lp-fill">Website: https://www.lda.bayern.de</span>
       </p>
 
       <h2>21. Automatisierte Entscheidungen</h2>

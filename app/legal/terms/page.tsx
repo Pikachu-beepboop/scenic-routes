@@ -16,7 +16,7 @@ export default function TermsOfUsePage() {
         Deutschland
       </p>
       <p>
-        E-Mail: <span className="lp-fill">[E-MAIL-ADRESSE]</span>
+        E-Mail: <span className="lp-fill">contact@explorescenicroutes.com</span>
       </p>
       <p>Nachfolgend wird der Anbieter als „Explore Scenic Routes", „Anbieter", „wir" oder „uns" bezeichnet.</p>
       <p>

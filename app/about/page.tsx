@@ -81,15 +81,13 @@ const FOOTER_COLUMNS = [
     id: "support",
     headingKey: "footer.col.support" as const,
     links: [
-      // FAQ, Contact und Send Feedback führen alle zur öffentlichen
-      // /support-Seite (kein Login nötig) — zeigt denselben Support-Inhalt
-      // wie der "support"-Tab auf der Profile-Page, aber ohne Login-Zwang.
-      // "Report a Problem" + "Report Route Issue" wurden entfernt und durch
-      // einen einzigen "Send Feedback"-Link ersetzt (führt zum Feedback-
-      // Bereich innerhalb desselben Support-Inhalts).
-      { key: "footer.link.faq" as const, href: "/support", protected: false },
-      { key: "footer.link.contact" as const, href: "/support", protected: false },
-      { key: "footer.link.sendFeedback" as const, href: "/support", protected: false },
+      // FAQ, Contact und Send Feedback führen nicht eingeloggte User zur
+      // öffentlichen /support-Seite. Eingeloggte User werden stattdessen
+      // direkt zum "support"-Subtab im Profil weitergeleitet (loggedInHref),
+      // da dort derselbe Inhalt bereits eingebettet vorhanden ist.
+      { key: "footer.link.faq" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.contact" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
     ],
   },
   {
@@ -925,13 +923,19 @@ export default function AboutPage() {
 
                     <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
                       <div style={{ paddingTop: 14 }}>
-                        {links.map(({ key, href, protected: isProtected }) => {
+                        {links.map(({ key, href, protected: isProtected, ...rest }) => {
                           // Geschützte Links (My Trips, Profile, Traveller Pass) gehen
                           // ohne Session erst zum Login, mit redirect zurück zum Ziel —
                           // gleiches Verhalten wie in der Navbar (loginHref).
+                          // loggedInHref (z.B. Support-Links): eingeloggte User werden
+                          // stattdessen direkt auf ein alternatives Ziel geleitet (z.B.
+                          // den Support-Tab im Profil), ohne dass ein Login erzwungen wird.
+                          const loggedInHref = (rest as { loggedInHref?: string }).loggedInHref;
                           const finalHref =
                             isProtected && !user
                               ? `/login?redirect=${encodeURIComponent(href)}`
+                              : user && loggedInHref
+                              ? loggedInHref
                               : href;
 
                           return (

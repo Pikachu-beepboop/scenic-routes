@@ -54,12 +54,13 @@ const FOOTER_COLUMNS = [
     id: "support",
     headingKey: "footer.col.support" as const,
     links: [
-      // FAQ, Contact und Send Feedback führen alle zur öffentlichen
-      // /support-Seite (kein Login nötig) — zeigt denselben Support-Inhalt
-      // wie der "support"-Tab auf der Profile-Page, aber ohne Login-Zwang.
-      { key: "footer.link.faq" as const, href: "/support", protected: false },
-      { key: "footer.link.contact" as const, href: "/support", protected: false },
-      { key: "footer.link.sendFeedback" as const, href: "/support", protected: false },
+      // FAQ, Contact und Send Feedback führen nicht eingeloggte User zur
+      // öffentlichen /support-Seite. Eingeloggte User werden stattdessen
+      // direkt zum "support"-Subtab im Profil weitergeleitet (loggedInHref),
+      // da dort derselbe Inhalt bereits eingebettet vorhanden ist.
+      { key: "footer.link.faq" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.contact" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
     ],
   },
   {

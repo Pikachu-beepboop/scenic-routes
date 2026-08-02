@@ -108,6 +108,44 @@ const LANGUAGES = [
     { code: "ru", label: "Русский" },
 ] as const;
 
+// Footer-Linkdaten (analog zu Homepage/Explore/About/My Trips): pro Link-Key
+// hinterlegt, wohin er führt. "protected" = braucht Login (sonst Redirect zu
+// /login mit redirect-Param). "loggedInHref" = eingeloggte User werden auf
+// ein alternatives Ziel geleitet (z.B. Support-Tab im Profil statt der
+// öffentlichen /support-Seite), ohne dass dafür ein Login erzwungen wird.
+const FOOTER_LINK_META: Record<string, { href: string; protected?: boolean; loggedInHref?: string }> = {
+    "footer.link.allRoutes": { href: "/explore" },
+    "footer.link.myTrips": { href: "/my-trips", protected: true },
+    "footer.link.profile": { href: "/profile", protected: true },
+    // Traveller Pass ist kein eigener Pfad, sondern ein Tab auf der Profile-Page
+    // (subTab="pass"). Die Profile-Page liest ?tab=pass beim Laden aus.
+    "footer.link.travellerPass": { href: "/profile?tab=pass", protected: true },
+    "footer.link.about": { href: "/about" },
+    // Our Team ist ein Anchor-Abschnitt auf der About-Page (id="team")
+    "footer.link.ourTeam": { href: "/about#team" },
+    // FAQ, Contact und Send Feedback führen nicht eingeloggte User zur
+    // öffentlichen /support-Seite. Eingeloggte User werden stattdessen direkt
+    // zum "support"-Subtab im Profil weitergeleitet.
+    "footer.link.faq": { href: "/support", loggedInHref: "/profile?tab=support" },
+    "footer.link.contact": { href: "/support", loggedInHref: "/profile?tab=support" },
+    "footer.link.sendFeedback": { href: "/support", loggedInHref: "/profile?tab=support" },
+    "footer.link.termsOfUse": { href: "/legal/terms" },
+    "footer.link.privacyPolicy": { href: "/legal/privacy" },
+    "footer.link.imprint": { href: "/legal/imprint" },
+};
+
+function getFooterHref(linkKey: string, user: any): string {
+    const meta = FOOTER_LINK_META[linkKey];
+    if (!meta) return "#";
+    if (meta.protected && !user) {
+        return `/login?redirect=${encodeURIComponent(meta.href)}`;
+    }
+    if (user && meta.loggedInHref) {
+        return meta.loggedInHref;
+    }
+    return meta.href;
+}
+
 function HighlightedTitle({ title }: { title: string }) {
     if (!title) return null;
 
@@ -1619,7 +1657,7 @@ export default function RouteDetailPage() {
                         {([
                             { key: 'explore' as const, headingKey: 'footer.col.explore' as const, linkKeys: ['footer.link.allRoutes', 'footer.link.myTrips', 'footer.link.profile'] as const },
                             { key: 'about' as const, headingKey: 'footer.col.about' as const, linkKeys: ['footer.link.travellerPass', 'footer.link.about', 'footer.link.ourTeam'] as const },
-                            { key: 'support' as const, headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.reportProblem', 'footer.link.reportRouteIssue'] as const },
+                            { key: 'support' as const, headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.sendFeedback'] as const },
                             { key: 'legal' as const, headingKey: 'footer.col.legal' as const, linkKeys: ['footer.link.termsOfUse', 'footer.link.privacyPolicy', 'footer.link.imprint'] as const },
                         ]).map(({ key, headingKey, linkKeys }) => (
                             <div key={key} className="border-t border-[var(--border)]">
@@ -1645,7 +1683,7 @@ export default function RouteDetailPage() {
                                         >
                                             {linkKeys.map(linkKey => (
                                                 <li key={linkKey}>
-                                                    <a href="#" className="text-sm text-[var(--dim)]">{t(linkKey)}</a>
+                                                    <Link href={getFooterHref(linkKey, user)} className="text-sm text-[var(--dim)]">{t(linkKey)}</Link>
                                                 </li>
                                             ))}
                                         </motion.ul>
@@ -1735,7 +1773,7 @@ export default function RouteDetailPage() {
                                 {[
                                     { headingKey: 'footer.col.explore' as const, linkKeys: ['footer.link.allRoutes', 'footer.link.myTrips', 'footer.link.profile'] as const },
                                     { headingKey: 'footer.col.about' as const, linkKeys: ['footer.link.travellerPass', 'footer.link.about', 'footer.link.ourTeam'] as const },
-                                    { headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.reportProblem', 'footer.link.reportRouteIssue'] as const },
+                                    { headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.sendFeedback'] as const },
                                     { headingKey: 'footer.col.legal' as const, linkKeys: ['footer.link.termsOfUse', 'footer.link.privacyPolicy', 'footer.link.imprint'] as const },
                                 ].map(({ headingKey, linkKeys }) => (
                                     <div key={headingKey} className="space-y-6">
@@ -1743,7 +1781,7 @@ export default function RouteDetailPage() {
                                         <ul className="space-y-4">
                                             {linkKeys.map(linkKey => (
                                                 <li key={linkKey}>
-                                                    <a href="#" className="text-sm text-[var(--dim)] hover:text-[var(--cream)] hover:translate-x-1 inline-block transition-all duration-300">{t(linkKey)}</a>
+                                                    <Link href={getFooterHref(linkKey, user)} className="text-sm text-[var(--dim)] hover:text-[var(--cream)] hover:translate-x-1 inline-block transition-all duration-300">{t(linkKey)}</Link>
                                                 </li>
                                             ))}
                                         </ul>
