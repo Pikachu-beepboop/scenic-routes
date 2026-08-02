@@ -19,7 +19,7 @@ const CONTACT_EMAIL = "contact@explorescenicroutes.com";
 const FEEDBACK_EMAIL = "contact@explorescenicroutes.com";
 /* ─────────────────────────────────────────────────────────── */
 
-const FAQ_INDEXES = ["1", "2", "3", "4"] as const;
+const FAQ_INDEXES = [1, 2, 3] as const;
 
 type OpenRow = "faq" | "contact" | "feedback" | null;
 
