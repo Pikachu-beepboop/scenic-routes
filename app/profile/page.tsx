@@ -48,7 +48,7 @@ export default function ProfilePage() {
   // local-only and handleSaveProfile will silently skip them.
   const [displayName, setDisplayName]     = useState("");
   const [country, setCountry]             = useState("");
-  const [timezone, setTimezone]           = useState("UTC+0");
+  const [city, setCity]           = useState("");
   const [aboutYou, setAboutYou]           = useState("");
   const [newPassword, setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -189,7 +189,7 @@ export default function ProfilePage() {
       // Optional columns — read if present (see note above `displayName` state).
       setDisplayName(data.display_name || data.username || "");
       setCountry(data.country || "");
-      setTimezone(data.timezone || "UTC+0");
+      setCity(data.city || "");
       setAboutYou(data.about || "");
     }
     setLoading(false);
@@ -241,7 +241,7 @@ export default function ProfilePage() {
         avatar_url: uploadedAvatarUrl,
         display_name: displayName,
         country,
-        timezone,
+        city,
         about: aboutYou,
         updated_at: new Date().toISOString(),
       })
@@ -467,7 +467,7 @@ export default function ProfilePage() {
                     displayName={displayName} setDisplayName={setDisplayName}
                     username={username} setUsername={setUsername}
                     country={country} setCountry={setCountry}
-                    timezone={timezone} setTimezone={setTimezone}
+                    city={city} setCity={setCity}
                     aboutYou={aboutYou} setAboutYou={setAboutYou}
                     error={error} success={success}
                     saving={saving} handleSaveProfile={handleSaveProfile}

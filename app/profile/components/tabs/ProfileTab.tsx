@@ -10,7 +10,7 @@ import type { Stamp, SubTabId } from "../../types";
 
 const ABOUT_MAX = 250;
 const COUNTRIES = ["Germany","Pakistan","United States","United Kingdom","France","Italy","Spain","Switzerland","Austria","Norway","Canada","Australia","Other"];
-const TIMEZONES = ["UTC-8","UTC-5","UTC+0","UTC+1","UTC+2","UTC+5","UTC+8","UTC+9"];
+
 
 // Für Date-Formatierung ("Member since ...") passend zur aktuell gewählten
 // UI-Sprache. Fällt bei unbekannten Sprachcodes auf Englisch zurück.
@@ -21,7 +21,7 @@ export default function ProfileTab({
   displayName, setDisplayName,
   username, setUsername,
   country, setCountry,
-  timezone, setTimezone,
+  city, setCity,
   aboutYou, setAboutYou,
   error, success,
   saving, handleSaveProfile,
@@ -36,7 +36,7 @@ export default function ProfileTab({
   displayName: string; setDisplayName: (v: string) => void;
   username: string; setUsername: (v: string) => void;
   country: string; setCountry: (v: string) => void;
-  timezone: string; setTimezone: (v: string) => void;
+  city: string; setCity: (v: string) => void;
   aboutYou: string; setAboutYou: (v: string) => void;
   error: string; success: string;
   saving: boolean; handleSaveProfile: () => void;
@@ -118,13 +118,8 @@ export default function ProfileTab({
                 </div>
               </div>
               <div className="st-field">
-                <label className="st-field-label">{t("profile.info.timezone")}</label>
-                <div className="st-select-wrap">
-                  <select className="st-input st-select-full" value={timezone} onChange={e => setTimezone(e.target.value)}>
-                    {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                  </select>
-                  <ChevronDown size={14} strokeWidth={2} />
-                </div>
+                <label className="st-field-label">{t("profile.info.city")}</label>
+                <input className="st-input" type="text" placeholder={t("profile.info.city")} value={city} onChange={e => setCity(e.target.value)} />
               </div>
             </div>
 
