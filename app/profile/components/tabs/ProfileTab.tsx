@@ -242,13 +242,17 @@ export default function ProfileTab({
         </div>
 
         {/* Right column — stats, completion, pass */}
+
+        
         <div className="st-profile-col st-profile-col-side">
+          {/*
           <div className="st-card st-subcard st-stats-card">
             <p className="st-card-title">{t("profile.stats.title")}</p>
             {/* TODO: replace placeholders with real counts once wired
                 (trips = completed routes, countries = distinct route
                 countries, distance = sum of route lengths). Saved
-                Routes could use stamps.length today if desired. */}
+                Routes could use stamps.length today if desired. 
+            
             <div className="st-stats-grid">
               <div className="st-stat-item">
                 <div className="st-stat-icon"><Compass size={16} strokeWidth={1.8} /></div>
@@ -268,7 +272,8 @@ export default function ProfileTab({
               </div>
             </div>
           </div>
-
+              */}
+              
           <div className="st-card st-subcard st-completion-card">
             <div className="st-completion-head">
               <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />{t("profile.completion.title")}</p>

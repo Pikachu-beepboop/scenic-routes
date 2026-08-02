@@ -1,4 +1,4 @@
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap');
         :root {
           --gold:  #C9A86A;
           --serif: 'Cormorant Garamond', Georgia, serif;
@@ -189,15 +189,45 @@
         .st-field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
         .st-field-label-row { display:flex; align-items:center; justify-content:space-between; }
         .st-char-count { font-size:10px; color:var(--dim); }
-        .st-select-full { appearance:none; -webkit-appearance:none; cursor:pointer; }
+        .st-select-full {
+          width:100%; padding:12px 40px 12px 14px;
+          background:color-mix(in srgb, var(--border) 35%, transparent);
+          border:1px solid var(--border); border-radius:10px;
+          color:var(--cream); font-size:13px; outline:none;
+          appearance:none; -webkit-appearance:none; cursor:pointer;
+          transition:all .25s;
+        }
+        .st-select-full:focus { border-color:rgba(201,168,106,0.45); background:color-mix(in srgb, var(--border) 55%, transparent); box-shadow:0 0 0 3px rgba(201,168,106,0.09); }
+        .light .st-select-full { background:#FBF8F2; border-color:rgba(34,28,19,0.16); }
+        .light .st-select-full:focus { background:#FFFFFF; }
         .st-select-wrap { position:relative; }
                 .st-select-wrap svg { position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--dim); }
         .st-textarea { min-height:90px; resize:vertical; line-height:1.6; font-family:inherit; }
 
-        /* Country Dropdown */
-        .st-country-dropdown-container { position:relative; width:100%; }
-        .st-country-trigger { display:flex; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; }
-        .st-country-trigger .placeholder { color:var(--dim); }
+                /* Country Dropdown */
+                .st-country-dropdown-container { position:relative; width:100%; }
+                .pp .st-country-trigger.st-input { 
+                  display:flex; align-items:center; justify-content:space-between; 
+                  text-align:left; cursor:pointer;
+                  /* .pp button resets border/background to none — both need to be
+                     restored explicitly here since this trigger is a <button>,
+                     unlike the plain <input>/<textarea> fields that use .st-input
+                     directly and never hit that reset. */
+                  background:color-mix(in srgb, var(--border) 35%, transparent);
+                  border:1px solid var(--border);
+                }
+                .light .pp .st-country-trigger.st-input { background:#FBF8F2; border-color:rgba(34,28,19,0.16); }
+                .pp .st-country-trigger.st-input:focus,
+                .pp .st-country-trigger.st-input.open {
+                  border-color:rgba(201,168,106,0.45);
+                  background:color-mix(in srgb, var(--border) 55%, transparent);
+                  box-shadow:0 0 0 3px rgba(201,168,106,0.09);
+                }
+                .light .pp .st-country-trigger.st-input:focus,
+                .light .pp .st-country-trigger.st-input.open { background:#FFFFFF; }
+                .st-country-trigger .placeholder { color:var(--dim); }
+
+
         .st-country-trigger .st-chevron { transition:transform .2s; color:var(--dim); }
         .st-country-trigger.open .st-chevron { transform:rotate(180deg); color:var(--gold); }
         
