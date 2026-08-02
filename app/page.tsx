@@ -141,14 +141,14 @@ const FOOTER_COLUMNS = [
     id: "support",
     headingKey: "footer.col.support" as const,
     links: [
-      // FAQ, Contact und Report Route Issue führen alle zur öffentlichen
+      // FAQ, Contact und Send Feedback führen alle zur öffentlichen
       // /support-Seite (kein Login nötig) — die denselben Support-Inhalt
       // zeigt wie der "support"-Tab auf der Profile-Page, aber ohne
       // Login-Zwang. Es gibt dort keine eigenen Anker pro Punkt, daher
       // führen alle drei Links auf dieselbe Seite.
       { key: "footer.link.faq" as const, href: "/support", protected: false },
       { key: "footer.link.contact" as const, href: "/support", protected: false },
-      { key: "footer.link.reportRouteIssue" as const, href: "/support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", protected: false },
     ],
   },
   {

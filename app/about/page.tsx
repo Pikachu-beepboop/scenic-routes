@@ -81,19 +81,24 @@ const FOOTER_COLUMNS = [
     id: "support",
     headingKey: "footer.col.support" as const,
     links: [
-      { key: "footer.link.faq" as const, href: "#", protected: false },
-      { key: "footer.link.contact" as const, href: "#", protected: false },
-      { key: "footer.link.reportProblem" as const, href: "#", protected: false },
-      { key: "footer.link.reportRouteIssue" as const, href: "#", protected: false },
+      // FAQ, Contact und Send Feedback führen alle zur öffentlichen
+      // /support-Seite (kein Login nötig) — zeigt denselben Support-Inhalt
+      // wie der "support"-Tab auf der Profile-Page, aber ohne Login-Zwang.
+      // "Report a Problem" + "Report Route Issue" wurden entfernt und durch
+      // einen einzigen "Send Feedback"-Link ersetzt (führt zum Feedback-
+      // Bereich innerhalb desselben Support-Inhalts).
+      { key: "footer.link.faq" as const, href: "/support", protected: false },
+      { key: "footer.link.contact" as const, href: "/support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", protected: false },
     ],
   },
   {
     id: "legal",
     headingKey: "footer.col.legal" as const,
     links: [
-      { key: "footer.link.termsOfUse" as const, href: "#", protected: false },
-      { key: "footer.link.privacyPolicy" as const, href: "#", protected: false },
-      { key: "footer.link.imprint" as const, href: "#", protected: false },
+      { key: "footer.link.termsOfUse" as const, href: "/legal/terms", protected: false },
+      { key: "footer.link.privacyPolicy" as const, href: "/legal/privacy", protected: false },
+      { key: "footer.link.imprint" as const, href: "/legal/imprint", protected: false },
     ],
   },
 ];

@@ -82,7 +82,7 @@ const FOOTER_COLUMNS = [
       // führen alle drei Links auf dieselbe Seite.
       { key: "footer.link.faq" as const, href: "/support", protected: false },
       { key: "footer.link.contact" as const, href: "/support", protected: false },
-      { key: "footer.link.reportRouteIssue" as const, href: "/support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", protected: false },
     ],
   },
   {
