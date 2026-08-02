@@ -250,6 +250,18 @@ export const translations = {
   "profile.subtab.about.title":           { en: "About",                      de: "Über die App",                    ru: "О приложении" },
   "profile.subtab.about.subtitle":        { en: "Version, legal and app information.", de: "Version, rechtliche und App-Informationen.", ru: "Версия, правовая информация и сведения о приложении." },
 
+  // Profile-Avatar
+  "profile.avatar.change": { en: "Change photo", de: "Foto ändern", ru: "Изменить фото" },
+  "profile.avatar.upload": { en: "Upload photo", de: "Foto hochladen", ru: "Загрузить фото" },
+  "profile.avatar.remove": { en: "Remove photo", de: "Foto entfernen", ru: "Удалить фото" },
+  "profile.avatar.confirmRemove": { en: "Remove your current photo?", de: "Aktuelles Foto entfernen?", ru: "Удалить текущее фото?" },
+  "profile.avatar.cancel": { en: "Cancel", de: "Abbrechen", ru: "Отмена" },
+  "profile.avatar.save": { en: "Save", de: "Speichern", ru: "Сохранить" },
+  "profile.avatar.adjust": { en: "Adjust photo", de: "Foto anpassen", ru: "Настройте фото" },
+  "profile.avatar.uploadError": { en: "Couldn't upload photo", de: "Foto konnte nicht hochgeladen werden", ru: "Не удалось загрузить фото" },
+  "profile.avatar.removeError": { en: "Couldn't remove photo", de: "Foto konnte nicht entfernt werden", ru: "Не удалось удалить фото" },
+
+
   // Sub-Navigation (Sidebar / mobile Tab-Leiste)
   "profile.nav.settings":     { en: "Settings",  de: "Einstellungen", ru: "Настройки" },
   "profile.nav.account":      { en: "Account",   de: "Konto",         ru: "Аккаунт" },

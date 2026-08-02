@@ -73,7 +73,6 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError]                 = useState("");
   const [success, setSuccess]             = useState("");
-  const [avatarFile, setAvatarFile]       = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   // Snapshot of what's actually persisted in the DB — used to compute Profile
   // Completion so it only updates on Save Changes, not on every keystroke in
@@ -222,30 +221,21 @@ export default function ProfilePage() {
     }
   }
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+  // Called by AvatarEditor once it has already uploaded/removed the photo
+  // and updated `profiles.avatar_url` itself — this just syncs local state
+  // (and the Profile Completion snapshot) so the rest of the page reflects it.
+  function handleAvatarUpdated(url: string) {
+    setAvatarUrl(url);
+    setAvatarPreview(url);
+    setSavedProfile((prev) => ({ ...prev, avatarUrl: url }));
   }
 
   async function handleSaveProfile() {
     setSaving(true); setError(""); setSuccess("");
-    let uploadedAvatarUrl = avatarUrl;
-
-    if (avatarFile) {
-      const fileExt = avatarFile.name.split(".").pop();
-      const fileName = `${user.id}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("Avatars").upload(fileName, avatarFile, { upsert: true });
-      if (uploadError) { setError(t("profile.avatarUploadError") + " " + uploadError.message); setSaving(false); return; }
-      const { data: urlData } = supabase.storage.from("Avatars").getPublicUrl(fileName);
-      uploadedAvatarUrl = urlData.publicUrl;
-    }
 
     const { error: profileError } = await supabase.from("profiles")
       .update({
         username,
-        avatar_url: uploadedAvatarUrl,
         display_name: displayName,
         country,
         city,
@@ -256,8 +246,7 @@ export default function ProfilePage() {
     if (profileError) { setError(profileError.message); setSaving(false); return; }
 
     setSuccess(t("profile.updateSuccess"));
-    setAvatarUrl(uploadedAvatarUrl);
-    setSavedProfile({ avatarUrl: uploadedAvatarUrl, country, aboutYou });
+    setSavedProfile((prev) => ({ ...prev, country, aboutYou }));
     setSaving(false);
   }
 
@@ -477,7 +466,7 @@ export default function ProfilePage() {
                     initials={initials}
                     avatarPreview={avatarPreview}
                     savedProfile={savedProfile}
-                    handleAvatarChange={handleAvatarChange}
+                    onAvatarUpdated={handleAvatarUpdated}
                     displayName={displayName} setDisplayName={setDisplayName}
                     username={username} setUsername={setUsername}
                     country={country} setCountry={setCountry}

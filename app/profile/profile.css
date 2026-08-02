@@ -285,6 +285,64 @@
         .st-checklist-item { display:flex; align-items:center; gap:9px; font-size:12px; color:var(--cream); }
         .st-checklist-item svg { flex-shrink:0; }
 
+        .st-avatar-menu {
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 0;
+          z-index: 20;
+          min-width: 200px;
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 6px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+        }
+        .light .st-avatar-menu { box-shadow: 0 12px 32px rgba(58,44,16,0.16); }
+        .st-avatar-menu-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 10px;
+          border-radius: 8px;
+          background: none;
+          border: none;
+          color: var(--cream);
+          font-size: 13px;
+          cursor: pointer;
+          text-align: left;
+        }
+        .st-avatar-menu-item:hover { background: color-mix(in srgb, var(--border) 60%, transparent); }
+        .st-avatar-menu-item-danger { color: #e08080; }
+        .st-avatar-menu-item-danger:hover { background: rgba(224,128,128,0.1); }
+        .st-avatar-menu-confirm { padding: 10px; font-size: 13px; color: var(--cream); }
+        .st-avatar-menu-confirm-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+        .st-avatar-menu-confirm-actions button {
+          padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(201,168,106,0.25);
+          background: none; color: var(--cream); font-size: 12px; cursor: pointer;
+        }
+
+        .st-crop-overlay {
+          position: fixed; inset: 0; z-index: 1000;
+          background: rgba(0,0,0,0.55);
+          display: flex; align-items: center; justify-content: center;
+        }
+        .st-crop-modal {
+          width: 360px; max-width: 92vw;
+          background: var(--bg2); border-radius: 16px; padding: 20px;
+          border: 1px solid var(--border);
+          box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+        }
+        .light .st-crop-modal { box-shadow: 0 30px 80px rgba(58,44,16,0.18); }
+        .st-crop-modal-head {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-bottom: 12px; color: var(--cream); font-size: 15px;
+        }
+        .st-crop-modal-head button { background: none; border: none; color: var(--cream); cursor: pointer; }
+        .st-crop-area { position: relative; width: 100%; height: 280px; border-radius: 10px; overflow: hidden; }
+        .st-crop-zoom-slider { width: 100%; margin: 14px 0; accent-color: var(--gold); }
+        .st-crop-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
         .st-pass-mini-card { gap:14px; }
         .st-pass-mini-head { display:flex; align-items:center; gap:12px; }
 

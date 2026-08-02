@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../../LanguageContext";
 import type { Stamp, SubTabId } from "../../types";
+import AvatarEditor from "./AvatarEditor";
 
 const ABOUT_MAX = 250;
 
@@ -38,7 +39,7 @@ const COUNTRY_CODES = [
 const LOCALE_MAP: Record<string, string> = { en: "en", de: "de", ru: "ru" };
 
 export default function ProfileTab({
-  user, stamps, initials, avatarPreview, savedProfile, handleAvatarChange,
+  user, stamps, initials, avatarPreview, savedProfile, onAvatarUpdated,
   displayName, setDisplayName,
   username, setUsername,
   country, setCountry,
@@ -54,7 +55,7 @@ export default function ProfileTab({
   initials: string;
   avatarPreview: string;
   savedProfile: { avatarUrl: string; country: string; aboutYou: string };
-  handleAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onAvatarUpdated: (url: string) => void;
   displayName: string; setDisplayName: (v: string) => void;
   username: string; setUsername: (v: string) => void;
   country: string; setCountry: (v: string) => void;
@@ -118,16 +119,12 @@ export default function ProfileTab({
         <div className="st-profile-col">
           <div className="st-card st-subcard st-profile-head-card">
             <div className="st-profile-head" style={{ borderBottom: "none", paddingBottom: 0 }}>
-              <div className="st-avatar-wrap">
-                {avatarPreview
-                  ? <img src={avatarPreview} className="st-avatar-lg" alt="avatar" />
-                  : <div className="st-avatar-lg-placeholder">{initials}</div>
-                }
-                <label className="st-avatar-edit" title="Change photo">
-                  <Camera size={11} strokeWidth={2.2} />
-                  <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
-                </label>
-              </div>
+              <AvatarEditor
+                userId={user?.id}
+                avatarPreview={avatarPreview}
+                initials={initials}
+                onAvatarUpdated={onAvatarUpdated}
+              />
               <div>
                 <p className="st-profile-name">{displayName || username || user?.email?.split("@")[0]}</p>
                 <p className="st-profile-role">{t("common.roleExplorer")}</p>
