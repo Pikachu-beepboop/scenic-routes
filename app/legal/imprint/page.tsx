@@ -7,13 +7,13 @@ export default function ImprintPage() {
       <p>
         Lavr Anichin<br />
         Hornschuchpromenade 43<br />
-        90762 Fürth<br />
+        90762, Fürth<br />
         Deutschland
       </p>
 
       <h2>Kontakt</h2>
       <p>
-        E-Mail: <span className="lp-fill">[E-MAIL-ADRESSE DER WEBSITE]</span>
+        E-Mail: <span className="lp-fill">contact@explorescenicroutes.com</span>
       </p>
 
       <h2>Verbraucherstreitbeilegung</h2>
