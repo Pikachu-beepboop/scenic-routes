@@ -1,15 +1,36 @@
 "use client";
 
+import React, { useState, useRef, useEffect } from "react";
 import {
   ChevronRight, ChevronDown, CheckCircle2, Camera,
   Compass, Globe, Bookmark, TrendingUp, Calendar,
-  MapPin, AlertTriangle, Circle, Award,
+  MapPin, AlertTriangle, Circle, Award, Search, X
 } from "lucide-react";
 import { useLanguage } from "../../../LanguageContext";
 import type { Stamp, SubTabId } from "../../types";
 
 const ABOUT_MAX = 250;
-const COUNTRIES = ["Germany","Pakistan","United States","United Kingdom","France","Italy","Spain","Switzerland","Austria","Norway","Canada","Australia","Other"];
+
+// ISO 3166-1 alpha-2 country codes
+const COUNTRY_CODES = [
+  "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
+  "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW", "BV", "BR",
+  "IO", "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CN", "CX", "CC",
+  "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO",
+  "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA",
+  "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT",
+  "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP",
+  "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI",
+  "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX",
+  "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI",
+  "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA", "PG", "PY", "PE", "PH", "PN",
+  "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS",
+  "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS",
+  "ES", "LK", "SD", "SR", "SJ", "SZ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK",
+  "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU",
+  "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"
+];
+
 
 
 // Für Date-Formatierung ("Member since ...") passend zur aktuell gewählten
@@ -46,8 +67,34 @@ export default function ProfileTab({
   setDeleteError: (v: string) => void;
 }) {
   const { t, lang } = useLanguage();
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Get translated country names
+  const countryDisplayName = new Intl.DisplayNames([lang], { type: 'region' });
+  const allCountries = COUNTRY_CODES.map(code => ({
+    code,
+    name: countryDisplayName.of(code) || code
+  })).sort((a, b) => a.name.localeCompare(b.name, lang));
+
+  const filteredCountries = countrySearch.trim()
+    ? allCountries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()))
+    : allCountries;
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setIsCountryOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Profile Completion — derived from data we already have on hand (no extra
+
   // backend calls). The overall % is computed from this checklist rather
   // than hardcoded, so it stays honest even though the stat cards below
   // (Trips/Countries/Distance) are still placeholders.
@@ -106,18 +153,70 @@ export default function ProfileTab({
               <input className="st-input" type="text" placeholder={t("profile.info.usernamePh")} value={username} onChange={e => setUsername(e.target.value)} />
             </div>
 
-            <div className="st-field-row">
+                        <div className="st-field-row">
               <div className="st-field">
                 <label className="st-field-label">{t("profile.info.country")}</label>
-                <div className="st-select-wrap">
-                  <select className="st-input st-select-full" value={country} onChange={e => setCountry(e.target.value)}>
-                    <option value="">{t("profile.info.selectCountry")}</option>
-                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <ChevronDown size={14} strokeWidth={2} />
+                <div className="st-country-dropdown-container" ref={countryDropdownRef}>
+                  <button
+                    className={`st-input st-country-trigger ${isCountryOpen ? 'open' : ''}`}
+                    onClick={() => setIsCountryOpen(!isCountryOpen)}
+                    type="button"
+                  >
+                    <span className={!country ? "placeholder" : ""}>
+                      {country || t("profile.info.selectCountry")}
+                    </span>
+                    <ChevronDown size={14} strokeWidth={2} className="st-chevron" />
+                  </button>
+
+                  {isCountryOpen && (
+                    <div className="st-country-dropdown">
+                      <div className="st-country-search-wrap">
+                        <Search size={14} className="st-search-icon" />
+                        <input
+                          autoFocus
+                          type="text"
+                          className="st-country-search-input"
+                          placeholder={t("explore.search.searchCountries")}
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                        />
+                        {countrySearch && (
+                          <button className="st-clear-search" onClick={() => setCountrySearch("")}>
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="st-country-list">
+                        <button
+                          className="st-country-option"
+                          onClick={() => { setCountry(""); setIsCountryOpen(false); setCountrySearch(""); }}
+                        >
+                          {t("explore.search.allCountries")}
+                        </button>
+                        {filteredCountries.map((c) => (
+                          <button
+                            key={c.code}
+                            className={`st-country-option ${country === c.name ? "active" : ""}`}
+                            onClick={() => {
+                              setCountry(c.name);
+                              setIsCountryOpen(false);
+                              setCountrySearch("");
+                            }}
+                          >
+                            <span className="st-option-dot" />
+                            {c.name}
+                          </button>
+                        ))}
+                        {filteredCountries.length === 0 && (
+                          <div className="st-country-empty">No countries found</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="st-field">
+
                 <label className="st-field-label">{t("profile.info.city")}</label>
                 <input className="st-input" type="text" placeholder={t("profile.info.city")} value={city} onChange={e => setCity(e.target.value)} />
               </div>
