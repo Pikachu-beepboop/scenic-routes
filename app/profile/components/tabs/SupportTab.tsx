@@ -15,8 +15,8 @@ import { HIDE_TUTORIALS_ROW } from "../../betaConfig";
  * dort auf Deutsch anpassen, Englisch/Russisch entsprechend mit
  * übersetzen.
  */
-const CONTACT_EMAIL = "hello@explorescenicroutes.com";
-const FEEDBACK_EMAIL = "feedback@explorescenicroutes.com";
+const CONTACT_EMAIL = "contact@explorescenicroutes.com";
+const FEEDBACK_EMAIL = "contact@explorescenicroutes.com";
 /* ─────────────────────────────────────────────────────────── */
 
 const FAQ_INDEXES = ["1", "2", "3", "4"] as const;
