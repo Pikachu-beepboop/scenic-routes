@@ -287,7 +287,7 @@ function LoginPageInner() {
         .lp-nav { position:fixed; inset:0 0 auto; z-index:200; height:72px; padding:0 clamp(20px,4vw,60px); display:flex; align-items:center; justify-content:space-between; background:transparent; border-bottom:1px solid transparent; transition:background .35s,border-color .35s; }
         .lp-nav.scrolled { background:rgba(12,11,9,0.92); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); border-bottom-color:var(--border); }
         .lp-nav-logo { display:flex; flex-direction:column; line-height:1; }
-        .lp-nav-logo span { font-size:13px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
+        .lp-nav-logo span { font-size:11px; font-weight:800; letter-spacing:0.22em; text-transform:uppercase; color:var(--cream); }
         .lp-nav-links { display:flex; gap:36px; }
         .lp-nav-right { display:flex; align-items:center; width:107px; justify-content:flex-end; }
         .lp-nav-link { position:relative; font-size:13px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
