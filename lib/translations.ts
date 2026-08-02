@@ -449,6 +449,85 @@ export const translations = {
   "routeDetail.viewRoute":       { en: "View Route", de: "Route ansehen",     ru: "Смотреть маршрут" },
   "routeDetail.navigationLabel": { en: "Navigation", de: "Navigation",        ru: "Навигация" },
 
+// ==================== Login-Seite ====================
+
+  // Back-Link (abhängig vom redirect-Ziel)
+  "login.back.explore":  { en: "← Back to explore",  de: "← Zurück zu Entdecken",  ru: "← Назад к маршрутам" },
+  "login.back.myTrips":  { en: "← Back to my trips", de: "← Zurück zu meinen Trips", ru: "← Назад к моим поездкам" },
+  "login.back.route":    { en: "← Back to route",    de: "← Zurück zur Route",     ru: "← Назад к маршруту" },
+  "login.back.about":    { en: "← Back to about",    de: "← Zurück zu Über uns",   ru: "← Назад к разделу «О нас»" },
+  "login.back.home":     { en: "← Back to home",     de: "← Zurück zur Startseite", ru: "← Назад на главную" },
+  "login.back.default":  { en: "← Go back",          de: "← Zurück",               ru: "← Назад" },
+
+  // Eyebrow & Hero-Text
+  "login.eyebrow":    { en: "Member Access",   de: "Mitgliederbereich",  ru: "Доступ для участников" },
+  "login.h1.line1":   { en: "Roads worth",     de: "Straßen,",  ru: "Дороги, которые" },
+  "login.h1.line2":   { en: "remembering",     de: "an die man sich gerne erinnert", ru: "стоит запомнить" },
+  "login.sub":        { en: "Sign in to save your favourite routes, build custom journeys, and unlock hidden destinations around the world", de: "Melde dich an, um deine Lieblingsrouten zu speichern, individuelle Reisen zu planen und versteckte Ziele weltweit freizuschalten", ru: "Войди, чтобы сохранять любимые маршруты, создавать индивидуальные путешествия и открывать скрытые направления по всему миру" },
+
+  // Features (linke Spalte)
+  "login.feat1.title": { en: "Save your routes",  de: "Speichere deine Routen",     ru: "Сохраняй маршруты" },
+  "login.feat1.text":  { en: "Bookmark any route and access it anytime, anywhere", de: "Speichere jede Route als Lesezeichen und greife jederzeit und überall darauf zu", ru: "Добавляй любой маршрут в закладки и получай к нему доступ в любое время и в любом месте" },
+  "login.feat2.title": { en: "Build custom trips", de: "Individuelle Trips planen",  ru: "Создавай собственные поездки" },
+  "login.feat2.text":  { en: "Plan and personalise multi-day road trips with ease", de: "Plane und personalisiere mehrtägige Roadtrips ganz einfach", ru: "Легко планируй и настраивай многодневные автопутешествия" },
+  "login.feat3.title": { en: "Discover hidden gems", de: "Entdecke versteckte Perlen", ru: "Находи скрытые жемчужины" },
+  "login.feat3.text":  { en: "Exclusive spots and insider tips for members only", de: "Exklusive Orte und Insider-Tipps nur für Mitglieder", ru: "Эксклюзивные места и советы инсайдеров только для участников" },
+
+  // Tabs
+  "login.tab.signIn":       { en: "Sign In",        de: "Anmelden",           ru: "Войти" },
+  "login.tab.createAccount": { en: "Create Account", de: "Konto erstellen",   ru: "Создать аккаунт" },
+
+  // Formulartitel
+  "login.form.welcomeTitle": { en: "Welcome back",              de: "Willkommen zurück",         ru: "С возвращением" },
+  "login.form.welcomeSub":   { en: "Sign in to continue your journey", de: "Melde dich an, um deine Reise fortzusetzen", ru: "Войди, чтобы продолжить своё путешествие" },
+  "login.form.joinTitle":    { en: "Join the road",             de: "Werde Teil der Reise",      ru: "Присоединяйся к путешествию" },
+  "login.form.joinSub":      { en: "Create your free account today", de: "Erstelle noch heute dein kostenloses Konto", ru: "Создай бесплатный аккаунт уже сегодня" },
+  "login.form.resetTitle":   { en: "Reset password.",           de: "Passwort zurücksetzen.",    ru: "Сброс пароля." },
+  "login.form.resetSub":     { en: "Enter your email and we'll send you a reset link", de: "Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen", ru: "Введи свой email, и мы отправим тебе ссылку для сброса пароля" },
+
+  // Google-Button
+  "login.google.continue": { en: "Continue with Google",           de: "Mit Google fortfahren",         ru: "Продолжить с Google" },
+  "login.google.loading":  { en: "Loading Google Sign-In...",      de: "Google-Anmeldung wird geladen...", ru: "Загрузка входа через Google..." },
+  "login.google.notReady": { en: "Google sign-in isn't ready yet, please try again in a second.", de: "Die Google-Anmeldung ist noch nicht bereit, versuche es gleich noch einmal.", ru: "Вход через Google ещё не готов, попробуй ещё раз через секунду." },
+
+  // Divider
+  "login.divider.or": { en: "or", de: "oder", ru: "или" },
+
+  // Platzhalter
+  "login.placeholder.fullName": { en: "Full Name",      de: "Vollständiger Name", ru: "Полное имя" },
+  "login.placeholder.email":    { en: "Email Address",  de: "E-Mail-Adresse",     ru: "Адрес электронной почты" },
+  "login.placeholder.password": { en: "Password",       de: "Passwort",           ru: "Пароль" },
+
+  // Passwort vergessen
+  "login.forgotPassword": { en: "Forgot your password?", de: "Passwort vergessen?", ru: "Забыл(а) пароль?" },
+  "login.error.enterEmailFirst": { en: "Please enter your email address first.", de: "Bitte gib zuerst deine E-Mail-Adresse ein.", ru: "Сначала введи свой адрес электронной почты." },
+
+  // Submit-Buttons
+  "login.submit.signIn":        { en: "Sign In",         de: "Anmelden",              ru: "Войти" },
+  "login.submit.createAccount": { en: "Create Account",  de: "Konto erstellen",       ru: "Создать аккаунт" },
+  "login.submit.loading":       { en: "Loading...",      de: "Wird geladen...",       ru: "Загрузка..." },
+  "login.submit.sendResetLink": { en: "Send Reset Link", de: "Reset-Link senden",     ru: "Отправить ссылку для сброса" },
+  "login.submit.sending":       { en: "Sending...",      de: "Wird gesendet...",      ru: "Отправка..." },
+
+  // Wechsel-Links
+  "login.switch.noAccount":    { en: "Don't have an account?",   de: "Noch kein Konto?",            ru: "Нет аккаунта?" },
+  "login.switch.signUp":       { en: "Sign Up",                   de: "Registrieren",                ru: "Зарегистрироваться" },
+  "login.switch.haveAccount":  { en: "Already have an account?", de: "Bereits ein Konto?",           ru: "Уже есть аккаунт?" },
+  "login.switch.signIn":       { en: "Sign In",                   de: "Anmelden",                    ru: "Войти" },
+  "login.switch.backToSignIn": { en: "← Back to Sign In",         de: "← Zurück zur Anmeldung",       ru: "← Назад ко входу" },
+
+  // Erfolgsmeldungen
+  "login.success.welcomeBack": { en: "Welcome back!", de: "Willkommen zurück!", ru: "С возвращением!" },
+  "login.error.emailInUse":    { en: "This email is already in use. Please sign in instead.", de: "Diese E-Mail-Adresse wird bereits verwendet. Bitte melde dich stattdessen an.", ru: "Этот email уже используется. Пожалуйста, войди в систему." },
+
+  // Bestätigungs-/Reset-Screen nach Registrierung
+  "login.confirm.checkEmailTitle":   { en: "Check your email",       de: "Überprüfe deine E-Mails", ru: "Проверь свою почту" },
+  "login.confirm.confirmEmailTitle": { en: "Confirm your email",     de: "Bestätige deine E-Mail",  ru: "Подтверди свою почту" },
+  "login.confirm.resetSentText":     { en: "We've sent a password reset link to", de: "Wir haben einen Link zum Zurücksetzen des Passworts gesendet an", ru: "Мы отправили ссылку для сброса пароля на" },
+  "login.confirm.confirmSentText":   { en: "We've sent a confirmation link to",   de: "Wir haben einen Bestätigungslink gesendet an", ru: "Мы отправили ссылку для подтверждения на" },
+  "login.confirm.checkInbox":        { en: "Please check your inbox to proceed.", de: "Bitte überprüfe dein Postfach, um fortzufahren.", ru: "Пожалуйста, проверь почту, чтобы продолжить." },
+  "login.confirm.backToSignIn":      { en: "Back to Sign In",        de: "Zurück zur Anmeldung",    ru: "Назад ко входу" },
+
 } as const;
 
 export type TranslationKey = keyof typeof translations;

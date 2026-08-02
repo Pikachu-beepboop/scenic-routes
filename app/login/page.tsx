@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import { useLanguage } from "@/app/LanguageContext";
 
 const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
   .split(',')
@@ -15,6 +16,7 @@ const GOOGLE_CLIENT_ID = '440128560810-1fmbq7s4aue2qtnpkspp1nmhr65fvqmp.apps.goo
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { lang, setLang, t } = useLanguage();
 
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
   const [isRegistered, setIsRegistered] = useState(false);
@@ -48,14 +50,14 @@ function LoginPageInner() {
   }, [searchParams]);
 
   const backLabel = useMemo(() => {
-    if (redirectPath.startsWith("/explore")) return "← Back to explore";
-    if (redirectPath.startsWith("/my-trips")) return "← Back to my trips";
-    if (redirectPath.startsWith("/routedetail")) return "← Back to route";
-    if (redirectPath.startsWith("/about")) return "← Back to about";
-    if (redirectPath === "/") return "← Back to home";
+    if (redirectPath.startsWith("/explore")) return t("login.back.explore");
+    if (redirectPath.startsWith("/my-trips")) return t("login.back.myTrips");
+    if (redirectPath.startsWith("/routedetail")) return t("login.back.route");
+    if (redirectPath.startsWith("/about")) return t("login.back.about");
+    if (redirectPath === "/") return t("login.back.home");
 
-    return "← Go back";
-  }, [redirectPath]);
+    return t("login.back.default");
+  }, [redirectPath, t]);
 
   // Проверка существующей сессии + защита от редирект-цикла с /admin
   useEffect(() => {
@@ -90,7 +92,7 @@ function LoginPageInner() {
     if (error) {
       setError(error.message);
     } else {
-      setSuccess('Welcome back!');
+      setSuccess(t('login.success.welcomeBack'));
       setTimeout(() => router.push(redirectPath), 900);
     }
   }
@@ -158,7 +160,19 @@ function LoginPageInner() {
     if (realButton) {
       realButton.click();
     } else {
-      setError("Google sign-in isn't ready yet, please try again in a second.");
+      setError(t("login.google.notReady"));
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== "Enter" || loading) return;
+
+    if (mode === "reset") {
+      handleResetPassword();
+    } else if (mode === "login") {
+      handleLogin();
+    } else {
+      handleRegister();
     }
   }
 
@@ -189,7 +203,7 @@ function LoginPageInner() {
     if (error) {
       setError(error.message);
     } else {
-      setSuccess("Welcome back!");
+      setSuccess(t("login.success.welcomeBack"));
       setTimeout(() => router.push(redirectPath), 900);
     }
 
@@ -213,7 +227,7 @@ function LoginPageInner() {
         if (error) {
       setError(error.message);
     } else if (data.user?.identities?.length === 0) {
-      setError("This email is already in use. Please sign in instead.");
+      setError(t("login.error.emailInUse"));
     } else {
       setIsRegistered(true);
     }
@@ -223,7 +237,7 @@ function LoginPageInner() {
 
   async function handleResetPassword() {
     if (!email) {
-      setError("Please enter your email address first.");
+      setError(t("login.error.enterEmailFirst"));
       return;
     }
 
@@ -356,6 +370,13 @@ function LoginPageInner() {
         .lp-back { display:inline-flex; align-items:center; gap:8px; font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); transition:color .2s; margin-bottom:32px; }
                 .lp-back:hover { color:var(--gold); }
 
+        /* LANGUAGE SWITCH */
+        .lp-lang-switch { position:fixed; right:clamp(16px,3vw,32px); bottom:clamp(16px,3vw,28px); z-index:300; display:flex; gap:2px; padding:4px; background:rgba(12,11,9,0.78); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); border:1px solid var(--border); border-radius:999px; }
+        .lp-lang-btn { padding:7px 12px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.1em; color:var(--dim); transition:all .2s; }
+        .lp-lang-btn:hover { color:var(--cream); }
+        .lp-lang-btn.active { background:var(--gold); color:var(--bg); }
+        @media (max-width:480px) { .lp-lang-switch { right:12px; bottom:12px; } .lp-lang-btn { padding:6px 10px; font-size:9px; } }
+
         .registration-success-slide {
           animation: slideIn .5s cubic-bezier(0.22, 1, 0.36, 1) both;
           display: flex;
@@ -411,10 +432,10 @@ function LoginPageInner() {
 
           <div className="lp-nav-links">
             <Link href="/explore" className="lp-nav-link">
-              Explore Routes
+              {t("nav.explore")}
             </Link>
             <Link href="/about" className="lp-nav-link">
-              About
+              {t("nav.about")}
             </Link>
           </div>
 
@@ -429,17 +450,16 @@ function LoginPageInner() {
               {backLabel}
             </Link>
 
-            <p className="lp-eyebrow">Member Access</p>
+            <p className="lp-eyebrow">{t("login.eyebrow")}</p>
 
             <h1 className="lp-h1">
-              Roads worth
+              {t("login.h1.line1")}
               <br />
-              remembering
+              {t("login.h1.line2")}
             </h1>
 
             <p className="lp-sub">
-              Sign in to save your favourite routes, build custom journeys, and
-              unlock hidden destinations around the world
+              {t("login.sub")}
             </p>
 
             <div className="lp-features">
@@ -450,8 +470,8 @@ function LoginPageInner() {
                   </svg>
                 </div>
                 <div className="lp-feat-text">
-                  <h4>Save your routes</h4>
-                  <p>Bookmark any route and access it anytime, anywhere</p>
+                  <h4>{t("login.feat1.title")}</h4>
+                  <p>{t("login.feat1.text")}</p>
                 </div>
               </div>
 
@@ -464,8 +484,8 @@ function LoginPageInner() {
                   </svg>
                 </div>
                 <div className="lp-feat-text">
-                  <h4>Build custom trips</h4>
-                  <p>Plan and personalise multi-day road trips with ease</p>
+                  <h4>{t("login.feat2.title")}</h4>
+                  <p>{t("login.feat2.text")}</p>
                 </div>
               </div>
 
@@ -477,8 +497,8 @@ function LoginPageInner() {
                   </svg>
                 </div>
                 <div className="lp-feat-text">
-                  <h4>Discover hidden gems</h4>
-                  <p>Exclusive spots and insider tips for members only</p>
+                  <h4>{t("login.feat3.title")}</h4>
+                  <p>{t("login.feat3.text")}</p>
                 </div>
               </div>
             </div>
@@ -496,15 +516,15 @@ function LoginPageInner() {
                     </svg>
                   </div>
                   <p className="lp-form-title" style={{ textAlign: 'center' }}>
-                    {isResetSent ? "Check your email" : "Confirm your email"}
+                    {isResetSent ? t("login.confirm.checkEmailTitle") : t("login.confirm.confirmEmailTitle")}
                   </p>
                   <p className="lp-form-sub" style={{ textAlign: 'center', fontSize: '13px', lineHeight: '1.6', marginTop: '10px' }}>
                     {isResetSent 
-                      ? "We've sent a password reset link to" 
-                      : "We've sent a confirmation link to"} 
+                      ? t("login.confirm.resetSentText") 
+                      : t("login.confirm.confirmSentText")} 
                     <br/>
                     <strong style={{ color: 'var(--cream)' }}>{email}</strong>. <br/>
-                    Please check your inbox to proceed.
+                    {t("login.confirm.checkInbox")}
                   </p>
                   <button
                     className="lp-submit"
@@ -515,7 +535,7 @@ function LoginPageInner() {
                       setMode("login");
                     }}
                   >
-                    Back to Sign In
+                    {t("login.confirm.backToSignIn")}
                   </button>
                 </div>
               ) : (
@@ -526,7 +546,7 @@ function LoginPageInner() {
                         className={`lp-tab ${mode === "login" ? "active" : ""}`}
                         onClick={() => switchMode("login")}
                       >
-                        Sign In
+                        {t("login.tab.signIn")}
                       </button>
 
                       <button
@@ -535,24 +555,25 @@ function LoginPageInner() {
                         }`}
                         onClick={() => switchMode("register")}
                       >
-                        Create Account
+                        {t("login.tab.createAccount")}
                       </button>
                     </div>
                   )}
 
                   {mode === "reset" && (
                     <>
-                      <p className="lp-form-title">Reset password.</p>
+                      <p className="lp-form-title">{t("login.form.resetTitle")}</p>
                       <p className="lp-form-sub">
-                        Enter your email and we'll send you a reset link
+                        {t("login.form.resetSub")}
                       </p>
 
                       <input
                         className="lp-input"
                         type="email"
-                        placeholder="Email Address"
+                        placeholder={t("login.placeholder.email")}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={handleKeyDown}
                       />
 
                       {error && <p className="lp-error">{error}</p>}
@@ -564,12 +585,12 @@ function LoginPageInner() {
                         disabled={loading}
                         onClick={handleResetPassword}
                       >
-                        {loading ? "Sending..." : "Send Reset Link"}
+                        {loading ? t("login.submit.sending") : t("login.submit.sendResetLink")}
                       </button>
 
                       <div className="lp-switch">
                         <button onClick={() => switchMode("login")}>
-                          ← Back to Sign In
+                          {t("login.switch.backToSignIn")}
                         </button>
                       </div>
                     </>
@@ -579,16 +600,16 @@ function LoginPageInner() {
                     <>
                       {mode === "login" ? (
                         <>
-                          <p className="lp-form-title">Welcome back</p>
+                          <p className="lp-form-title">{t("login.form.welcomeTitle")}</p>
                           <p className="lp-form-sub">
-                            Sign in to continue your journey
+                            {t("login.form.welcomeSub")}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="lp-form-title">Join the road</p>
+                          <p className="lp-form-title">{t("login.form.joinTitle")}</p>
                           <p className="lp-form-sub">
-                            Create your free account today
+                            {t("login.form.joinSub")}
                           </p>
                         </>
                       )}
@@ -615,6 +636,7 @@ function LoginPageInner() {
                         className="lp-google-btn"
                         onClick={handleGoogleLogin}
                         disabled={!googleReady}
+                        suppressHydrationWarning
                       >
                         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                           <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/>
@@ -622,37 +644,40 @@ function LoginPageInner() {
                           <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
                           <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
                         </svg>
-                        {googleReady ? "Continue with Google" : "Loading Google Sign-In..."}
+                        {googleReady ? t("login.google.continue") : t("login.google.loading")}
                       </button>
 
                       <div className="lp-divider">
-                        <span>or</span>
+                        <span>{t("login.divider.or")}</span>
                       </div>
 
                       {mode === "register" && (
                         <input
                           className="lp-input"
                           type="text"
-                          placeholder="Full Name"
+                          placeholder={t("login.placeholder.fullName")}
                           value={name}
                           onChange={(e) => setName(e.target.value)}
+                          onKeyDown={handleKeyDown}
                         />
                       )}
 
                       <input
                         className="lp-input"
                         type="email"
-                        placeholder="Email Address"
+                        placeholder={t("login.placeholder.email")}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={handleKeyDown}
                       />
 
                       <input
                         className="lp-input"
                         type="password"
-                        placeholder="Password"
+                        placeholder={t("login.placeholder.password")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={handleKeyDown}
                       />
 
                       {mode === "login" && (
@@ -661,7 +686,7 @@ function LoginPageInner() {
                           type="button"
                           onClick={() => switchMode("reset")}
                         >
-                          Forgot your password?
+                          {t("login.forgotPassword")}
                         </button>
                       )}
 
@@ -675,25 +700,25 @@ function LoginPageInner() {
                         onClick={mode === "login" ? handleLogin : handleRegister}
                       >
                         {loading
-                          ? "Loading..."
+                          ? t("login.submit.loading")
                           : mode === "login"
-                          ? "Sign In"
-                          : "Create Account"}
+                          ? t("login.submit.signIn")
+                          : t("login.submit.createAccount")}
                       </button>
 
                       <div className="lp-switch">
                         {mode === "login" ? (
                           <>
-                            Don&apos;t have an account?{" "}
+                            {t("login.switch.noAccount")}{" "}
                             <button onClick={() => switchMode("register")}>
-                              Sign Up
+                              {t("login.switch.signUp")}
                             </button>
                           </>
                         ) : (
                           <>
-                            Already have an account?{" "}
+                            {t("login.switch.haveAccount")}{" "}
                             <button onClick={() => switchMode("login")}>
-                              Sign In
+                              {t("login.switch.signIn")}
                             </button>
                           </>
                         )}
@@ -705,6 +730,31 @@ function LoginPageInner() {
             </div>
           </div>
         </main>
+
+        {/* LANGUAGE SWITCH */}
+        <div className="lp-lang-switch">
+          <button
+            type="button"
+            className={`lp-lang-btn ${lang === "en" ? "active" : ""}`}
+            onClick={() => setLang("en")}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            className={`lp-lang-btn ${lang === "de" ? "active" : ""}`}
+            onClick={() => setLang("de")}
+          >
+            DE
+          </button>
+          <button
+            type="button"
+            className={`lp-lang-btn ${lang === "ru" ? "active" : ""}`}
+            onClick={() => setLang("ru")}
+          >
+            RU
+          </button>
+        </div>
       </div>
     </>
   );
