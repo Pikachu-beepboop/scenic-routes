@@ -296,7 +296,7 @@ export const translations = {
   "profile.info.country":       { en: "Country",                 de: "Land",                     ru: "Страна" },
   "profile.info.selectCountry": { en: "Select country",          de: "Land auswählen",           ru: "Выбери страну" },
   "profile.info.city":          { en: "Your City",                de: "Dein Stadt",                 ru: "Твой Город" },
-  "profile.info.aboutYou":      { en: "About You",                de: "Über dich",                ru: "О себе" },
+  "profile.info.aboutYou":      { en: "About You",                de: "Über dich",                ru: "О Cебе" },
   "profile.info.aboutYouPh":    { en: "Mountain lover. Scenic roads enthusiast.", de: "Bergliebhaber. Fan von Panoramastraßen.", ru: "Люблю горы. Увлекаюсь живописными дорогами." },
   "profile.info.memberSince":   { en: "Member since",             de: "Mitglied seit",            ru: "Участник с" },
 
