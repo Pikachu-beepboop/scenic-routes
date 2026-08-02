@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
@@ -10,8 +10,6 @@ const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
   .split(',')
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
-
-const GOOGLE_CLIENT_ID = '440128560810-1fmbq7s4aue2qtnpkspp1nmhr65fvqmp.apps.googleusercontent.com';
 
 function LoginPageInner() {
   const router = useRouter();
@@ -29,8 +27,7 @@ function LoginPageInner() {
   const [success, setSuccess] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [googleReady, setGoogleReady] = useState(false);
-  const googleBtnWrapperRef = useRef<HTMLDivElement>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const redirectPath = useMemo(() => {
     const rawRedirect = searchParams.get("redirect");
@@ -82,86 +79,28 @@ function LoginPageInner() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [redirectPath, router, searchParams]);
 
-  async function handleGoogleCredential(response: any) {
+  // Google-Login über den normalen Supabase-OAuth-Redirect-Flow.
+  // Kein zusätzliches Google-Skript, kein Popup, kein iframe-Proxy-Klick -
+  // dadurch unabhängig von Popup-Blockern, Tracking-Schutz oder Erweiterungen.
+  // Der App-Name/Support-E-Mail im Google-Fenster kommen weiterhin aus dem
+  // OAuth-Zustimmungsbildschirm in der Google Cloud Console.
+  async function handleGoogleLogin() {
     setError("");
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: response.credential,
+    setGoogleLoading(true);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}${redirectPath}`,
+      },
     });
 
     if (error) {
       setError(error.message);
-    } else {
-      setSuccess(t('login.success.welcomeBack'));
-      setTimeout(() => router.push(redirectPath), 900);
+      setGoogleLoading(false);
     }
-  }
-
-  // Google Identity Services Script laden
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, []);
-
-  // GSI initialisieren und unsichtbar rendern, sobald Script bereit ist.
-  // Unser eigener, gestylter Button proxied den Klick auf dieses versteckte
-  // Google-Element, damit der Popup weiterhin über unsere echte client_id
-  // läuft (korrekter App-Name statt Supabase-Domain).
-  useEffect(() => {
-    let cancelled = false;
-
-    const interval = setInterval(() => {
-      // @ts-ignore
-      if (window.google?.accounts?.id && googleBtnWrapperRef.current) {
-        clearInterval(interval);
-        clearTimeout(timeout);
-        if (cancelled) return;
-
-        // @ts-ignore
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleCredential,
-        });
-        // @ts-ignore
-        window.google.accounts.id.renderButton(
-          googleBtnWrapperRef.current,
-          { theme: 'outline', size: 'large', width: 320 }
-        );
-        setGoogleReady(true);
-      }
-    }, 200);
-
-    // Falls das Google-Script nach 10s nicht geladen hat (z.B. Adblocker,
-    // langsames Netz, Script blockiert) - kein endloses Warten mehr.
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-    }, 10000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, []);
-
-  function handleGoogleLogin() {
-    if (!googleReady) return;
-
-    const container = googleBtnWrapperRef.current;
-    if (!container) return;
-
-    const realButton = container.querySelector(
-      'div[role="button"]'
-    ) as HTMLElement | null;
-
-    if (realButton) {
-      realButton.click();
-    } else {
-      setError(t("login.google.notReady"));
-    }
+    // Bei Erfolg leitet der Browser sofort zu Google weiter, daher wird
+    // setGoogleLoading(false) hier bewusst nicht mehr aufgerufen.
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -614,29 +553,11 @@ function LoginPageInner() {
                         </>
                       )}
 
-                      {/* Unsichtbarer, echter Google-Button (GSI). Wird per
-                          Proxy-Klick vom sichtbaren, eigenen Button ausgelöst,
-                          damit der Consent-Screen unseren echten App-Namen zeigt. */}
-                      <div
-                        ref={googleBtnWrapperRef}
-                        style={{
-                          position: 'absolute',
-                          opacity: 0,
-                          pointerEvents: 'none',
-                          top: 0,
-                          left: 0,
-                          width: 0,
-                          height: 0,
-                          overflow: 'hidden',
-                        }}
-                      />
-
                       <button
                         type="button"
                         className="lp-google-btn"
                         onClick={handleGoogleLogin}
-                        disabled={!googleReady}
-                        suppressHydrationWarning
+                        disabled={googleLoading}
                       >
                         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                           <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.87 2.7-6.62z"/>
@@ -644,7 +565,7 @@ function LoginPageInner() {
                           <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/>
                           <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
                         </svg>
-                        {googleReady ? t("login.google.continue") : t("login.google.loading")}
+                        {googleLoading ? t("login.google.loading") : t("login.google.continue")}
                       </button>
 
                       <div className="lp-divider">
