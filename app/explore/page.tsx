@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase, withTimeout, getSessionSafe, clearCorruptedSession } from "../../lib/supabase";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useUnit } from "../UnitContext";
@@ -282,9 +282,18 @@ function ExplorePageInner() {
   useEffect(() => { if (!isOpenDate) setDurationSearch(""); }, [isOpenDate]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    let active = true;
+    (async () => {
+      // GEÄNDERT (Ticket A): getSessionSafe() statt supabase.auth.getSession()
+      // direkt. Bei einem korrupten/hängenden Token (z.B. nach dem
+      // Profile-Refresh-Logout-Flow) läuft dieser Call nie unendlich, sondern
+      // liefert nach spätestens 8s user=null zurück und räumt den kaputten
+      // localStorage-Eintrag auf, statt die ganze Seite lahmzulegen.
+      const { session } = await getSessionSafe();
+      if (active) setUser(session?.user ?? null);
+    })();
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null));
-    return () => listener.subscription.unsubscribe();
+    return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => { if (user) fetchSavedRoutes(); }, [user]);
@@ -307,8 +316,16 @@ function ExplorePageInner() {
 
   async function fetchSavedRoutes() {
     if (!user) return;
-    const { data } = await supabase.from("saved_routes").select("route_id").eq("user_id", user.id);
-    if (data) setSavedRoutes(data.map((r: any) => r.route_id));
+    try {
+      const { data, error } = await withTimeout(
+        supabase.from("saved_routes").select("route_id").eq("user_id", user.id)
+      );
+      if (error) throw error;
+      if (data) setSavedRoutes(data.map((r: any) => r.route_id));
+    } catch (err) {
+      console.error("fetchSavedRoutes failed:", err);
+      clearCorruptedSession();
+    }
   }
 
   async function toggleSave(routeId: string) {
@@ -335,37 +352,64 @@ function ExplorePageInner() {
   }
 
   async function fetchCountries() {
-    const { data } = await supabase.from("routes").select("country");
-    if (data) {
-      const uniqueCountries = Array.from(new Set(
-        data.map((r: any) => r.country)
-          .filter((c: unknown): c is string => typeof c === "string" && c.trim() !== "")
-      )).sort();
-      setCountries(uniqueCountries);
+    try {
+      const { data, error } = await withTimeout(supabase.from("routes").select("country"));
+      if (error) throw error;
+      if (data) {
+        const uniqueCountries = Array.from(new Set(
+          data.map((r: any) => r.country)
+            .filter((c: unknown): c is string => typeof c === "string" && c.trim() !== "")
+        )).sort();
+        setCountries(uniqueCountries);
+      }
+    } catch (err) {
+      console.error("fetchCountries failed:", err);
+      clearCorruptedSession();
     }
   }
 
   async function fetchDurations() {
-    const { data } = await supabase.from("routes").select("duration");
-    if (data) {
-      const uniqueDurations = Array.from(new Set(
-        data.map((r: any) => r.duration)
-          .filter((d: unknown): d is string => typeof d === "string" && d.trim() !== "")
-      )).sort(sortByDurationLength);
-      setDurations(uniqueDurations);
+    try {
+      const { data, error } = await withTimeout(supabase.from("routes").select("duration"));
+      if (error) throw error;
+      if (data) {
+        const uniqueDurations = Array.from(new Set(
+          data.map((r: any) => r.duration)
+            .filter((d: unknown): d is string => typeof d === "string" && d.trim() !== "")
+        )).sort(sortByDurationLength);
+        setDurations(uniqueDurations);
+      }
+    } catch (err) {
+      console.error("fetchDurations failed:", err);
+      clearCorruptedSession();
     }
   }
 
   async function fetchRoutes() {
     setLoading(true);
-    let query = supabase.from("routes").select("*");
-    if (appliedSelected && appliedSelected !== "Choose destination") query = query.eq("country", appliedSelected);
-    if (appliedSelectedDate && appliedSelectedDate !== "Choose duration") query = query.eq("duration", appliedSelectedDate);
-    if (filters.countries.length > 0) query = query.in("country", filters.countries);
-    if (filters.minRating > 0) query = query.gte("rating", filters.minRating);
-    const { data } = await query;
-    if (data) setRoutes(data);
-    setLoading(false);
+    try {
+      let query = supabase.from("routes").select("*");
+      if (appliedSelected && appliedSelected !== "Choose destination") query = query.eq("country", appliedSelected);
+      if (appliedSelectedDate && appliedSelectedDate !== "Choose duration") query = query.eq("duration", appliedSelectedDate);
+      if (filters.countries.length > 0) query = query.in("country", filters.countries);
+      if (filters.minRating > 0) query = query.gte("rating", filters.minRating);
+      // GEÄNDERT (Ticket A): withTimeout() + try/catch/finally. Vorher hing
+      // "await query" unendlich, wenn der interne Session-Refresh von
+      // Supabase (ausgelöst durch einen korrupten Token im localStorage)
+      // nicht sauber reject/resolved hat — setLoading(false) danach wurde
+      // dann nie erreicht ("Loading routes..." für immer).
+      const { data, error } = await withTimeout(query, 10000);
+      if (error) throw error;
+      if (data) setRoutes(data);
+    } catch (err) {
+      console.error("fetchRoutes failed:", err);
+      // Fallback: kaputten Token entfernen, damit der nächste Versuch
+      // (z.B. Retry oder Reload) nicht wieder an derselben Stelle hängt.
+      clearCorruptedSession();
+      setRoutes([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { fetchCountries(); fetchDurations(); }, []);
@@ -373,8 +417,11 @@ function ExplorePageInner() {
 
   useEffect(() => {
     if (!user) { setAvatarUrl(""); setUsername(""); return; }
-    supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single()
-      .then(({ data }) => { setAvatarUrl(data?.avatar_url || ""); setUsername(data?.username || ""); });
+    withTimeout(
+      supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single()
+    )
+      .then(({ data }) => { setAvatarUrl(data?.avatar_url || ""); setUsername(data?.username || ""); })
+      .catch((err) => { console.error("profile lookup failed:", err); clearCorruptedSession(); });
   }, [user]);
 
   useEffect(() => {

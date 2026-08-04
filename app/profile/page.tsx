@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase, withTimeout, getSessionSafe, clearCorruptedSession } from "../../lib/supabase";
 import { getSupabaseConsent, persistConsent } from "../../lib/cookieConsent";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useTheme } from "next-themes";
@@ -168,56 +168,95 @@ export default function ProfilePage() {
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      if (!u) { router.push("/"); return; }
-      setUser(u);
-      fetchProfile(u.id);
-      fetchStamps(u.id);
-      getSupabaseConsent(u.id).then((consent) => {
-        setGoogleMapsConsent(consent?.googleMaps ?? false);
-      });
-    });
+    let active = true;
+    (async () => {
+      try {
+        // GEÄNDERT (Ticket A): getSessionSafe() statt supabase.auth.getSession()
+        // direkt. Das ist der konkrete Auslöser des "schwarzer Screen mit
+        // Spinner"-Hängers beim Profile-Refresh: hing der interne
+        // Session-Refresh (korrupter/abgelaufener Token), wurde .then() nie
+        // aufgerufen -> setLoading(false) und router.push("/") wurden nie
+        // erreicht. getSessionSafe() liefert nach spätestens 8s garantiert
+        // ein Ergebnis (im Zweifel session=null) und räumt einen kaputten
+        // localStorage-Eintrag gleich mit auf.
+        const { session } = await getSessionSafe();
+        if (!active) return;
+        const u = session?.user ?? null;
+        if (!u) { router.push("/"); return; }
+        setUser(u);
+        await Promise.allSettled([
+          fetchProfile(u.id),
+          fetchStamps(u.id),
+        ]);
+        if (!active) return;
+        const consent = await getSupabaseConsent(u.id).catch(() => null);
+        if (active) setGoogleMapsConsent(consent?.googleMaps ?? false);
+      } finally {
+        // GEÄNDERT: setLoading(false) jetzt zusätzlich hier im finally, statt
+        // sich ausschließlich auf das Ende von fetchProfile() zu verlassen —
+        // damit die Seite auch bei fehlendem User oder einem Fehler in einer
+        // der obigen Calls garantiert aus dem Loading-Zustand kommt.
+        if (active) setLoading(false);
+      }
+    })();
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });
-    return () => listener.subscription.unsubscribe();
+    return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
-    if (data) {
-      setUsername(data.username || "");
-      setEmail(data.email || "");
-      setAvatarUrl(data.avatar_url || "");
-      setAvatarPreview(data.avatar_url || "");
-      // Optional columns — read if present (see note above `displayName` state).
-      setDisplayName(data.display_name || data.username || "");
-      setCountry(data.country || "");
-      setCity(data.city || "");
-      setAboutYou(data.about || "");
-      setSavedProfile({ avatarUrl: data.avatar_url || "", country: data.country || "", aboutYou: data.about || "" });
+    // GEÄNDERT (Ticket A): withTimeout() + try/catch. setLoading(false)
+    // liegt jetzt beim aufrufenden useEffect (finally-Block) statt hier,
+    // damit die Seite auch dann aus dem Loading-Zustand kommt, wenn dieser
+    // Call selbst hängt oder fehlschlägt.
+    try {
+      const { data, error } = await withTimeout(
+        supabase.from("profiles").select("*").eq("id", userId).single()
+      );
+      if (error) throw error;
+      if (data) {
+        setUsername(data.username || "");
+        setEmail(data.email || "");
+        setAvatarUrl(data.avatar_url || "");
+        setAvatarPreview(data.avatar_url || "");
+        // Optional columns — read if present (see note above `displayName` state).
+        setDisplayName(data.display_name || data.username || "");
+        setCountry(data.country || "");
+        setCity(data.city || "");
+        setAboutYou(data.about || "");
+        setSavedProfile({ avatarUrl: data.avatar_url || "", country: data.country || "", aboutYou: data.about || "" });
+      }
+    } catch (err) {
+      console.error("fetchProfile failed:", err);
+      clearCorruptedSession();
     }
-    setLoading(false);
   }
 
   // GEÄNDERT: saved_routes hat nur id/user_id/route_id/created_at — title/country
   // kommen jetzt per Join aus routes(...), completed_at nutzt created_at als
   // "wann gespeichert"-Zeitpunkt, terrain gibt es nicht (Feld komplett entfernt).
   async function fetchStamps(userId: string) {
-    const { data } = await supabase
-      .from("saved_routes")
-      .select("id, created_at, routes(title, country)")
-      .eq("user_id", userId);
-
-    if (data && data.length > 0) {
-      const mapped: Stamp[] = data.map((r: any) => ({
-        id: r.id,
-        title: r.routes?.title || "",
-        country: r.routes?.country || "",
-        completed_at: r.created_at,
-      }));
-      setStamps(mapped);
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from("saved_routes")
+          .select("id, created_at, routes(title, country)")
+          .eq("user_id", userId)
+      );
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const mapped: Stamp[] = data.map((r: any) => ({
+          id: r.id,
+          title: r.routes?.title || "",
+          country: r.routes?.country || "",
+          completed_at: r.created_at,
+        }));
+        setStamps(mapped);
+      }
+    } catch (err) {
+      console.error("fetchStamps failed:", err);
+      clearCorruptedSession();
     }
   }
 
