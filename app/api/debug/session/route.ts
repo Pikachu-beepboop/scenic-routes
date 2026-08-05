@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 
 export async function GET() {
   try {
-    const nextCookies = cookies();
+    // In some Next versions cookies() is async when used in dynamic APIs — await it
+    const nextCookies = await cookies();
 
     const cookieHandler = {
       get(name: string) {
