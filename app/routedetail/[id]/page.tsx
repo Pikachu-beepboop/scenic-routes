@@ -19,6 +19,9 @@ import { useUnit } from '@/app/UnitContext';
 import { useLanguage } from '@/app/LanguageContext';
 import { formatDistance } from '@/lib/formatDistance';
 
+export const runtime = 'edge';
+
+
 interface Route {
     id: string;
     title: string;

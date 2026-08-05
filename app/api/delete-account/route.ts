@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+export const runtime = 'edge';
+
 
 // Diese Route läuft ausschließlich serverseitig. Der Service-Role-Key darf
 // NIEMALS im Client-Code (z.B. lib/supabase.ts) verwendet werden — er
