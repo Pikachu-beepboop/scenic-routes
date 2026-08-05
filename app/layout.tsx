@@ -8,6 +8,7 @@ import { LanguageProvider } from "./LanguageContext";
 import CookieBanner from "./components/CookieBanner";
 
 import SupabaseProvider from "./SupabaseProvider";
+import SupabaseFetchShim from "./components/SupabaseFetchShim";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 
@@ -73,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SupabaseProvider initialSession={session ?? null}>
+          <SupabaseFetchShim />
           <ThemeProvider>
             <UnitProvider>
               <LanguageProvider>
