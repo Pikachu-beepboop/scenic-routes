@@ -65,8 +65,10 @@ export async function POST(req: Request) {
       }
 
       // Иначе — разбиваем на куски и выставляем несколько Set-Cookie
-      const chunks = createChunks(serialized);
-      chunks.forEach((chunk, idx) => {
+      // Some versions of the auth helper have different TypeScript signatures for createChunks.
+      // Cast to any to avoid build-time type mismatches while preserving runtime behavior.
+      const chunks = (createChunks as any)(serialized, MAX_CHUNK_SIZE);
+      chunks.forEach((chunk: string, idx: number) => {
         const name = `${baseName}.${idx}`;
         const cookie = serializeCookieHeader(name, chunk, cookieOptions);
         headers.append("Set-Cookie", cookie);
