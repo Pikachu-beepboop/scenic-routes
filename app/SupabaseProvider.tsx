@@ -41,10 +41,21 @@ export default function SupabaseProvider({
 
     async function syncSessionToServer(event?: string, s?: Session | null) {
       try {
+        // build a minimal serializable session payload to send to the server
+        const minimalSession = s
+          ? {
+              access_token: s.access_token ?? null,
+              refresh_token: s.refresh_token ?? null,
+              expires_at: s.expires_at ?? null,
+              user: s.user ? { id: s.user.id, email: s.user.email ?? null } : null,
+            }
+          : null;
+
         const payload = {
           event: event ?? (s ? "SIGNED_IN" : "SIGNED_OUT"),
-          session: s ?? null,
+          session: minimalSession,
         };
+
         await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
