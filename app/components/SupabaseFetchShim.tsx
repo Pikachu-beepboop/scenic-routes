@@ -8,12 +8,14 @@ export default function SupabaseFetchShim() {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!supabaseUrl || !anonKey) return;
 
-    let originalFetch = window.fetch.bind(window);
+    // keep a reference to the original fetch
+    const originalFetch = window.fetch.bind(window);
 
     try {
       const supabaseHost = new URL(supabaseUrl).hostname;
 
-      window.fetch = async (input: RequestInfo, init?: RequestInit) => {
+      // cast to any to avoid TypeScript overload incompatibilities when replacing fetch
+      (window as any).fetch = async (input: any, init?: any) => {
         try {
           const url = typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
           if (url.includes(supabaseHost)) {
@@ -34,7 +36,7 @@ export default function SupabaseFetchShim() {
 
     return () => {
       try {
-        window.fetch = originalFetch;
+        (window as any).fetch = originalFetch;
       } catch {}
     };
   }, []);
