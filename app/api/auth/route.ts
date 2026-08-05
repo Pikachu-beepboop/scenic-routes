@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       }
 
       // Иначе — разбиваем на куски и выставляем несколько Set-Cookie
-      const chunks = createChunks(serialized, MAX_CHUNK_SIZE);
+      const chunks = createChunks(serialized);
       chunks.forEach((chunk, idx) => {
         const name = `${baseName}.${idx}`;
         const cookie = serializeCookieHeader(name, chunk, cookieOptions);
