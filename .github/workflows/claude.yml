@@ -1,0 +1,36 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude:
+    if: |
+      github.event_name == 'pull_request' ||
+      contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Analysiere diesen Pull Request bzw. diese Codebasis und suche gezielt nach:
+            1. Fehlern und Bugs
+            2. Performance-Problemen (z.B. langsame Datenbankabfragen, unnötige Berechnungen, große Assets)
+            3. Sicherheitslücken
+            4. Möglichkeiten, den Code zu vereinfachen oder zu optimieren
+            Poste konkrete, umsetzbare Vorschläge als Kommentare.
