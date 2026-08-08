@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase, safeQuery, withTimeout } from "../../lib/supabase";
+import { useAuth, signOutSafe } from "../../lib/useAuth";
 import AuthModal from "../AuthModal";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
@@ -78,7 +79,8 @@ const FOOTER_COLUMNS = [
 const MOBILE_PAGE_SIZE = 4;
 
 export default function MyTripsPage() {
-  const [user, setUser] = useState<any>(null);
+  // GEÄNDERT: zentraler Auth-State statt eigenem getSession()/Listener.
+  const { user, loading: authLoading } = useAuth();
   const [savedRoutes, setSavedRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -119,22 +121,22 @@ export default function MyTripsPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // GEÄNDERT: Daten-Loads laufen jetzt außerhalb des Auth-Callbacks (siehe
+  // lib/useAuth.ts) und der Loading-Zustand endet garantiert — auch wenn kein
+  // User da ist oder eine Query fehlschlägt.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      setUser(u);
-      if (!u) { setLoading(false); return; }
-      fetchSavedRoutes(u.id);
-      fetchProfile(u.id);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
-      const u = s?.user ?? null;
-      setUser(u);
-      if (u) { fetchSavedRoutes(u.id); fetchProfile(u.id); }
-      else { setSavedRoutes([]); setAvatarUrl(""); setLoading(false); }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+    if (authLoading) return;
+
+    if (!user) {
+      setSavedRoutes([]);
+      setAvatarUrl("");
+      setLoading(false);
+      return;
+    }
+
+    fetchSavedRoutes(user.id);
+    fetchProfile(user.id);
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -172,11 +174,14 @@ export default function MyTripsPage() {
 
   async function fetchSavedRoutes(userId: string) {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("saved_routes")
-      .select("route_id, routes(*)")
-      .eq("user_id", userId);
-    if (!error && data) setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
+    const data = await safeQuery<any[]>(
+      supabase
+        .from("saved_routes")
+        .select("route_id, routes(*)")
+        .eq("user_id", userId),
+      "fetchSavedRoutes"
+    );
+    if (data) setSavedRoutes(data.map((r: any) => r.routes).filter(Boolean));
     setLoading(false);
     // NEU (Mobile): Pagination nur bei einem echten Neuladen zurücksetzen
     // (z.B. nach Seitenwechsel/erneutem Mount) — NICHT beim lokalen Entfernen
@@ -186,19 +191,28 @@ export default function MyTripsPage() {
   }
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("avatar_url, username").eq("id", userId).single();
+    const data = await safeQuery<{ avatar_url: string | null; username: string | null }>(
+      supabase.from("profiles").select("avatar_url, username").eq("id", userId).single(),
+      "fetchProfile"
+    );
     if (data) { setAvatarUrl(data.avatar_url || ""); setUsername(data.username || ""); }
   }
 
   async function handleUnsave(routeId: string) {
     if (!user) return;
-    await supabase.from("saved_routes").delete().eq("user_id", user.id).eq("route_id", routeId);
-    setSavedRoutes((prev) => prev.filter((r: any) => r.id !== routeId));
+    try {
+      await withTimeout(
+        supabase.from("saved_routes").delete().eq("user_id", user.id).eq("route_id", routeId)
+      );
+      setSavedRoutes((prev) => prev.filter((r: any) => r.id !== routeId));
+    } catch (err) {
+      console.error("handleUnsave failed:", err);
+    }
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+    await signOutSafe();
+    setSavedRoutes([]); setShowUserMenu(false);
     setMobileMenuOpen(false);
     router.push("/");
   }

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase, getSessionSafe } from "../../lib/supabase";
 import { useLanguage } from "@/app/LanguageContext";
 
 const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
@@ -63,15 +63,17 @@ function LoginPageInner() {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    supabase.auth.getSession().then(({ data }) => {
-      const email = data.session?.user?.email?.toLowerCase();
+    // GEÄNDERT: getSessionSafe() — bei ungültigem Token liefert das
+    // zuverlässig "keine Session", statt die Login-Seite hängen zu lassen.
+    getSessionSafe().then(({ session }) => {
+      const email = session?.user?.email?.toLowerCase();
       const isAdmin = !!email && ADMIN_EMAILS.includes(email);
 
       // Если редирект ведёт в /admin, а пользователь не админ — не отправляем его
       // туда автоматически, иначе получится бесконечный цикл /admin <-> /login
       if (redirectPath === "/admin" && !isAdmin) return;
 
-      if (data.session?.user && searchParams.get("redirect")) {
+      if (session?.user && searchParams.get("redirect")) {
         router.replace(redirectPath);
       }
     });

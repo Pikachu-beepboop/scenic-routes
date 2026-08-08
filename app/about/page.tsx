@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabase';
+import { supabase, safeQuery } from '../../lib/supabase';
+import { useAuth, signOutSafe } from '../../lib/useAuth';
 import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
 import { useLanguage } from '../LanguageContext';
@@ -102,7 +103,8 @@ const FOOTER_COLUMNS = [
 ];
 
 export default function AboutPage() {
-  const [user, setUser] = useState<any>(null);
+  // GEÄNDERT: zentraler Auth-State statt eigenem getSession()/Listener.
+  const { user } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
@@ -131,31 +133,30 @@ export default function AboutPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // GEÄNDERT: Profil-Lookup hängt jetzt am zentralen Auth-State und läuft über
+  // safeQuery (Timeout, kein Throw) — vorher lief er direkt im
+  // onAuthStateChange-Callback, also innerhalb des Supabase-Auth-Locks. Genau
+  // solche Queries im Callback können die gesamte App verklemmen.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      setUser(u);
-      if (u) fetchProfile(u.id);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
-      const u = s?.user ?? null;
-      setUser(u);
-      if (u) fetchProfile(u.id);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+    if (!user) { setUsername(""); setAvatarUrl(""); return; }
 
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("avatar_url, username").eq("id", userId).single();
-    if (data) {
+    let mounted = true;
+    (async () => {
+      const data = await safeQuery<{ avatar_url: string | null; username: string | null }>(
+        supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single(),
+        "fetchProfile"
+      );
+      if (!mounted || !data) return;
       setAvatarUrl(data.avatar_url || "");
       setUsername(data.username || "");
-    }
-  }
+    })();
+
+    return () => { mounted = false; };
+  }, [user]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null); setUsername(""); setAvatarUrl(""); setShowUserMenu(false);
+    await signOutSafe();
+    setUsername(""); setAvatarUrl(""); setShowUserMenu(false);
     setMobileMenuOpen(false);
     router.push("/");
   }

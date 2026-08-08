@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '../../lib/supabase';
+import { supabase, getSessionSafe } from '../../lib/supabase';
+import { signOutSafe } from '../../lib/useAuth';
 import * as XLSX from 'xlsx';
 
 // ---------- Auth ----------
@@ -247,7 +248,10 @@ export default function AdminPage() {
     let active = true;
 
     async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
+      // GEÄNDERT: getSessionSafe() statt getSession() — der Admin-Guard darf
+      // bei kaputtem Token nicht hängen bleiben, sondern muss sauber auf
+      // "nicht autorisiert" fallen.
+      const { session } = await getSessionSafe();
       if (!active) return;
 
       const email = session?.user?.email?.toLowerCase();
@@ -264,12 +268,17 @@ export default function AdminPage() {
     checkAuth();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const email = session?.user?.email?.toLowerCase();
-      const allowed = !!email && ADMIN_EMAILS.includes(email);
-      setIsAuthorized(allowed);
-      if (!allowed) {
-        router.push('/login?redirect=/admin');
-      }
+      // setTimeout(0): im Auth-Callback hält supabase-js den Auth-Lock — alles,
+      // was danach Supabase anfassen könnte (Navigation/Re-Render), gehört
+      // aus dem Callback heraus.
+      setTimeout(() => {
+        const email = session?.user?.email?.toLowerCase();
+        const allowed = !!email && ADMIN_EMAILS.includes(email);
+        setIsAuthorized(allowed);
+        if (!allowed) {
+          router.push('/login?redirect=/admin');
+        }
+      }, 0);
     });
 
     return () => {
@@ -296,7 +305,7 @@ export default function AdminPage() {
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { session } = await getSessionSafe();
         await channel.track({ email: session?.user?.email || 'unknown' });
       }
     });
@@ -953,7 +962,7 @@ export default function AdminPage() {
 )}
         <div className="flex items-center gap-4">
           <button
-            onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+            onClick={async () => { await signOutSafe(); router.push('/login'); }}
             className="text-sm text-gray-500 hover:text-black transition"
           >
             Sign out

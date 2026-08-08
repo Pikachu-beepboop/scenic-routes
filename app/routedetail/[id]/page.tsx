@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabasePublic, safeQuery, withTimeout } from '@/lib/supabase';
+import { useAuth, signOutSafe } from '@/lib/useAuth';
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import {
     Clock, MapPin, Navigation, Star, ChevronDown, ChevronRight,
@@ -426,7 +427,9 @@ export default function RouteDetailPage() {
     const [route, setRoute] = useState<Route | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
-    const [user, setUser] = useState<any>(null);
+    // GEÄNDERT: zentraler Auth-State statt supabase.auth.getUser() (das ist ein
+    // Netzwerk-Call, der bei kaputtem Token hängen bleiben kann).
+    const { user } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState('');
     const [username, setUsername] = useState('');
@@ -488,27 +491,18 @@ export default function RouteDetailPage() {
     });
 
     useEffect(() => {
-        const init = async () => {
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            setUser(currentUser);
-            if (currentUser) {
-                checkIfSaved(currentUser.id);
-                fetchProfile(currentUser.id);
-            }
-        };
-        init();
+        if (!user) {
+            setIsSaved(false);
+            setAvatarUrl('');
+            setUsername('');
+            return;
+        }
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            if (currentUser) {
-                checkIfSaved(currentUser.id);
-                fetchProfile(currentUser.id);
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [params.id]);
+        // Beide Queries laufen jetzt außerhalb des Auth-Callbacks — Supabase
+        // hält dort den Auth-Lock, Queries darin können die App verklemmen.
+        checkIfSaved(user.id);
+        fetchProfile(user.id);
+    }, [user, params.id]);
 
     useEffect(() => {
         if (!showUserMenu) return;
@@ -547,7 +541,10 @@ export default function RouteDetailPage() {
     }, [showLangMenu]);
 
     async function fetchProfile(userId: string) {
-        const { data } = await supabase.from('profiles').select('avatar_url, username').eq('id', userId).single();
+        const data = await safeQuery<{ avatar_url: string | null; username: string | null }>(
+            supabase.from('profiles').select('avatar_url, username').eq('id', userId).single(),
+            'fetchProfile'
+        );
         if (data) {
             setAvatarUrl(data.avatar_url || '');
             setUsername(data.username || '');
@@ -557,12 +554,18 @@ export default function RouteDetailPage() {
     useEffect(() => {
         async function loadRoute() {
             setLoading(true);
-            const { data } = await supabase
-                .from('routes')
-                .select('*')
-                .eq('id', params.id)
-                .single();
-            if (data) setRoute(data as Route);
+            // GEÄNDERT: öffentlicher Client + Timeout — die Route ist öffentlich
+            // lesbar und darf nicht auf den Auth-State warten müssen.
+            const data = await safeQuery<Route>(
+                supabasePublic
+                    .from('routes')
+                    .select('*')
+                    .eq('id', params.id)
+                    .single(),
+                'loadRoute',
+                10000
+            );
+            if (data) setRoute(data);
             setLoading(false);
             setActiveChapter(0);
         }
@@ -570,12 +573,15 @@ export default function RouteDetailPage() {
     }, [params.id]);
 
     const checkIfSaved = async (userId: string) => {
-        const { data } = await supabase
-            .from('saved_routes')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('route_id', params.id)
-            .maybeSingle();
+        const data = await safeQuery<{ id: string }>(
+            supabase
+                .from('saved_routes')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('route_id', params.id)
+                .maybeSingle(),
+            'checkIfSaved'
+        );
         setIsSaved(!!data);
     };
 
@@ -585,18 +591,26 @@ export default function RouteDetailPage() {
             return;
         }
 
-        if (isSaved) {
-            await supabase
-                .from('saved_routes')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('route_id', params.id);
-            setIsSaved(false);
-        } else {
-            await supabase
-                .from('saved_routes')
-                .insert([{ user_id: user.id, route_id: params.id }]);
-            setIsSaved(true);
+        try {
+            if (isSaved) {
+                await withTimeout(
+                    supabase
+                        .from('saved_routes')
+                        .delete()
+                        .eq('user_id', user.id)
+                        .eq('route_id', params.id)
+                );
+                setIsSaved(false);
+            } else {
+                await withTimeout(
+                    supabase
+                        .from('saved_routes')
+                        .insert([{ user_id: user.id, route_id: params.id }])
+                );
+                setIsSaved(true);
+            }
+        } catch (err) {
+            console.error('handleSaveToggle failed:', err);
         }
     };
 
@@ -805,7 +819,7 @@ export default function RouteDetailPage() {
 
                                 <button
                                     onClick={async () => {
-                                        await supabase.auth.signOut();
+                                        await signOutSafe();
                                         setShowMobileMenu(false);
                                         router.push('/');
                                     }}
@@ -982,7 +996,7 @@ export default function RouteDetailPage() {
 
                                             <button
                                                 onClick={async () => {
-                                                    await supabase.auth.signOut();
+                                                    await signOutSafe();
                                                     setShowUserMenu(false);
                                                     router.push('/');
                                                 }}

@@ -9,7 +9,7 @@
 // WICHTIG: Passe den Import-Pfad zu "../lib/supabase" an deine tatsächliche
 // Projektstruktur an (in HomePage.tsx wird er z.B. so importiert).
 
-import { supabase } from "./supabase";
+import { supabase, safeQuery, withTimeout } from "./supabase";
 
 export type CookieConsent = {
   necessary: true;
@@ -43,16 +43,23 @@ export function setLocalConsent(consent: CookieConsent) {
   );
 }
 
+// GEÄNDERT: läuft jetzt über safeQuery() (Timeout + kein Throw). Ohne Timeout
+// hing dieser Call beim Profile-Refresh unendlich, wenn der Session-Refresh im
+// Hintergrund festhing — die Profile-Seite kam dadurch nie aus dem
+// Loading-Zustand (schwarzer Screen mit Spinner).
 export async function getSupabaseConsent(
   userId: string
 ): Promise<CookieConsent | null> {
-  const { data, error } = await supabase
-    .from("cookie_consents")
-    .select("google_maps")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const data = await safeQuery(
+    supabase
+      .from("cookie_consents")
+      .select("google_maps")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    "getSupabaseConsent"
+  );
 
-  if (error || !data) return null;
+  if (!data) return null;
 
   return { necessary: true, googleMaps: data.google_maps };
 }
@@ -61,11 +68,17 @@ export async function saveSupabaseConsent(
   userId: string,
   consent: CookieConsent
 ) {
-  await supabase.from("cookie_consents").upsert({
-    user_id: userId,
-    necessary: true,
-    google_maps: consent.googleMaps,
-  });
+  try {
+    await withTimeout(
+      supabase.from("cookie_consents").upsert({
+        user_id: userId,
+        necessary: true,
+        google_maps: consent.googleMaps,
+      })
+    );
+  } catch (err) {
+    console.error("saveSupabaseConsent failed:", err);
+  }
 }
 
 // Wird beim Login aufgerufen: prüft ob es bereits eine Supabase-Entscheidung
