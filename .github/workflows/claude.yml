@@ -4,6 +4,7 @@ on:
     types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
+
 permissions:
   contents: write
   pull-requests: write
@@ -11,18 +12,21 @@ permissions:
   id-token: write
   actions: read
   checks: write
+
 jobs:
   claude:
     if: |
       github.event_name == 'pull_request' ||
-      contains(github.event.comment.body, '@claude')
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Claude Code
+      
+      - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
