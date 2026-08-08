@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Map as MapIcon, Settings2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/useAuth";
 import { useLanguage } from "@/app/LanguageContext";
 import { getLocalConsent, getSupabaseConsent, persistConsent } from "@/lib/cookieConsent";
 
@@ -57,31 +57,28 @@ export default function GoogleMapsGate({
   const { lang } = useLanguage();
   const t = TEXT[(lang as Lang) in TEXT ? (lang as Lang) : "de"];
 
-  const [userId, setUserId] = useState<string | null>(null);
   const [consent, setConsent] = useState<boolean | null>(null); // null = noch am Laden
   const [enabling, setEnabling] = useState(false);
 
+  // GEÄNDERT: zentraler Auth-State statt eigenem getSession(). Ohne das blieb
+  // die Karte bei kaputtem Token dauerhaft im Ladezustand (consent === null).
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
+
   useEffect(() => {
+    if (authLoading) return;
+
     let mounted = true;
 
-    async function init() {
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user?.id ?? null;
-      if (!mounted) return;
-      setUserId(uid);
+    (async () => {
+      // getSupabaseConsent() hat jetzt Timeout + Fallback auf null, statt
+      // unendlich zu warten.
+      const c = userId ? await getSupabaseConsent(userId) : getLocalConsent();
+      if (mounted) setConsent(c?.googleMaps ?? false);
+    })();
 
-      if (uid) {
-        const c = await getSupabaseConsent(uid);
-        if (mounted) setConsent(c?.googleMaps ?? false);
-      } else {
-        const c = getLocalConsent();
-        if (mounted) setConsent(c?.googleMaps ?? false);
-      }
-    }
-
-    init();
     return () => { mounted = false; };
-  }, []);
+  }, [userId, authLoading]);
 
   async function handleEnable() {
     if (enabling) return;

@@ -12,8 +12,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, X, Settings, ShieldCheck, MapPin, Mountain } from "lucide-react";
-import { supabase } from "../../lib/supabase";
-import type { Session } from "@supabase/supabase-js";
+import { useAuth } from "../../lib/useAuth";
 import { useLanguage } from "../LanguageContext";
 import {
   type CookieConsent,
@@ -74,27 +73,31 @@ export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [googleMaps, setGoogleMaps] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
+  // GEÄNDERT: Auth-State kommt aus dem zentralen Hook. Vorher hing hier ein
+  // eigenes supabase.auth.getSession() — bei kaputtem Token blieb `ready`
+  // false und der Banner (und damit die Consent-Logik) war global tot.
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
+
   useEffect(() => {
+    // Erst entscheiden, wenn der Auth-State geklärt ist (dauert dank Timeout
+    // höchstens ein paar Sekunden und endet garantiert).
+    if (authLoading) return;
+
     let mounted = true;
-    let currentUid: string | null = null;
 
-    async function init() {
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user?.id ?? null;
-      if (!mounted) return;
-      currentUid = uid;
-      setUserId(uid);
-
+    (async () => {
       let consent: CookieConsent | null = null;
 
-      if (uid) {
+      if (userId) {
         // Eingeloggt: Supabase ist die führende Quelle. Falls dort noch
         // nichts gespeichert ist, aber lokal (Guest) schon, wird das jetzt
-        // einmalig übernommen.
-        consent = await migrateLocalConsentToSupabase(uid);
+        // einmalig übernommen. migrateLocalConsentToSupabase() hat intern
+        // Timeout + Fehlerbehandlung und kann nicht mehr hängen bleiben.
+        consent = await migrateLocalConsentToSupabase(userId);
+        if (!consent) consent = getLocalConsent();
       } else {
         consent = getLocalConsent();
       }
@@ -109,38 +112,10 @@ export default function CookieBanner() {
       }
 
       setReady(true);
-    }
+    })();
 
-    init();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event: string, session: Session | null) => {
-        const uid = session?.user?.id ?? null;
-
-        // Nur bei einem echten Login-Wechsel (vorher ausgeloggt, jetzt
-        // eingeloggt) erneut prüfen — sonst würde jedes Auth-Event (z.B.
-        // TOKEN_REFRESHED, das Supabase regelmäßig im Hintergrund feuert)
-        // eine zusätzliche Datenbankabfrage auslösen und die App spürbar
-        // verlangsamen.
-        if (uid === currentUid) return;
-        currentUid = uid;
-        setUserId(uid);
-
-        if (uid) {
-          const migrated = await migrateLocalConsentToSupabase(uid);
-          if (migrated) {
-            setGoogleMaps(migrated.googleMaps);
-            setVisible(false);
-          }
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+    return () => { mounted = false; };
+  }, [userId, authLoading]);
 
   if (!ready || !visible) return null;
 

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { supabase, withTimeout, getSessionSafe, clearCorruptedSession } from "../../lib/supabase";
+import { supabase, supabasePublic, withTimeout, safeQuery } from "../../lib/supabase";
+import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useUnit } from "../UnitContext";
@@ -172,7 +173,10 @@ function ExplorePageInner() {
   const [loading, setLoading] = useState(true);
   const [countries, setCountries] = useState<string[]>([]);
   const [durations, setDurations] = useState<string[]>([]);
-  const [user, setUser] = useState<any>(null);
+  // GEÄNDERT: zentraler Auth-State (siehe lib/useAuth.ts) statt eigenem
+  // getSession()/Listener — kann nicht hängen und fällt bei ungültigem Token
+  // zuverlässig auf "ausgeloggt" zurück.
+  const { user } = useAuth();
   const [savedRoutes, setSavedRoutes] = useState<string[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -281,22 +285,12 @@ function ExplorePageInner() {
   // NEU (Desktop, auf Wunsch): Duration-Suchtext beim Schließen zurücksetzen
   useEffect(() => { if (!isOpenDate) setDurationSearch(""); }, [isOpenDate]);
 
+  // GEÄNDERT: die eigene Session-Logik ist entfallen — useAuth() liefert den
+  // Auth-State zentral, mit Timeout-Fallback und bfcache-Revalidierung.
   useEffect(() => {
-    let active = true;
-    (async () => {
-      // GEÄNDERT (Ticket A): getSessionSafe() statt supabase.auth.getSession()
-      // direkt. Bei einem korrupten/hängenden Token (z.B. nach dem
-      // Profile-Refresh-Logout-Flow) läuft dieser Call nie unendlich, sondern
-      // liefert nach spätestens 8s user=null zurück und räumt den kaputten
-      // localStorage-Eintrag auf, statt die ganze Seite lahmzulegen.
-      const { session } = await getSessionSafe();
-      if (active) setUser(session?.user ?? null);
-    })();
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null));
-    return () => { active = false; listener.subscription.unsubscribe(); };
-  }, []);
-
-  useEffect(() => { if (user) fetchSavedRoutes(); }, [user]);
+    if (user) fetchSavedRoutes();
+    else setSavedRoutes([]);
+  }, [user]);
 
   // NEU (Mobile): erkennt, ob wir uns im Mobile-Breakpoint befinden (JS-seitig),
   // damit die Pagination NUR auf Mobile greift — Desktop zeigt weiterhin,
@@ -316,16 +310,11 @@ function ExplorePageInner() {
 
   async function fetchSavedRoutes() {
     if (!user) return;
-    try {
-      const { data, error } = await withTimeout(
-        supabase.from("saved_routes").select("route_id").eq("user_id", user.id)
-      );
-      if (error) throw error;
-      if (data) setSavedRoutes(data.map((r: any) => r.route_id));
-    } catch (err) {
-      console.error("fetchSavedRoutes failed:", err);
-      clearCorruptedSession();
-    }
+    const data = await safeQuery<any[]>(
+      supabase.from("saved_routes").select("route_id").eq("user_id", user.id),
+      "fetchSavedRoutes"
+    );
+    if (data) setSavedRoutes(data.map((r: any) => r.route_id));
   }
 
   async function toggleSave(routeId: string) {
@@ -336,76 +325,81 @@ function ExplorePageInner() {
       return;
     }
     const isSaved = savedRoutes.includes(routeId);
-    if (isSaved) {
-      await supabase.from("saved_routes").delete().eq("user_id", user.id).eq("route_id", routeId);
-      setSavedRoutes((prev) => prev.filter((id) => id !== routeId));
-    } else {
-      await supabase.from("saved_routes").insert({ user_id: user.id, route_id: routeId });
-      setSavedRoutes((prev) => [...prev, routeId]);
+    try {
+      if (isSaved) {
+        await withTimeout(
+          supabase.from("saved_routes").delete().eq("user_id", user.id).eq("route_id", routeId)
+        );
+        setSavedRoutes((prev) => prev.filter((id) => id !== routeId));
+      } else {
+        await withTimeout(
+          supabase.from("saved_routes").insert({ user_id: user.id, route_id: routeId })
+        );
+        setSavedRoutes((prev) => [...prev, routeId]);
+      }
+    } catch (err) {
+      console.error("toggleSave failed:", err);
     }
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null); setSavedRoutes([]); setShowUserMenu(false);
+    await signOutSafe();
+    setSavedRoutes([]); setShowUserMenu(false);
     setMobileMenuOpen(false);
   }
 
+  // GEÄNDERT: Filter-Daten sind öffentlich und laufen deshalb über
+  // supabasePublic — dieser Client wartet nie auf einen Session-Refresh.
   async function fetchCountries() {
-    try {
-      const { data, error } = await withTimeout(supabase.from("routes").select("country"));
-      if (error) throw error;
-      if (data) {
-        const uniqueCountries = Array.from(new Set(
-          data.map((r: any) => r.country)
-            .filter((c: unknown): c is string => typeof c === "string" && c.trim() !== "")
-        )).sort();
-        setCountries(uniqueCountries);
-      }
-    } catch (err) {
-      console.error("fetchCountries failed:", err);
-      clearCorruptedSession();
-    }
+    const data = await safeQuery<any[]>(
+      supabasePublic.from("routes").select("country"),
+      "fetchCountries"
+    );
+    if (!data) return;
+
+    const uniqueCountries = Array.from(new Set(
+      data.map((r: any) => r.country)
+        .filter((c: unknown): c is string => typeof c === "string" && c.trim() !== "")
+    )).sort();
+    setCountries(uniqueCountries);
   }
 
   async function fetchDurations() {
-    try {
-      const { data, error } = await withTimeout(supabase.from("routes").select("duration"));
-      if (error) throw error;
-      if (data) {
-        const uniqueDurations = Array.from(new Set(
-          data.map((r: any) => r.duration)
-            .filter((d: unknown): d is string => typeof d === "string" && d.trim() !== "")
-        )).sort(sortByDurationLength);
-        setDurations(uniqueDurations);
-      }
-    } catch (err) {
-      console.error("fetchDurations failed:", err);
-      clearCorruptedSession();
-    }
+    const data = await safeQuery<any[]>(
+      supabasePublic.from("routes").select("duration"),
+      "fetchDurations"
+    );
+    if (!data) return;
+
+    const uniqueDurations = Array.from(new Set(
+      data.map((r: any) => r.duration)
+        .filter((d: unknown): d is string => typeof d === "string" && d.trim() !== "")
+    )).sort(sortByDurationLength);
+    setDurations(uniqueDurations);
   }
 
   async function fetchRoutes() {
     setLoading(true);
     try {
-      let query = supabase.from("routes").select("*");
+      // GEÄNDERT: öffentlicher Client. Die Routenliste braucht keinen Login —
+      // vorher hing sie trotzdem am Auth-Lock des Session-Refresh und blieb
+      // deshalb bei "Loading routes..." stehen.
+      let query = supabasePublic.from("routes").select("*");
       if (appliedSelected && appliedSelected !== "Choose destination") query = query.eq("country", appliedSelected);
       if (appliedSelectedDate && appliedSelectedDate !== "Choose duration") query = query.eq("duration", appliedSelectedDate);
       if (filters.countries.length > 0) query = query.in("country", filters.countries);
       if (filters.minRating > 0) query = query.gte("rating", filters.minRating);
-      // GEÄNDERT (Ticket A): withTimeout() + try/catch/finally. Vorher hing
-      // "await query" unendlich, wenn der interne Session-Refresh von
-      // Supabase (ausgelöst durch einen korrupten Token im localStorage)
-      // nicht sauber reject/resolved hat — setLoading(false) danach wurde
-      // dann nie erreicht ("Loading routes..." für immer).
+      // withTimeout() + try/catch/finally, damit setLoading(false) garantiert
+      // erreicht wird, egal was die Query macht.
       const { data, error } = await withTimeout(query, 10000);
       if (error) throw error;
       if (data) setRoutes(data);
     } catch (err) {
+      // GEÄNDERT: hier wird NICHT mehr die Session gelöscht. Ein
+      // fehlgeschlagener Routen-Load ist ein Daten-/Netzwerkproblem und hat
+      // nichts mit dem Login zu tun — das vorherige clearCorruptedSession()
+      // hat dabei gültige Sessions zerstört (ungewollter Logout).
       console.error("fetchRoutes failed:", err);
-      // Fallback: kaputten Token entfernen, damit der nächste Versuch
-      // (z.B. Retry oder Reload) nicht wieder an derselben Stelle hängt.
-      clearCorruptedSession();
       setRoutes([]);
     } finally {
       setLoading(false);
@@ -417,11 +411,19 @@ function ExplorePageInner() {
 
   useEffect(() => {
     if (!user) { setAvatarUrl(""); setUsername(""); return; }
-    withTimeout(
-      supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single()
-    )
-      .then(({ data }) => { setAvatarUrl(data?.avatar_url || ""); setUsername(data?.username || ""); })
-      .catch((err) => { console.error("profile lookup failed:", err); clearCorruptedSession(); });
+
+    let mounted = true;
+    (async () => {
+      const data = await safeQuery<{ avatar_url: string | null; username: string | null }>(
+        supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single(),
+        "profile lookup"
+      );
+      if (!mounted) return;
+      setAvatarUrl(data?.avatar_url || "");
+      setUsername(data?.username || "");
+    })();
+
+    return () => { mounted = false; };
   }, [user]);
 
   useEffect(() => {

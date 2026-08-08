@@ -3,7 +3,8 @@
 import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase, withTimeout, getSessionSafe, clearCorruptedSession } from "../../lib/supabase";
+import { supabase, withTimeout, safeQuery, getSessionSafe } from "../../lib/supabase";
+import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { getSupabaseConsent, persistConsent } from "../../lib/cookieConsent";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useTheme } from "next-themes";
@@ -54,7 +55,10 @@ const SUBTAB_META: Record<string, { titleKey: TranslationKey; subtitleKey: Trans
 };
 
 export default function ProfilePage() {
-  const [user, setUser]                   = useState<any>(null);
+  // GEÄNDERT: der Auth-State kommt jetzt aus dem zentralen Hook. Der hier
+  // vorher eingebaute eigene getSession()-Aufruf war der Auslöser für den
+  // endlosen Spinner beim Refresh auf /profile.
+  const { user, loading: authLoading }    = useAuth();
   const [loading, setLoading]             = useState(true);
   const [saving, setSaving]               = useState(false);
   const [username, setUsername]           = useState("");
@@ -167,97 +171,84 @@ export default function ProfilePage() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 
+  // GEÄNDERT: wartet auf den zentralen Auth-State (der garantiert nach
+  // spätestens 8s fertig ist) und lädt danach die Profildaten. Jeder einzelne
+  // Call darin hat einen Timeout und wirft nicht mehr — setLoading(false) im
+  // finally wird damit unter allen Umständen erreicht. Ohne User geht es
+  // direkt zurück auf die Startseite, statt im Spinner zu bleiben.
+  const userId = user?.id ?? null;
+
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!userId) {
+      setLoading(false);
+      router.replace("/");
+      return;
+    }
+
     let active = true;
+    setLoading(true);
+
     (async () => {
       try {
-        // GEÄNDERT (Ticket A): getSessionSafe() statt supabase.auth.getSession()
-        // direkt. Das ist der konkrete Auslöser des "schwarzer Screen mit
-        // Spinner"-Hängers beim Profile-Refresh: hing der interne
-        // Session-Refresh (korrupter/abgelaufener Token), wurde .then() nie
-        // aufgerufen -> setLoading(false) und router.push("/") wurden nie
-        // erreicht. getSessionSafe() liefert nach spätestens 8s garantiert
-        // ein Ergebnis (im Zweifel session=null) und räumt einen kaputten
-        // localStorage-Eintrag gleich mit auf.
-        const { session } = await getSessionSafe();
-        if (!active) return;
-        const u = session?.user ?? null;
-        if (!u) { router.push("/"); return; }
-        setUser(u);
         await Promise.allSettled([
-          fetchProfile(u.id),
-          fetchStamps(u.id),
+          fetchProfile(userId),
+          fetchStamps(userId),
         ]);
         if (!active) return;
-        const consent = await getSupabaseConsent(u.id).catch(() => null);
+        const consent = await getSupabaseConsent(userId);
         if (active) setGoogleMapsConsent(consent?.googleMaps ?? false);
       } finally {
-        // GEÄNDERT: setLoading(false) jetzt zusätzlich hier im finally, statt
-        // sich ausschließlich auf das Ende von fetchProfile() zu verlassen —
-        // damit die Seite auch bei fehlendem User oder einem Fehler in einer
-        // der obigen Calls garantiert aus dem Loading-Zustand kommt.
         if (active) setLoading(false);
       }
     })();
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => { active = false; listener.subscription.unsubscribe(); };
-  }, []);
+
+    return () => { active = false; };
+  }, [userId, authLoading, router]);
 
   async function fetchProfile(userId: string) {
-    // GEÄNDERT (Ticket A): withTimeout() + try/catch. setLoading(false)
-    // liegt jetzt beim aufrufenden useEffect (finally-Block) statt hier,
-    // damit die Seite auch dann aus dem Loading-Zustand kommt, wenn dieser
-    // Call selbst hängt oder fehlschlägt.
-    try {
-      const { data, error } = await withTimeout(
-        supabase.from("profiles").select("*").eq("id", userId).single()
-      );
-      if (error) throw error;
-      if (data) {
-        setUsername(data.username || "");
-        setEmail(data.email || "");
-        setAvatarUrl(data.avatar_url || "");
-        setAvatarPreview(data.avatar_url || "");
-        // Optional columns — read if present (see note above `displayName` state).
-        setDisplayName(data.display_name || data.username || "");
-        setCountry(data.country || "");
-        setCity(data.city || "");
-        setAboutYou(data.about || "");
-        setSavedProfile({ avatarUrl: data.avatar_url || "", country: data.country || "", aboutYou: data.about || "" });
-      }
-    } catch (err) {
-      console.error("fetchProfile failed:", err);
-      clearCorruptedSession();
-    }
+    // withTimeout + kein Throw (safeQuery). setLoading(false) liegt im
+    // aufrufenden useEffect, damit die Seite auch dann aus dem Loading-Zustand
+    // kommt, wenn dieser Call hängt oder fehlschlägt.
+    const data = await safeQuery<any>(
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      "fetchProfile"
+    );
+    if (!data) return;
+
+    setUsername(data.username || "");
+    setEmail(data.email || "");
+    setAvatarUrl(data.avatar_url || "");
+    setAvatarPreview(data.avatar_url || "");
+    // Optional columns — read if present (see note above `displayName` state).
+    setDisplayName(data.display_name || data.username || "");
+    setCountry(data.country || "");
+    setCity(data.city || "");
+    setAboutYou(data.about || "");
+    setSavedProfile({ avatarUrl: data.avatar_url || "", country: data.country || "", aboutYou: data.about || "" });
   }
 
   // GEÄNDERT: saved_routes hat nur id/user_id/route_id/created_at — title/country
   // kommen jetzt per Join aus routes(...), completed_at nutzt created_at als
   // "wann gespeichert"-Zeitpunkt, terrain gibt es nicht (Feld komplett entfernt).
   async function fetchStamps(userId: string) {
-    try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from("saved_routes")
-          .select("id, created_at, routes(title, country)")
-          .eq("user_id", userId)
-      );
-      if (error) throw error;
-      if (data && data.length > 0) {
-        const mapped: Stamp[] = data.map((r: any) => ({
-          id: r.id,
-          title: r.routes?.title || "",
-          country: r.routes?.country || "",
-          completed_at: r.created_at,
-        }));
-        setStamps(mapped);
-      }
-    } catch (err) {
-      console.error("fetchStamps failed:", err);
-      clearCorruptedSession();
-    }
+    const data = await safeQuery<any[]>(
+      supabase
+        .from("saved_routes")
+        .select("id, created_at, routes(title, country)")
+        .eq("user_id", userId),
+      "fetchStamps"
+    );
+    if (!data || data.length === 0) return;
+
+    const mapped: Stamp[] = data.map((r: any) => ({
+      id: r.id,
+      title: r.routes?.title || "",
+      country: r.routes?.country || "",
+      completed_at: r.created_at,
+    }));
+    setStamps(mapped);
   }
 
   // Called by AvatarEditor once it has already uploaded/removed the photo
@@ -270,19 +261,30 @@ export default function ProfilePage() {
   }
 
   async function handleSaveProfile() {
+    if (!user) return;
     setSaving(true); setError(""); setSuccess("");
 
-    const { error: profileError } = await supabase.from("profiles")
-      .update({
-        username,
-        display_name: displayName,
-        country,
-        city,
-        about: aboutYou,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
-    if (profileError) { setError(profileError.message); setSaving(false); return; }
+    // GEÄNDERT: Timeout, damit der Save-Button nicht dauerhaft in "saving"
+    // hängen bleibt, wenn Supabase nicht antwortet.
+    try {
+      const { error: profileError } = await withTimeout(
+        supabase.from("profiles")
+          .update({
+            username,
+            display_name: displayName,
+            country,
+            city,
+            about: aboutYou,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id)
+      );
+      if (profileError) { setError(profileError.message); setSaving(false); return; }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setSaving(false);
+      return;
+    }
 
     setSuccess(t("profile.updateSuccess"));
     setSavedProfile((prev) => ({ ...prev, country, aboutYou }));
@@ -297,7 +299,7 @@ export default function ProfilePage() {
       setEmailSaving(false);
       return;
     }
-    if (!newEmailInput || newEmailInput === user?.email) {
+    if (!user?.email || !newEmailInput || newEmailInput === user.email) {
       setEmailError(t("profile.email.newEmailRequired"));
       setEmailSaving(false);
       return;
@@ -374,7 +376,7 @@ export default function ProfilePage() {
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    await signOutSafe();
     router.push("/");
   }
 
@@ -384,8 +386,8 @@ export default function ProfilePage() {
     setDeleteError("");
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
+      const { session } = await getSessionSafe();
+      const accessToken = session?.access_token;
 
       if (!accessToken) {
         setDeleteError(t("profile.delete.sessionExpired"));
@@ -409,7 +411,7 @@ export default function ProfilePage() {
         return;
       }
 
-      await supabase.auth.signOut();
+      await signOutSafe();
       router.push("/");
     } catch (err: any) {
       setDeleteError(err?.message || t("profile.delete.genericError"));

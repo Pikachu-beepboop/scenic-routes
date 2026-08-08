@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import { supabase, supabasePublic, safeQuery, withTimeout } from "../lib/supabase";
+import { useAuth, signOutSafe } from "../lib/useAuth";
 import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 import { ThemeSwitch } from "./components/ThemeSwitch";
@@ -376,7 +377,10 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
 
   const [routes, setRoutes] = useState<Route[]>([]);
-  const [user, setUser] = useState<any>(null);
+  // GEÄNDERT: zentraler Auth-State statt eigenem getSession()/Listener.
+  // Der Hook kann nie hängen bleiben und prüft die Session nach dem
+  // Zurück-Button (bfcache) automatisch neu.
+  const { user } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -413,29 +417,26 @@ export default function HomePage() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setUser(data.session?.user ?? null);
-    });
+    // GEÄNDERT: Featured Routes laufen jetzt über supabasePublic (eigener
+    // Client ohne Session/Auth-Lock) und haben Timeout + Fehlerbehandlung.
+    // Vorher wartete diese Query auf denselben Session-Refresh wie der
+    // Auth-Client — hing der, blieb `routes` leer und die Homepage zeigte
+    // stillschweigend FALLBACK_ROUTES statt der echten Supabase-Daten.
+    (async () => {
+      const data = await safeQuery<Route[]>(
+        supabasePublic
+          .from("routes")
+          .select("*")
+          .eq("featured", true)
+          .order("featured_order", { ascending: true })
+          .limit(10),
+        "featured routes",
+        10000
+      );
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    supabase
-      .from("routes")
-      .select("*")
-      .eq("featured", true)
-      .order("featured_order", { ascending: true })
-      .limit(10)
-      .then(({ data }) => {
-        if (!mounted) return;
-
-        const loadedRoutes = data?.length
-          ? (data as Route[])
-          : FALLBACK_ROUTES;
-
-        setRoutes(loadedRoutes);
-      });
+      if (!mounted) return;
+      setRoutes(data?.length ? data : FALLBACK_ROUTES);
+    })();
 
     requestAnimationFrame(() =>
       requestAnimationFrame(() => setHeroVisible(true))
@@ -447,7 +448,6 @@ export default function HomePage() {
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe();
       clearInterval(testimonialTimer);
     };
   }, []);
@@ -459,15 +459,20 @@ export default function HomePage() {
       return;
     }
 
-    supabase
-      .from("profiles")
-      .select("avatar_url, username")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        setAvatarUrl(data?.avatar_url || "");
-        setUsername(data?.username || "");
-      });
+    let mounted = true;
+
+    (async () => {
+      const data = await safeQuery<{ avatar_url: string | null; username: string | null }>(
+        supabase.from("profiles").select("avatar_url, username").eq("id", user.id).single(),
+        "profile lookup"
+      );
+
+      if (!mounted) return;
+      setAvatarUrl(data?.avatar_url || "");
+      setUsername(data?.username || "");
+    })();
+
+    return () => { mounted = false; };
   }, [user]);
 
   useEffect(() => {
@@ -518,8 +523,9 @@ export default function HomePage() {
   }, [mobileMenuOpen]);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null);
+    // GEÄNDERT: signOutSafe() kann nicht hängen bleiben und räumt notfalls
+    // lokal auf, wenn der Server nicht antwortet.
+    await signOutSafe();
     setShowUserMenu(false);
     setMobileMenuOpen(false);
   }
@@ -531,10 +537,18 @@ export default function HomePage() {
 
     if (!cleanEmail) return;
 
-    await supabase.from("newsletter_subscribers").insert({
-      email: cleanEmail,
-      created_at: new Date().toISOString(),
-    });
+    // GEÄNDERT: öffentlicher Client + Timeout — das Newsletter-Formular darf
+    // nicht am Auth-State hängen bleiben.
+    try {
+      await withTimeout(
+        supabasePublic.from("newsletter_subscribers").insert({
+          email: cleanEmail,
+          created_at: new Date().toISOString(),
+        })
+      );
+    } catch (err) {
+      console.error("newsletter signup failed:", err);
+    }
 
     setEmailSent(true);
     setEmail("");
