@@ -43,10 +43,13 @@ export function setLocalConsent(consent: CookieConsent) {
   );
 }
 
-// GEÄNDERT: läuft jetzt über safeQuery() (Timeout + kein Throw). Ohne Timeout
-// hing dieser Call beim Profile-Refresh unendlich, wenn der Session-Refresh im
-// Hintergrund festhing — die Profile-Seite kam dadurch nie aus dem
-// Loading-Zustand (schwarzer Screen mit Spinner).
+// GEÄNDERT: läuft über safeQuery() mit resetOnAuthError: false. Vorher hat ein
+// 401 auf diesen Read (z.B. weil der Access-Token direkt nach einem
+// OAuth-Redirect + Hard-Refresh auf /profile noch nicht vollständig geladen
+// war, obwohl die Session an sich gültig ist) einen kompletten Auth-Reset
+// ausgelöst -> ungewollter Logout + Redirect zur Homepage. Ein fehlgeschlagener
+// Consent-Read rechtfertigt das nicht: im schlimmsten Fall zeigt die App das
+// Cookie-Banner nochmal an, statt den User auszuloggen.
 export async function getSupabaseConsent(
   userId: string
 ): Promise<CookieConsent | null> {
@@ -56,7 +59,9 @@ export async function getSupabaseConsent(
       .select("google_maps")
       .eq("user_id", userId)
       .maybeSingle(),
-    "getSupabaseConsent"
+    "getSupabaseConsent",
+    8000,
+    { resetOnAuthError: false }
   );
 
   if (!data) return null;

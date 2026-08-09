@@ -275,25 +275,38 @@ export async function getSessionSafe(ms = 8000): Promise<SafeSessionResult> {
 
 /**
  * Wrapper für Queries auf User-eigene Daten: liefert bei Fehler/Timeout `null`
- * statt zu werfen und verwirft die Session nur bei einem echten Auth-Fehler.
+ * statt zu werfen und verwirft die Session standardmäßig nur bei einem echten
+ * Auth-Fehler.
+ *
+ * GEÄNDERT: neue Option `resetOnAuthError` (Default: true). Ein 401/403 auf
+ * einer einzelnen, nicht-kritischen Query bedeutet nicht zwingend, dass die
+ * Session kaputt ist — direkt nach einem OAuth-Redirect + Hard-Refresh kann
+ * der Access-Token noch nicht vollständig aus dem Storage geladen sein, obwohl
+ * die Session an sich gültig ist. Für solche Queries (z.B. Cookie-Consent-Read
+ * in cookieConsent.ts) kann der Aufrufer `resetOnAuthError: false` setzen,
+ * damit ein einzelner fehlgeschlagener Request nicht den kompletten Nutzer
+ * ausloggt.
  */
 export async function safeQuery<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   query: PromiseLike<{ data: any; error: any }>,
   label: string,
-  ms = 8000
+  ms = 8000,
+  options: { resetOnAuthError?: boolean } = {}
 ): Promise<T | null> {
+  const { resetOnAuthError = true } = options;
+
   try {
     const { data, error } = await withTimeout(query, ms);
     if (error) {
       console.error(`${label} failed:`, error);
-      if (isAuthError(error)) await resetAuthState();
+      if (resetOnAuthError && isAuthError(error)) await resetAuthState();
       return null;
     }
     return (data ?? null) as T | null;
   } catch (err) {
     console.error(`${label} failed:`, err);
-    if (isAuthError(err)) await resetAuthState();
+    if (resetOnAuthError && isAuthError(err)) await resetAuthState();
     return null;
   }
 }
