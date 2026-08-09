@@ -14,9 +14,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Map as MapIcon, Settings2 } from "lucide-react";
-import { useAuth } from "@/lib/useAuth";
+// GEÄNDERT: vorher "@/lib/useAuth" und "@/lib/cookieConsent" (Pfad-Alias).
+// Jede andere Datei im Projekt importiert lib/supabase.ts (und alles, was
+// davon abhängt, inkl. useAuth.ts und cookieConsent.ts) relativ. Der gemischte
+// Importstil — Alias hier, relativ überall sonst — kann dazu führen, dass
+// Next.js/Webpack dasselbe Modul beim Production-Build als zwei getrennte
+// Instanzen in unterschiedliche Route-Chunks packt. Jede Instanz erzeugt dann
+// ihren eigenen Supabase-Auth-Client mit demselben storageKey -> "Multiple
+// GoTrueClient instances detected". Deshalb hier auf relative Imports
+// vereinheitlicht, exakt wie in allen anderen Komponenten.
+import { useAuth } from "../../lib/useAuth";
 import { useLanguage } from "@/app/LanguageContext";
-import { getLocalConsent, getSupabaseConsent, persistConsent } from "@/lib/cookieConsent";
+import { getLocalConsent, getSupabaseConsent, persistConsent } from "../../lib/cookieConsent";
 
 const TEXT = {
   de: {

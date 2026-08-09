@@ -53,7 +53,7 @@ export function setLocalConsent(consent: CookieConsent) {
 export async function getSupabaseConsent(
   userId: string
 ): Promise<CookieConsent | null> {
-  const data = await safeQuery(
+  const data = await safeQuery<{ google_maps: boolean }>(
     supabase
       .from("cookie_consents")
       .select("google_maps")
