@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Stamp } from "../types";
 import { useLanguage } from "../../LanguageContext";
+
+// react-pageflip touches the DOM on mount, so it must be client-only.
+// npm install react-pageflip   (your .npmrc already has legacy-peer-deps=true)
+const HTMLFlipBook = dynamic(() => import("react-pageflip"), { ssr: false }) as any;
 
 const PASSPORT_PAGES = ["cover", "id", "stamps"] as const;
 type PassportPageId = typeof PASSPORT_PAGES[number];
@@ -15,21 +20,15 @@ export default function TravellerPass({ username, email, avatarPreview, initials
   username: string; email: string; avatarPreview: string; initials: string; stamps: Stamp[];
 }) {
   const [pageIndex, setPageIndex] = useState(0);
-  const [prevIndex, setPrevIndex] = useState<number | null>(null);
-  const [direction, setDirection] = useState<"fwd" | "back">("fwd");
-  const [flipping, setFlipping] = useState(false);
+  const bookRef = useRef<any>(null);
   const { lang } = useLanguage();
 
   const page = PASSPORT_PAGES[pageIndex];
 
   function goTo(next: PassportPageId) {
     const nextIdx = PASSPORT_PAGES.indexOf(next);
-    if (flipping || nextIdx === pageIndex) return;
-    setDirection(nextIdx > pageIndex ? "fwd" : "back");
-    setPrevIndex(pageIndex);
-    setPageIndex(nextIdx);
-    setFlipping(true);
-    window.setTimeout(() => { setFlipping(false); setPrevIndex(null); }, 680);
+    if (nextIdx === pageIndex) return;
+    bookRef.current?.pageFlip()?.flip(nextIdx);
   }
 
   const today = new Date();
@@ -52,7 +51,7 @@ export default function TravellerPass({ username, email, avatarPreview, initials
   function renderPage(p: PassportPageId) {
     if (p === "cover") {
   return (
-    <div style={{background:"linear-gradient(160deg,#0e1a0e 0%,#142114 50%,#0e1a0e 100%)",borderRadius:"4px 14px 14px 4px",borderLeft:"8px solid #0a150a",minHeight:620,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:"50px 44px 44px",boxShadow:"4px 4px 28px rgba(0,0,0,.7),-1px 0 0 #1e2e1e",position:"relative",overflow:"hidden"}}>
+    <div style={{background:"linear-gradient(160deg,#0e1a0e 0%,#142114 50%,#0e1a0e 100%)",minHeight:620,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:"50px 44px 44px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(45deg,rgba(255,255,255,.018) 0px,rgba(255,255,255,.018) 1px,transparent 1px,transparent 10px),repeating-linear-gradient(-45deg,rgba(255,255,255,.018) 0px,rgba(255,255,255,.018) 1px,transparent 1px,transparent 10px)"}}/>
       <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
         <span style={{fontSize:10,letterSpacing:".32em",textTransform:"uppercase",color:"rgba(200,180,110,.5)",fontWeight:400}}>International</span>
@@ -89,7 +88,7 @@ export default function TravellerPass({ username, email, avatarPreview, initials
 
     if (p === "id") {
       return (
-        <div style={{background:"linear-gradient(170deg,#f9f4eb 0%,#f2e9d6 60%,#ece0c8 100%)",borderRadius:"4px 14px 14px 4px",borderLeft:"8px solid #d4c090",minHeight:620,display:"flex",flexDirection:"column",boxShadow:"4px 4px 28px rgba(0,0,0,.5)",position:"relative",overflow:"hidden",color:"#1a1200"}}>
+        <div style={{background:"linear-gradient(170deg,#f9f4eb 0%,#f2e9d6 60%,#ece0c8 100%)",minHeight:620,height:"100%",display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",color:"#1a1200"}}>
           <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",opacity:.04,fontSize:110,fontFamily:"'Cormorant Garamond',Georgia,serif",color:"#5a4010",transform:"rotate(-20deg)",letterSpacing:".1em"}}>SR</div>
           <div style={{position:"absolute",bottom:110,left:0,right:0,height:44,opacity:.1,background:"repeating-linear-gradient(90deg,transparent,transparent 3px,#8a6a20 3px,#8a6a20 4px)"}}/>
           <div style={{background:"linear-gradient(135deg,#1a3a1a,#2a5a2a)",padding:"14px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -159,7 +158,7 @@ export default function TravellerPass({ username, email, avatarPreview, initials
     }
 
     return (
-      <div style={{background:"linear-gradient(170deg,#f8f3e8 0%,#f0e6d0 60%,#e8dcc0 100%)",borderRadius:"4px 14px 14px 4px",borderLeft:"8px solid #d4c090",minHeight:620,display:"flex",flexDirection:"column",boxShadow:"4px 4px 28px rgba(0,0,0,.5)",position:"relative",overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(170deg,#f8f3e8 0%,#f0e6d0 60%,#e8dcc0 100%)",minHeight:620,height:"100%",display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",opacity:.03,fontSize:155,fontFamily:"'Cormorant Garamond',Georgia,serif",color:"#5a4010",transform:"rotate(-15deg)"}}>✦</div>
         <div style={{background:"linear-gradient(135deg,#1a3a1a,#2a5a2a)",padding:"14px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
@@ -211,52 +210,41 @@ export default function TravellerPass({ username, email, avatarPreview, initials
 
       <div style={{display:"flex",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden",background:"color-mix(in srgb, var(--bg2) 60%, transparent)"}}>
         {PASSPORT_PAGES.map((p) => (
-          <button key={p} onClick={() => goTo(p)} disabled={flipping} style={{padding:"11px 22px",fontSize:11,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color: page===p ? "#C9A86A" : "var(--dim)",background: page===p ? "rgba(201,168,106,0.08)" : "none",border:"none",borderRight:"1px solid var(--border)",cursor: flipping ? "default" : "pointer",transition:"all .2s",fontFamily:"Inter,sans-serif"}}>
+          <button key={p} onClick={() => goTo(p)} style={{padding:"11px 22px",fontSize:11,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color: page===p ? "#C9A86A" : "var(--dim)",background: page===p ? "rgba(201,168,106,0.08)" : "none",border:"none",borderRight:"1px solid var(--border)",cursor:"pointer",transition:"all .2s",fontFamily:"Inter,sans-serif"}}>
             {p === "cover" ? "Cover" : p === "id" ? "ID Page" : `Stamps (${stamps.length})`}
           </button>
         ))}
       </div>
 
-      <div style={{width:"100%",position:"relative",perspective:2400}}>
-        <style>{`
-          @keyframes ppFlipFwd {
-            0%   { transform: rotateY(0deg);    filter: brightness(1); }
-            48%  { filter: brightness(.5); }
-            52%  { filter: brightness(.5); }
-            100% { transform: rotateY(-179deg); filter: brightness(1); }
-          }
-          @keyframes ppFlipBack {
-            0%   { transform: rotateY(0deg);   filter: brightness(1); }
-            48%  { filter: brightness(.5); }
-            52%  { filter: brightness(.5); }
-            100% { transform: rotateY(179deg); filter: brightness(1); }
-          }
-          @keyframes ppShadeFwd { 0%{opacity:0;} 46%{opacity:.45;} 54%{opacity:.45;} 100%{opacity:0;} }
-          @keyframes ppShadeBack { 0%{opacity:0;} 46%{opacity:.45;} 54%{opacity:.45;} 100%{opacity:0;} }
-          .pp-flip-layer {
-            position:absolute; inset:0;
-            transform-style:preserve-3d;
-            backface-visibility:hidden;
-            -webkit-backface-visibility:hidden;
-            will-change:transform,filter;
-            box-shadow:0 24px 70px rgba(0,0,0,.55);
-            border-radius:4px 14px 14px 4px;
-          }
-          .pp-flip-layer.fwd  { transform-origin:left center;  animation:ppFlipFwd .68s cubic-bezier(.45,.1,.2,1) forwards; }
-          .pp-flip-layer.back { transform-origin:right center; animation:ppFlipBack .68s cubic-bezier(.45,.1,.2,1) forwards; }
-          .pp-flip-shade { position:absolute; inset:0; pointer-events:none; border-radius:inherit; }
-          .pp-flip-layer.fwd  .pp-flip-shade { background:linear-gradient(to right, rgba(0,0,0,.6), transparent 65%); animation:ppShadeFwd .68s cubic-bezier(.45,.1,.2,1) forwards; }
-          .pp-flip-layer.back .pp-flip-shade { background:linear-gradient(to left, rgba(0,0,0,.6), transparent 65%);  animation:ppShadeBack .68s cubic-bezier(.45,.1,.2,1) forwards; }
-        `}</style>
+      <style>{`
+        .passport-flipbook .stf__parent { margin: 0 auto; }
+        .passport-flipbook .stf__block { box-shadow: 0 24px 70px rgba(0,0,0,.55); border-radius: 4px 14px 14px 4px; overflow: hidden; }
+        .passport-leaf { width: 100%; height: 100%; overflow: hidden; }
+      `}</style>
 
-        {renderPage(page)}
-
-        {flipping && prevIndex !== null && (
-          <div className={`pp-flip-layer ${direction}`}>
-            {renderPage(PASSPORT_PAGES[prevIndex])}
-            <div className="pp-flip-shade" />
-          </div>
-        )}
+      <div style={{width:"100%",maxWidth:420,margin:"0 auto",display:"flex",justifyContent:"center"}}>
+        <HTMLFlipBook
+          ref={bookRef}
+          width={380}
+          height={620}
+          size="stretch"
+          minWidth={280}
+          maxWidth={460}
+          minHeight={460}
+          maxHeight={700}
+          showCover={false}
+          usePortrait={true}
+          flippingTime={700}
+          maxShadowOpacity={0.6}
+          drawShadow={true}
+          mobileScrollSupport={false}
+          onFlip={(e: any) => setPageIndex(e.data)}
+          className="passport-flipbook"
+        >
+          <div className="passport-leaf">{renderPage("cover")}</div>
+          <div className="passport-leaf">{renderPage("id")}</div>
+          <div className="passport-leaf">{renderPage("stamps")}</div>
+        </HTMLFlipBook>
       </div>
     </div>
   );
