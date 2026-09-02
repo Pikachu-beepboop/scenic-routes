@@ -18,7 +18,11 @@ jobs:
     if: |
       github.event_name == 'pull_request' ||
       github.event_name == 'issues' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+      (github.event_name == 'issue_comment' &&
+        contains(github.event.comment.body, '@claude') &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR'))
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
@@ -32,17 +36,23 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Supabase MCP server: non-interactive (no browser OAuth), authenticated
-          # via the SUPABASE_ACCESS_TOKEN secret passed through the process env.
+          # via the SUPABASE_ACCESS_TOKEN secret. Pinned version + explicit
+          # project-ref + longer startup timeout to avoid cold-start failures.
           mcp_config: |
             {
               "mcpServers": {
                 "supabase": {
                   "command": "npx",
-                  "args": ["-y", "@supabase/mcp-server-supabase@latest"],
+                  "args": [
+                    "-y",
+                    "@supabase/mcp-server-supabase@0.8.2",
+                    "--project-ref=vwuqidilqrkcbyocrwor"
+                  ],
                   "env": {
-                    "SUPABASE_ACCESS_TOKEN": "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
+                    "SUPABASE_ACCESS_TOKEN": "${{ secrets.SUPABASE_ACCESS_TOKEN }}",
+                    "MCP_TIMEOUT": "60000"
                   }
                 }
               }
             }
-          claude_args: --allowedTools "mcp__supabase"
+          claude_args: --allowedTools "mcp__supabase__list_tables,mcp__supabase__list_migrations,mcp__supabase__apply_migration,mcp__supabase__execute_sql,mcp__supabase__generate_typescript_types,mcp__supabase__list_extensions,mcp__supabase__search_docs,mcp__supabase__confirm_cost"
