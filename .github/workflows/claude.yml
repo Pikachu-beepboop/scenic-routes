@@ -37,13 +37,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Supabase MCP server
+        run: npm install -g @supabase/mcp-server-supabase@0.8.2
+
       - name: Debug Supabase MCP server
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN" && echo "token set (${#SUPABASE_ACCESS_TOKEN} chars)" || echo "TOKEN IS EMPTY"
           echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"debug","version":"0"}}}' \
-            | npx -y @supabase/mcp-server-supabase@0.8.2 --project-ref=vwuqidilqrkcbyocrwor
+            | mcp-server-supabase --project-ref=vwuqidilqrkcbyocrwor
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
@@ -55,5 +58,5 @@ jobs:
           additional_permissions: |
             workflows: write
           claude_args: >-
-            --mcp-config '{"mcpServers":{"supabase":{"command":"npx","args":["-y","@supabase/mcp-server-supabase@0.8.2","--project-ref=vwuqidilqrkcbyocrwor"],"env":{"SUPABASE_ACCESS_TOKEN":"${{ secrets.SUPABASE_ACCESS_TOKEN }}"}}}}'
+            --mcp-config '{"mcpServers":{"supabase":{"command":"mcp-server-supabase","args":["--project-ref=vwuqidilqrkcbyocrwor"],"env":{"SUPABASE_ACCESS_TOKEN":"${{ secrets.SUPABASE_ACCESS_TOKEN }}"}}}}'
             --allowedTools "mcp__supabase__list_tables,mcp__supabase__list_migrations,mcp__supabase__apply_migration,mcp__supabase__execute_sql,mcp__supabase__generate_typescript_types,mcp__supabase__list_extensions,mcp__supabase__search_docs,mcp__supabase__confirm_cost"
