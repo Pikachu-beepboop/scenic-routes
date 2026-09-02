@@ -37,33 +37,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create Supabase MCP Config
-        run: |
-          cat > /tmp/mcp-config.json << 'EOF'
-          {
-            "mcpServers": {
-              "supabase": {
-                "command": "npx",
-                "args": [
-                  "-y",
-                  "@supabase/mcp-server-supabase@0.8.2",
-                  "--project-ref=vwuqidilqrkcbyocrwor"
-                ],
-                "env": {
-                  "SUPABASE_ACCESS_TOKEN": "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
-                }
-              }
-            }
-          }
-          EOF
-
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         env:
+          # Step-level, so the Claude Code client process itself reads it
+          # when waiting for the Supabase MCP server to finish starting.
           MCP_TIMEOUT: "60000"
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
-          claude_args: |
-            --mcp-config /tmp/mcp-config.json
+          additional_permissions: |
+            workflows: write
+          claude_args: >-
+            --mcp-config '{"mcpServers":{"supabase":{"command":"npx","args":["-y","@supabase/mcp-server-supabase@0.8.2","--project-ref=vwuqidilqrkcbyocrwor"],"env":{"SUPABASE_ACCESS_TOKEN":"${{ secrets.SUPABASE_ACCESS_TOKEN }}"}}}}'
             --allowedTools "mcp__supabase__list_tables,mcp__supabase__list_migrations,mcp__supabase__apply_migration,mcp__supabase__execute_sql,mcp__supabase__generate_typescript_types,mcp__supabase__list_extensions,mcp__supabase__search_docs,mcp__supabase__confirm_cost"
