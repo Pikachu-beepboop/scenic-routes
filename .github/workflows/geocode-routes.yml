@@ -1,0 +1,73 @@
+name: Geocode Routes
+
+# Einmal-Lauf fuer scripts/geocode-routes.ts: befuellt routes.start_lat/start_lng/
+# end_lat/end_lng aus den Freitextfeldern start_point/end_point.
+#
+# Nur manuell ausloesbar (Actions -> "Geocode Routes" -> "Run workflow").
+# Standardmaessig Dry-Run; zum Schreiben "apply" auf true setzen.
+#
+# Die Liste der mehrdeutigen/uebersprungenen Orte landet in der Job-Summary.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Ergebnisse wirklich in die Datenbank schreiben (sonst Dry-Run)"
+        type: boolean
+        default: false
+      all:
+        description: "Auch Routen erneut geokodieren, die bereits Koordinaten haben"
+        type: boolean
+        default: false
+      limit:
+        description: "Nur die ersten n Routen verarbeiten (leer = alle)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  geocode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run geocoding script
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          APPLY: ${{ inputs.apply }}
+          ALL: ${{ inputs.all }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          set -o pipefail
+          flags=()
+          [ "$APPLY" = "true" ] && flags+=("--apply")
+          [ "$ALL" = "true" ] && flags+=("--all")
+          [ -n "$LIMIT" ] && flags+=("--limit=$LIMIT")
+          node --experimental-strip-types scripts/geocode-routes.ts "${flags[@]}" \
+            | tee geocode-output.txt
+
+      - name: Write result to job summary
+        if: always()
+        run: |
+          {
+            echo '### Geocoding-Lauf'
+            echo
+            echo '```'
+            cat geocode-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
