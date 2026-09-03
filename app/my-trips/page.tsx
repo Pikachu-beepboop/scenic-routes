@@ -555,7 +555,7 @@ export default function MyTripsPage() {
         <nav className={`nav ${navScrolled ? 'scrolled' : ''}`}>
           <Link href="/" className="nav-logo"><span>EXPLORE</span><span>SCENIC</span><span>ROUTES</span></Link>
           <div className="nav-links">
-            {[['nav.explore', '/explore'], ['nav.about', '/about']].map(([key, h]) => (
+            {[['nav.explore', '/explore'], ['nav.planTrip', '/plan'], ['nav.about', '/about']].map(([key, h]) => (
               <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
             ))}
             {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
@@ -677,7 +677,7 @@ export default function MyTripsPage() {
           ) : (
             <>
               <div className="mobile-nav-links">
-                {[["nav.explore", "/explore"], ["nav.about", "/about"]].map(([key, href]) => (
+                {[["nav.explore", "/explore"], ["nav.planTrip", "/plan"], ["nav.about", "/about"]].map(([key, href]) => (
                   <Link
                     key={key}
                     href={href}

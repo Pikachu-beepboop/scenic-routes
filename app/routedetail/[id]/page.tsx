@@ -833,7 +833,7 @@ export default function RouteDetailPage() {
                     ) : (
                         <>
                             <div className="flex flex-col gap-1 mb-0">
-                                {[[t("nav.explore"), '/explore'], [t("nav.about"), '/about']].map(([label, href]) => (
+                                {[[t("nav.explore"), '/explore'], [t("nav.planTrip"), '/plan'], [t("nav.about"), '/about']].map(([label, href]) => (
                                     <Link
                                         key={label}
                                         href={href}
@@ -896,6 +896,7 @@ export default function RouteDetailPage() {
 
                         <div className="hidden lg:flex items-center gap-9">
                             <Link href="/explore" className="nav-link">{t("nav.explore")}</Link>
+                            <Link href="/plan" className="nav-link">{t("nav.planTrip")}</Link>
                             <Link href="/about" className="nav-link">{t("nav.about")}</Link>
                             {user && (
                                 <Link href="/my-trips" className="nav-link">

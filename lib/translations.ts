@@ -8,6 +8,7 @@ export const translations = {
   // Navigation — auf allen Seiten identisch
   "nav.explore":    { en: "Explore Routes",  de: "Routen entdecken", ru: "Маршруты" },
   "nav.about":      { en: "About",           de: "Über uns",         ru: "О нас" },
+  "nav.planTrip":   { en: "Plan Trip",       de: "Route planen",     ru: "Спланировать поездку" },
   "nav.myTrips":    { en: "My Trips",        de: "Meine Trips",      ru: "Мои поездки" },
   "nav.login":      { en: "Login",           de: "Anmelden",         ru: "Войти" },
   "nav.profile":    { en: "Profile",         de: "Profil",           ru: "Профиль" },
@@ -50,6 +51,12 @@ export const translations = {
   "home.popular.viewAll":      { en: "View all destinations",             de: "Alle Ziele ansehen",                ru: "Смотреть все направления" },
   "home.popular.fallbackType": { en: "Scenic Route",                      de: "Landschaftsroute",                  ru: "Живописный маршрут" },
   "home.popular.fallbackDesc": { en: "One of the world's most scenic driving routes", de: "Eine der schönsten Panoramastrecken der Welt", ru: "Один из самых живописных автомобильных маршрутов мира" },
+
+  // Homepage — Route-Planner-Teaser
+  "home.planTeaser.kicker":   { en: "Route Planner",   de: "Routenplaner",   ru: "Планировщик маршрутов" },
+  "home.planTeaser.headline": { en: "From A to B — the scenic way", de: "Von A nach B — auf der schönen Strecke", ru: "Из A в B — живописной дорогой" },
+  "home.planTeaser.subtext":  { en: "Tell us where you start and where you're heading, and we'll show you the curated scenic routes along the way.", de: "Sag uns, wo du startest und wohin du willst — wir zeigen dir die kuratierten Panoramastrecken auf dem Weg.", ru: "Укажите, откуда вы едете и куда направляетесь, — мы покажем живописные маршруты по пути." },
+  "home.planTeaser.cta":      { en: "Plan your trip",  de: "Route planen",   ru: "Спланировать поездку" },
 
   // Homepage — Builder
   "home.builder.eyebrow":   { en: "Build your route",       de: "Route zusammenstellen",     ru: "Составь свой маршрут" },
@@ -191,6 +198,14 @@ export const translations = {
   "mytrips.showing":         { en: "Showing",                                 de: "Zeige",                                     ru: "Показано" },
   "common.of":               { en: "of",                                      de: "von",                                       ru: "из" },
   "common.routes":           { en: "routes",                                  de: "Routen",                                    ru: "маршрутов" },
+
+// ==================== Plan-Seite (/plan) ====================
+// Platzhalter-Seite. Die eigentliche Planner-Funktionalität folgt in Teil 2.
+
+  "plan.eyebrow": { en: "Route Planner",  de: "Routenplaner",   ru: "Планировщик маршрутов" },
+  "plan.title":   { en: "Plan Trip",      de: "Route planen",   ru: "Спланировать поездку" },
+  "plan.sub":     { en: "The route planner is on its way. Soon you'll be able to enter your start and destination and build a trip from our curated scenic routes.", de: "Der Routenplaner ist in Arbeit. Bald kannst du Start und Ziel eingeben und daraus einen Trip aus unseren kuratierten Panoramastrecken bauen.", ru: "Планировщик маршрутов в разработке. Скоро вы сможете указать начало и конец пути и составить поездку из наших живописных маршрутов." },
+  "plan.back":    { en: "Back to home",   de: "Zurück zur Startseite", ru: "На главную" },
 
 // ==================== Explore-Seite ====================
 

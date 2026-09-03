@@ -375,6 +375,9 @@ function LoginPageInner() {
             <Link href="/explore" className="lp-nav-link">
               {t("nav.explore")}
             </Link>
+            <Link href="/plan" className="lp-nav-link">
+              {t("nav.planTrip")}
+            </Link>
             <Link href="/about" className="lp-nav-link">
               {t("nav.about")}
             </Link>

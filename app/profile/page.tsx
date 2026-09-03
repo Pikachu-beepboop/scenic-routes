@@ -445,6 +445,7 @@ export default function ProfilePage() {
         </Link>
         <div className="pp-nav-links">
           <Link href="/explore"  className="pp-nav-link">{t("nav.explore")}</Link>
+          <Link href="/plan"     className="pp-nav-link">{t("nav.planTrip")}</Link>
           <Link href="/about"    className="pp-nav-link">{t("nav.about")}</Link>
           <Link href="/my-trips" className="pp-nav-link">{t("nav.myTrips")}</Link>
         </div>
