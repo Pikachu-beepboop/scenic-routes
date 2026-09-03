@@ -337,18 +337,39 @@ export default function AdminPage() {
   }, [activeTab]);
 
   // ---------- Load users when Users tab opens ----------
+  // GEÄNDERT: läuft nicht mehr direkt über den Browser-Client. Auf `profiles`
+  // ist RLS aktiv (SELECT nur auf das eigene Profil) — die direkte Abfrage hat
+  // dem Admin deshalb nur noch seine eigene Zeile geliefert. Die vollständige
+  // Liste kommt jetzt aus app/api/admin/users/route.ts, die serverseitig mit
+  // dem Service-Role-Key abfragt und vorher prüft, ob der Access-Token zu einem
+  // Admin gehört.
   async function loadUsers() {
     setUsersError(null);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, email, avatar_url, updated_at')
-      .order('updated_at', { ascending: false });
 
-    if (error) {
-      setUsersError(error.message);
+    const { session } = await getSessionSafe();
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      setUsersError('Nicht angemeldet.');
       return;
     }
-    setUsersList(data || []);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setUsersError(payload?.error || `Fehler ${res.status}`);
+        return;
+      }
+
+      setUsersList(payload?.users || []);
+    } catch (err: any) {
+      setUsersError(err?.message || 'Unbekannter Fehler.');
+    }
   }
 
   useEffect(() => {
@@ -1527,7 +1548,9 @@ export default function AdminPage() {
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 mb-6">
               Ошибка загрузки: {usersError}
               <p className="mt-2 text-xs text-red-400">
-                Если ошибка про доступ (permission denied) — нужна RLS-политика на SELECT для таблицы profiles.
+                Список загружается через серверный маршрут /api/admin/users. Если ошибка про доступ или
+                конфигурацию — проверь переменные окружения этого маршрута (список админов и серверный
+                ключ Supabase). RLS-политику на profiles менять не нужно.
               </p>
             </div>
           )}
