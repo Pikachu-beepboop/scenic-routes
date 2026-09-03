@@ -929,7 +929,7 @@ function ExplorePageInner() {
           </Link>
 
           <div className="nav-links">
-            {[["nav.explore", "/explore"], ["nav.about", "/about"]].map(([key, h]) => (
+            {[["nav.explore", "/explore"], ["nav.planTrip", "/plan"], ["nav.about", "/about"]].map(([key, h]) => (
               <Link key={key} href={h} className={`nav-link ${pathname === h ? "nav-link-active" : ""}`}>{t(key as any)}</Link>
             ))}
             {user && (
@@ -1072,7 +1072,7 @@ function ExplorePageInner() {
           ) : (
             <>
               <div className="mobile-nav-links">
-                {[["nav.explore", "/explore"], ["nav.about", "/about"]].map(([key, href]) => (
+                {[["nav.explore", "/explore"], ["nav.planTrip", "/plan"], ["nav.about", "/about"]].map(([key, href]) => (
                   <Link
                     key={key}
                     href={href}

@@ -8,6 +8,7 @@ import { useAuth, signOutSafe } from "../lib/useAuth";
 import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 import { ThemeSwitch } from "./components/ThemeSwitch";
+import PlanTripTeaser from "./components/PlanTripTeaser";
 import { useTheme } from "next-themes";
 import { useLanguage } from "./LanguageContext";
 import {
@@ -990,6 +991,7 @@ export default function HomePage() {
           <div className="nav-links">
             {[
               ["nav.explore", "/explore"],
+              ["nav.planTrip", "/plan"],
               ["nav.about", "/about"],
             ].map(([key, href]) => (
               <Link key={key} href={href} className={`nav-link ${pathname === href ? "nav-link-active" : ""}`}>
@@ -1245,6 +1247,7 @@ export default function HomePage() {
               <div className="mobile-nav-links">
                 {[
                   ["nav.explore", "/explore"],
+                  ["nav.planTrip", "/plan"],
                   ["nav.about", "/about"],
                 ].map(([key, href]) => (
                   <Link
@@ -1310,6 +1313,8 @@ export default function HomePage() {
         </section>
 
         <PopularCarousel routes={displayRoutes} />
+
+        <PlanTripTeaser />
 
         <section className="builder-section" id="experiences">
           <div className="builder-image-bg">

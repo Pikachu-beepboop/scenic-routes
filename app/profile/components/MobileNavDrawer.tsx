@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ThemeSwitch } from "../../components/ThemeSwitch";
 import {
-  X, Map, Info, User, Settings as SettingsIcon, Mail, Lock,
+  X, Map, Compass, Info, User, Settings as SettingsIcon, Mail, Lock,
   Smartphone, Monitor, Award, Bell, ShieldCheck, LifeBuoy, LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -81,6 +81,11 @@ export default function MobileNavDrawer({
             <Link href="/explore" className="pp-mobile-link" onClick={onClose}>
               <span className="pp-mobile-link-icon"><Map size={14} strokeWidth={1.8} /></span>
               {t("nav.explore")}
+              <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+            </Link>
+            <Link href="/plan" className="pp-mobile-link" onClick={onClose}>
+              <span className="pp-mobile-link-icon"><Compass size={14} strokeWidth={1.8} /></span>
+              {t("nav.planTrip")}
               <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
             </Link>
             <Link href="/about" className="pp-mobile-link" onClick={onClose}>
