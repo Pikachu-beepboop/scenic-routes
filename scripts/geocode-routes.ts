@@ -24,9 +24,13 @@
  *   NEXT_PUBLIC_SUPABASE_URL   Supabase-Projekt-URL
  *   SUPABASE_SERVICE_ROLE_KEY  Service-Role-Key (routes hat RLS, der Anon-Key darf nicht schreiben)
  *
- * Mehrdeutige Orte werden bewusst NICHT geschrieben: liefert die Geocoding API
- * mehr als ein Ergebnis oder ein `partial_match`, bleibt die Spalte NULL und der
- * Fall wird am Ende als Tabelle ausgegeben, damit er manuell geklaert werden kann.
+ * Umgang mit Mehrdeutigkeit: die Geocoding API liefert auch fuer unklare Orte
+ * meist genau einen Treffer, ein blosser "ein Treffer"-Check reicht also nicht.
+ * Deshalb wird jeder Ort zweimal abgefragt - einmal nur mit dem Ortsnamen und
+ * einmal zusaetzlich mit dem Land aus routes.country. Nur wenn beide Antworten
+ * eindeutig sind und weniger als AGREEMENT_TOLERANCE_KM auseinanderliegen, wird
+ * geschrieben. Alle anderen Faelle bleiben NULL und werden am Ende als
+ * Markdown-Tabelle ausgegeben, damit sie manuell geklaert werden koennen.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -47,6 +51,9 @@ const LIMIT = (() => {
 
 /** Pause zwischen zwei API-Aufrufen, um das Rate-Limit nicht zu reissen. */
 const REQUEST_DELAY_MS = 120;
+
+/** Maximaler Abstand zwischen der Abfrage mit und ohne Land, bis zu dem beide als derselbe Ort gelten. */
+const AGREEMENT_TOLERANCE_KM = 25;
 
 type RouteRow = {
   id: string;
@@ -72,26 +79,26 @@ type GeocodeResponse = {
   results?: GeocodeResult[];
 };
 
-type Resolved = {
+type Hit = {
   kind: "ok";
   lat: number;
   lng: number;
   formattedAddress: string;
 };
 
-type Unresolved = {
+type Miss = {
   kind: "ambiguous" | "not_found" | "error";
   reason: string;
   candidates?: string[];
 };
 
-type Lookup = Resolved | Unresolved;
+type Lookup = Hit | Miss;
 
 type Problem = {
   routeTitle: string;
   field: "start_point" | "end_point";
   query: string;
-  kind: Unresolved["kind"];
+  kind: Miss["kind"];
   reason: string;
   candidates?: string[];
 };
@@ -101,13 +108,25 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Baut die Suchanfrage: Ortsname plus Land als Kontext. Klammer-Zusaetze wie
- * "Baddeck (loop)" sind Routen-Metadaten und kein Teil des Ortsnamens.
+ * Klammer-Zusaetze wie "Baddeck (loop)" oder "Queenstown (Arrow Junction)" sind
+ * Routen-Metadaten und gehoeren nicht in die Geocoding-Anfrage.
  */
-function buildQuery(point: string, country: string | null): string {
-  const place = point.replace(/\s*\([^)]*\)\s*$/, "").trim().replace(/\s+/g, " ");
-  const land = (country ?? "").replace(/\s*\([^)]*\)\s*$/, "").trim();
-  return land ? `${place}, ${land}` : place;
+function cleanPlace(value: string): string {
+  return value
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function haversineKm(a: Hit, b: Hit): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * earthRadiusKm * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 async function geocode(query: string): Promise<Lookup> {
@@ -145,7 +164,7 @@ async function geocode(query: string): Promise<Lookup> {
   }
 
   const [only] = results;
-  // partial_match heisst: Google hat die Anfrage nur teilweise aufloesen koennen.
+  // partial_match heisst: Google konnte die Anfrage nur teilweise aufloesen.
   if (only.partial_match) {
     return { kind: "ambiguous", reason: "partial_match", candidates };
   }
@@ -161,6 +180,52 @@ async function geocode(query: string): Promise<Lookup> {
     lng: location.lng,
     formattedAddress: only.formatted_address ?? query,
   };
+}
+
+/**
+ * Loest einen Ort auf und verifiziert das Ergebnis ueber eine zweite Abfrage
+ * mit dem Land aus routes.country. Weichen beide Antworten voneinander ab
+ * (z.B. weil der Ort laut Freitext in einem anderen Land liegt als country),
+ * gilt der Ort als mehrdeutig.
+ */
+async function resolvePoint(rawPoint: string, country: string | null): Promise<Lookup> {
+  const place = cleanPlace(rawPoint);
+  if (!place) {
+    return { kind: "not_found", reason: "Ortsname nach Bereinigung leer" };
+  }
+
+  const plain = await geocode(place);
+  await sleep(REQUEST_DELAY_MS);
+  if (plain.kind !== "ok") {
+    return plain;
+  }
+
+  const land = country ? cleanPlace(country) : "";
+  if (!land) {
+    return plain;
+  }
+
+  const withCountry = await geocode(`${place}, ${land}`);
+  await sleep(REQUEST_DELAY_MS);
+  if (withCountry.kind !== "ok") {
+    return {
+      kind: "ambiguous",
+      reason: `Gegenprobe mit Land "${land}" ergab ${withCountry.kind} (${withCountry.reason})`,
+      candidates: [plain.formattedAddress],
+    };
+  }
+
+  const distanceKm = haversineKm(plain, withCountry);
+  if (distanceKm > AGREEMENT_TOLERANCE_KM) {
+    return {
+      kind: "ambiguous",
+      reason: `Abfrage mit und ohne Land liegen ${distanceKm.toFixed(0)} km auseinander`,
+      candidates: [plain.formattedAddress, withCountry.formattedAddress],
+    };
+  }
+
+  // Beide stimmen ueberein - das laenderspezifische Ergebnis ist das praezisere.
+  return withCountry;
 }
 
 function markdownTable(problems: Problem[]): string {
@@ -241,26 +306,25 @@ async function main(): Promise<void> {
         continue;
       }
 
-      const q = buildQuery(value, route.country);
-      const result = await geocode(q);
-      await sleep(REQUEST_DELAY_MS);
+      const shown = cleanPlace(value);
+      const result = await resolvePoint(value, route.country);
 
       if (result.kind !== "ok") {
         problems.push({
           routeTitle: label,
           field,
-          query: q,
+          query: shown,
           kind: result.kind,
           reason: result.reason,
           candidates: result.candidates,
         });
-        console.log(`  ✗ ${label} / ${field}: "${q}" -> ${result.kind} (${result.reason})`);
+        console.log(`  ✗ ${label} / ${field}: "${shown}" -> ${result.kind} (${result.reason})`);
         continue;
       }
 
       patch[latColumn] = result.lat;
       patch[lngColumn] = result.lng;
-      console.log(`  ✓ ${label} / ${field}: "${q}" -> ${result.lat}, ${result.lng} (${result.formattedAddress})`);
+      console.log(`  ✓ ${label} / ${field}: "${shown}" -> ${result.lat}, ${result.lng} (${result.formattedAddress})`);
     }
 
     if (Object.keys(patch).length === 0) {
