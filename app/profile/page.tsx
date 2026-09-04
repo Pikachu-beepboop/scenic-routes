@@ -436,7 +436,7 @@ export default function ProfilePage() {
   return (
     <div className="pp">
       <div className="pp-bg">
-        <img src="/Stelvio Pass.jpg" alt={t("nav.scenicRoadAlt")} onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }} />
+        <img src="/Stelvio Pass.jpg" alt={t("nav.scenicRoadAlt")} onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific_Route_Highway.jpg"; }} />
       </div>
 
       <nav className={`pp-nav ${navScrolled ? "scrolled" : ""}`}>
