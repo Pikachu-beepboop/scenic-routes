@@ -699,7 +699,7 @@ export default function AboutPage() {
           {/* HERO */}
           <section className="about-hero">
             <div className="about-hero-bg">
-              <img src="/3.jpg" alt="Scenic road" onError={e => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+              <img src="/3.jpg" alt="Scenic road" onError={e => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
             </div>
             <div className="about-hero-content">
               <p className="about-eyebrow">{t("about.eyebrow")}</p>
@@ -782,7 +782,7 @@ export default function AboutPage() {
             <h2 className="section-h2">{t("about.mission.heading1")}<br />{t("about.mission.heading2")}</h2>
             <div className="mission-grid">
               <div className="mission-image">
-                <img src="/Garden Route.jpg" alt="Road" onError={e => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
+                <img src="/garden_route.jpg" alt="Road" onError={e => { e.currentTarget.src = "/trollstigen.jpg"; }} />
               </div>
               <div>
                 <p className="mission-text">

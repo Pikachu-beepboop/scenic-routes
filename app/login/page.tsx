@@ -355,10 +355,10 @@ function LoginPageInner() {
         {/* BACKGROUND */}
         <div className="lp-hero-bg">
           <img
-            src="/North Coast 500.jpg"
+            src="/north_coast_500.jpg"
             alt="Scenic road"
             onError={(e) => {
-              e.currentTarget.src = "/Pacific_Route_Highway.jpg";
+              e.currentTarget.src = "/pacific_route_highway.jpg";
             }}
           />
         </div>

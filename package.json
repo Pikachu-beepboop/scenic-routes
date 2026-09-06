@@ -6,7 +6,9 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "images:check": "node scripts/normalize-image-names.mjs",
+    "images:normalize": "node scripts/normalize-image-names.mjs --apply"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",

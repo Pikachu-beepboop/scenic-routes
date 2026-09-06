@@ -699,7 +699,7 @@ export default function MyTripsPage() {
         {/* HERO */}
         <section className="page-header">
           <div className="page-header-bg">
-            <img src="/road and mountains.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/Trollstigen.jpg"; }} />
+            <img src="/road_and_mountains.jpg" alt="Hero" onError={(e) => { e.currentTarget.src = "/trollstigen.jpg"; }} />
           </div>
 
           <div className="page-header-inner">
@@ -780,7 +780,7 @@ export default function MyTripsPage() {
                     {savedRoutes.map((route: any) => (
                       <div key={route.id} className="saved-preview-item">
                         <Link href={`/routedetail/${route.id}`} className="saved-preview-thumb">
-                          <img src={route.image_url || "/Amalfi coast road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+                          <img src={route.image_url || "/amalfi_coast_road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
                         </Link>
                         <div>
                           <p className="saved-preview-country">{route.country || t("home.popular.fallbackType")}</p>
@@ -847,7 +847,7 @@ export default function MyTripsPage() {
                 {displayedRoutes.map((route: any) => (
                   <div key={route.id} className="mobile-route-row">
                     <Link href={`/routedetail/${route.id}`} className="mobile-route-thumb">
-                      <img src={route.image_url || "/Amalfi coast road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/Amalfi coast road.jpg"; }} />
+                      <img src={route.image_url || "/amalfi_coast_road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
                     </Link>
                     <div className="mobile-route-info">
                       <p className="mobile-route-country">{route.country || t("home.popular.fallbackType")}</p>
