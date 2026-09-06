@@ -29,6 +29,22 @@ export const AUTH_RESET_EVENT = "sr:auth-reset";
 /**
  * Auth-Client: hält die Session, refresht Tokens, feuert Auth-Events.
  * Wird ausschließlich für Auth + für Queries auf User-eigene Daten benutzt.
+ *
+ * WICHTIG: Es darf im Browser genau DIESE eine Instanz geben. Ein zweiter
+ * Client mit derselben storageKey würde sich mit diesem um denselben
+ * Navigator-LockManager-Lock streiten. Alle Seiten importieren deshalb
+ * `supabase` von hier — niemals selbst `createClient()` in einer Komponente
+ * aufrufen. (`supabasePublic` unten ist bewusst kein Auth-Client und hat eine
+ * eigene storageKey, siehe dort.)
+ *
+ * Bekannte, unkritische Konsolen-Meldung:
+ *   Acquiring an exclusive Navigator LockManager lock
+ *   "lock:sb-<ref>-auth-token" immediately failed
+ * supabase-js versucht seinen Auto-Refresh-Tick mit acquireTimeout 0 zu
+ * holen ("nur wenn der Lock gerade frei ist") und überspringt den Tick, wenn
+ * gerade ein getSession() läuft. Die Rejection entsteht innerhalb des
+ * navigator.locks-Callbacks und taucht in DevTools als "Uncaught (in promise)"
+ * auf, obwohl supabase-js sie abfängt. Kein Handlungsbedarf.
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

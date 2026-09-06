@@ -27,7 +27,7 @@ const FALLBACK_ROUTES = [
     title: "Amalfi Coast Road",
     country: "Italy",
     distance_km: 50,
-    image_url: "/Amalfi coast road.jpg",
+    image_url: "/amalfi_coast_road.jpg",
     duration: "Half day (< 4h)",
     type: "Coastal Highway",
     terrain: "Coastal",
@@ -39,7 +39,7 @@ const FALLBACK_ROUTES = [
     title: "Pacific Coast Highway",
     country: "USA",
     distance_km: 650,
-    image_url: "/Pacific Route Highway.jpg",
+    image_url: "/pacific_route_highway.jpg",
     duration: "Multi-day journey",
     type: "Coastal Highway",
     terrain: "Coastal",
@@ -51,7 +51,7 @@ const FALLBACK_ROUTES = [
     title: "Trollstigen",
     country: "Norway",
     distance_km: 27,
-    image_url: "/Trollstigen.jpg",
+    image_url: "/trollstigen.jpg",
     duration: "Half day (< 4h)",
     type: "Scenic Pass",
     terrain: "Mountains",
@@ -63,7 +63,7 @@ const FALLBACK_ROUTES = [
     title: "Stelvio Pass",
     country: "Italy",
     distance_km: 75,
-    image_url: "/Stellvio Pass.jpg",
+    image_url: "/stellvio_pass.jpg",
     duration: "Half day (< 4h)",
     type: "Alpine Pass",
     terrain: "Mountains",
@@ -74,7 +74,7 @@ const FALLBACK_ROUTES = [
     title: "Garden Route",
     country: "South Africa",
     distance_km: 300,
-    image_url: "/Garden Route.jpg",
+    image_url: "/garden_route.jpg",
     duration: "Weekend trip",
     type: "Scenic Route",
     terrain: "Coastal",
@@ -86,7 +86,7 @@ const FALLBACK_ROUTES = [
     title: "North Coast 500",
     country: "Scotland",
     distance_km: 830,
-    image_url: "/North Coast 500.jpg",
+    image_url: "/north_coast_500.jpg",
     duration: "Multi-day journey",
     type: "Circular Route",
     terrain: "Mountains",
@@ -326,10 +326,10 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
             }
           >
             <img
-              src={route.image_url || "/Pacific Route Highway.jpg"}
+              src={route.image_url || "/pacific_route_highway.jpg"}
               alt={routeTitle}
               onError={(e) => {
-                e.currentTarget.src = "/Pacific Route Highway.jpg";
+                e.currentTarget.src = "/pacific_route_highway.jpg";
               }}
             />
 
@@ -401,7 +401,7 @@ export default function HomePage() {
     setMounted(true);
   }, []);
 
-  const heroImage = mounted && theme === "light" ? "/Hero7.jpg" : "/Hero7.jpg";
+  const heroImage = mounted && theme === "light" ? "/hero7.jpg" : "/hero7.jpg";
 
   const displayRoutes = useMemo<Route[]>(
     () => (routes.length ? routes : FALLBACK_ROUTES),
@@ -1319,10 +1319,10 @@ export default function HomePage() {
         <section className="builder-section" id="experiences">
           <div className="builder-image-bg">
             <img
-              src="/Toscana.jpg"
+              src="/toscana.jpg"
               alt="Tuscany road"
               onError={(e) => {
-                e.currentTarget.src = "/Amalfi coast road.jpg";
+                e.currentTarget.src = "/amalfi_coast_road.jpg";
               }}
             />
           </div>
@@ -1331,10 +1331,10 @@ export default function HomePage() {
             <div className="builder-content">
               <div className="builder-mobile-image mobile-only">
                 <img
-                  src="/Toscana.jpg"
+                  src="/toscana.jpg"
                   alt="Tuscany road"
                   onError={(e) => {
-                    e.currentTarget.src = "/Amalfi coast road.jpg";
+                    e.currentTarget.src = "/amalfi_coast_road.jpg";
                   }}
                 />
               </div>

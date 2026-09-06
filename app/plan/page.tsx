@@ -31,9 +31,9 @@ export default function PlanPage() {
     <div className="pp">
       <div className="pp-bg">
         <img
-          src="/Stelvio Pass.jpg"
+          src="/stelvio_pass.jpg"
           alt={t("nav.scenicRoadAlt")}
-          onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }}
+          onError={e => { (e.currentTarget as HTMLImageElement).src = "/pacific_route_highway.jpg"; }}
         />
       </div>
 

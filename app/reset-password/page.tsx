@@ -171,9 +171,9 @@ export default function ResetPasswordPage() {
         {/* BG */}
         <div className="rp-bg">
           <img
-            src="/North Coast 500.jpg"
+            src="/north_coast_500.jpg"
             alt="Scenic road"
-            onError={e => { (e.currentTarget as HTMLImageElement).src = "/Pacific Route Highway.jpg"; }}
+            onError={e => { (e.currentTarget as HTMLImageElement).src = "/pacific_route_highway.jpg"; }}
           />
         </div>
 
