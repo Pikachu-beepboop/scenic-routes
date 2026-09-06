@@ -11,3 +11,11 @@ Cloudflare Pages ist gross-/kleinschreibungs-sensitiv, lokale Entwicklung meist
 nicht — Abweichungen fallen erst nach dem Deploy als 404 auf. Regeln, Skript
 (`npm run images:check`) und der Abgleich mit den Supabase-Spalten
 `routes.image_url` / `routes.image1`–`image5` stehen in [IMAGES.md](IMAGES.md).
+
+# Links auf Route-Detailseiten
+
+Jeder `<Link href={"/routedetail/…"}>` bekommt `prefetch={false}`.
+`app/routedetail/[id]/page.tsx` ist die einzige dynamisch gerenderte Route
+(Edge-Runtime, kein `generateStaticParams`), deshalb existiert kein
+Prefetch-Payload und Next.js' Hintergrund-Prefetch laeuft auf Cloudflare Pages in
+einen 404. Details in [ROUTING.md](ROUTING.md).

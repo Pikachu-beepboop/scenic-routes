@@ -779,12 +779,12 @@ export default function MyTripsPage() {
                   <div className="saved-preview-list" ref={savedListRef} onScroll={updateSavedThumb}>
                     {savedRoutes.map((route: any) => (
                       <div key={route.id} className="saved-preview-item">
-                        <Link href={`/routedetail/${route.id}`} className="saved-preview-thumb">
+                        <Link href={`/routedetail/${route.id}`} prefetch={false} className="saved-preview-thumb">
                           <img src={route.image_url || "/amalfi_coast_road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
                         </Link>
                         <div>
                           <p className="saved-preview-country">{route.country || t("home.popular.fallbackType")}</p>
-                          <Link href={`/routedetail/${route.id}`}>
+                          <Link href={`/routedetail/${route.id}`} prefetch={false}>
                             <h3 className="saved-preview-name">{localizedText(route, "title", lang)}</h3>
                           </Link>
                           <div className="saved-preview-meta">
@@ -794,7 +794,7 @@ export default function MyTripsPage() {
                           </div>
                         </div>
                         <div className="saved-preview-action-wrap">
-                          <Link href={`/routedetail/${route.id}`} className="saved-preview-action" title={t("mytrips.openRoute")}><ChevronRight size={19} strokeWidth={2} /></Link>
+                          <Link href={`/routedetail/${route.id}`} prefetch={false} className="saved-preview-action" title={t("mytrips.openRoute")}><ChevronRight size={19} strokeWidth={2} /></Link>
                           <button className="saved-preview-remove" onClick={() => handleUnsave(route.id)} title={t("mytrips.removeFromSaved")}><X size={15} strokeWidth={2} /></button>
                         </div>
                       </div>
@@ -846,12 +846,12 @@ export default function MyTripsPage() {
               <>
                 {displayedRoutes.map((route: any) => (
                   <div key={route.id} className="mobile-route-row">
-                    <Link href={`/routedetail/${route.id}`} className="mobile-route-thumb">
+                    <Link href={`/routedetail/${route.id}`} prefetch={false} className="mobile-route-thumb">
                       <img src={route.image_url || "/amalfi_coast_road.jpg"} alt={localizedText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
                     </Link>
                     <div className="mobile-route-info">
                       <p className="mobile-route-country">{route.country || t("home.popular.fallbackType")}</p>
-                      <Link href={`/routedetail/${route.id}`}>
+                      <Link href={`/routedetail/${route.id}`} prefetch={false}>
                         <h3 className="mobile-route-title">{localizedText(route, "title", lang)}</h3>
                       </Link>
                       <div className="mobile-route-meta">
@@ -860,7 +860,7 @@ export default function MyTripsPage() {
                       </div>
                     </div>
                     <div className="mobile-route-actions">
-                      <Link href={`/routedetail/${route.id}`} className="mobile-route-open" title={t("mytrips.openRoute")}><ChevronRight size={15} strokeWidth={2} /></Link>
+                      <Link href={`/routedetail/${route.id}`} prefetch={false} className="mobile-route-open" title={t("mytrips.openRoute")}><ChevronRight size={15} strokeWidth={2} /></Link>
                       <button className="mobile-route-remove" onClick={() => handleUnsave(route.id)} title={t("mytrips.remove")}><X size={12} strokeWidth={2} /></button>
                     </div>
                   </div>

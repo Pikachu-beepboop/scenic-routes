@@ -317,6 +317,7 @@ function PopularCarousel({ routes }: { routes: Route[] }) {
           <Link
             key={route.id}
             href={`/routedetail/${route.id}`}
+            prefetch={false}
             className={`popular-card slide-${slideDirection}`}
             onClick={handleCardClick}
             style={
