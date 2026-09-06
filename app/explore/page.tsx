@@ -1398,7 +1398,8 @@ function ExplorePageInner() {
                 {displayedRoutes.map((route) => (
                   <div key={route.id} className="route-card">
                     <div className="route-card-img">
-                      <Link href={`/routedetail/${route.id}`}>
+                      {/* prefetch={false}: /routedetail/[id] wird nicht vorgerendert -> Prefetch-Payload existiert nicht (siehe ROUTING.md) */}
+                      <Link href={`/routedetail/${route.id}`} prefetch={false}>
                         <img src={route.image_url || "/iceland.jpg"} alt={localizedRouteText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
                       </Link>
                       <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
@@ -1411,7 +1412,7 @@ function ExplorePageInner() {
                         <MapPin size={10} strokeWidth={2.2} className="route-card-pin" />
                         {route.country}
                       </div>
-                      <Link href={`/routedetail/${route.id}`}><div className="route-card-title">{localizedRouteText(route, "title", lang)}</div></Link>
+                      <Link href={`/routedetail/${route.id}`} prefetch={false}><div className="route-card-title">{localizedRouteText(route, "title", lang)}</div></Link>
                       <p className="route-card-desc">{localizedRouteText(route, "description", lang)}</p>
                       <div className="route-card-meta">
                         {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
@@ -1421,7 +1422,7 @@ function ExplorePageInner() {
                         {route.rating && (
                           <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating.toFixed(1)}</div>
                         )}
-                        <Link href={`/routedetail/${route.id}`} className="view-route-btn">{t("explore.viewRoute")} <ArrowRight size={12} strokeWidth={2.5} /></Link>
+                        <Link href={`/routedetail/${route.id}`} prefetch={false} className="view-route-btn">{t("explore.viewRoute")} <ArrowRight size={12} strokeWidth={2.5} /></Link>
                       </div>
                     </div>
                   </div>

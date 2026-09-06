@@ -20,6 +20,10 @@ import { useUnit } from '@/app/UnitContext';
 import { useLanguage } from '@/app/LanguageContext';
 import { formatDistance } from '@/lib/formatDistance';
 
+// Diese Seite ist die einzige dynamisch gerenderte Route der App (Cloudflare Pages
+// verlangt dafuer die Edge-Runtime). Sie wird nicht vorgerendert, es existiert also
+// kein Prefetch-Payload -> Links hierher werden mit prefetch={false} gesetzt.
+// Hintergrund: ROUTING.md
 export const runtime = 'edge';
 
 
