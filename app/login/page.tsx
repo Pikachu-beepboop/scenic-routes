@@ -358,7 +358,7 @@ function LoginPageInner() {
             src="/North Coast 500.jpg"
             alt="Scenic road"
             onError={(e) => {
-              e.currentTarget.src = "/Pacific Route Highway.jpg";
+              e.currentTarget.src = "/Pacific_Route_Highway.jpg";
             }}
           />
         </div>
