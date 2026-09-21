@@ -7,13 +7,13 @@ import { supabase, supabasePublic, withTimeout, safeQuery } from "../../lib/supa
 import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
-import { useUnit } from "../UnitContext";
 import { useLanguage } from "../LanguageContext";
-import { formatDistance } from "@/lib/formatDistance";
+// Die Routenkarte ist jetzt eine eigene Komponente — /plan nutzt exakt dieselbe.
+import RouteCard, { ROUTE_CARD_STYLES } from "../components/RouteCard";
 import {
   SlidersHorizontal, ChevronDown, Star, X, CornerDownRight,
-  User as UserIcon, Map as MapIcon, Compass, LogOut, Clock, Navigation, Heart, ArrowRight, Globe,
-  Menu, ChevronRight, MapPin, Mail, BookOpen, Search, ArrowUp,
+  User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight, Globe,
+  Menu, ChevronRight, Mail, BookOpen, Search, ArrowUp,
 } from "lucide-react";
 
 type Route = {
@@ -31,13 +31,6 @@ type Route = {
   description_de?: string;
   rating?: number;
 };
-
-// NEU (Bilingual): liest ein übersetzbares Feld (title, description, ...) sprachabhängig
-// aus der Route. Fallback-Kette: aktuelle Sprache -> Englisch -> Deutsch -> alte Spalte.
-function localizedRouteText(route: Route, field: string, lang: string): string {
-  const value = (route as any)[`${field}_${lang}`] || (route as any)[`${field}_en`] || (route as any)[`${field}_de`] || (route as any)[field];
-  return typeof value === 'string' ? value : '';
-}
 
 // Feste, logische Reihenfolge (kurz → lang) statt alphabetischer Sortierung
 const DURATION_ORDER = ["Half day", "Full day", "Weekend trip", "Multi-day journey"];
@@ -126,7 +119,6 @@ function ExplorePageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const { theme } = useTheme();
-  const { unit } = useUnit();
   const { t, lang, setLang } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
@@ -628,27 +620,10 @@ function ExplorePageInner() {
 
         .route-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
 
-        .route-card { position:relative; border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); transition:transform .4s cubic-bezier(.25,.46,.45,.94),box-shadow .4s,border-color .4s; cursor:pointer; display:flex; flex-direction:column; height:100%; }
-        .route-card:hover { transform:translateY(-6px); box-shadow:0 32px 80px rgba(0,0,0,0.3); border-color:rgba(201,168,106,0.22); }
-        .route-card-img { position:relative; height:240px; flex-shrink:0; overflow:hidden; }
-        .route-card-img img { width:100%; height:100%; object-fit:cover; transition:transform .7s ease; filter:brightness(0.88); }
-        .route-card:hover .route-card-img img { transform:scale(1.07); }
-        .route-card-img::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.6) 100%); pointer-events:none; }
-        .save-btn { position:absolute; top:12px; right:12px; z-index:5; width:36px; height:36px; border-radius:50%; background:rgba(12,11,9,0.55); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.18); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .25s,background .25s; }
-        .route-card:hover .save-btn { opacity:1; }
-        .save-btn:hover { background:rgba(12,11,9,0.85); }
-        .route-card-type { position:absolute; bottom:12px; left:12px; z-index:5; padding:5px 10px; border-radius:999px; background:rgba(12,11,9,0.65); backdrop-filter:blur(12px); border:1px solid rgba(237,229,212,0.16); font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:rgba(237,229,212,0.8); }
-        .route-card-body { padding:18px 18px 20px; display:flex; flex-direction:column; flex:1; }
-        .route-card-country { font-size:9px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:5px; }
-        .route-card-title { font-family:var(--serif); font-size:22px; font-weight:400; color:var(--cream); line-height:1.05; letter-spacing:-0.02em; margin-bottom:8px; min-height:46.2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .route-card-desc { font-size:12px; color:var(--dim); line-height:1.65; font-weight:300; margin-bottom:14px; min-height:39.6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .route-card-meta { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
-        .route-card-meta-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--dim); font-weight:500; }
-        .route-card-meta-item svg { opacity:0.65; flex-shrink:0; }
-        .route-card-footer { display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid var(--border); margin-top:auto; }
-        .route-card-rating { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gold); font-weight:700; }
-        .view-route-btn { font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); transition:color .2s; display:flex; align-items:center; gap:6px; }
-        .view-route-btn:hover { color:var(--cream); }
+        /* Die Karten-Regeln leben jetzt in app/components/RouteCard.tsx —
+           dieselbe Komponente rendert die Karten auf /explore und /plan.
+           Inhaltlich unveraendert, nur ausgelagert. */
+        ${ROUTE_CARD_STYLES}
 
         .loading-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
         .skeleton { border-radius:20px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); }
@@ -801,8 +776,6 @@ function ExplorePageInner() {
         .mobile-profile-card .ud-links { padding-left:18px; padding-right:18px; }
         .ud-section-label { font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); padding:14px 12px 6px; }
 
-        .route-card-pin { display:none; color:var(--gold); flex-shrink:0; }
-
         .load-more-row { display:none; margin-top:28px; }
         button.load-more-btn { width:100%; padding:16px; background:var(--gold); color:var(--bg); border-radius:999px; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; }
 
@@ -832,8 +805,6 @@ function ExplorePageInner() {
           .hero-inner { align-items:flex-end; }
           .hero-sub { font-size:15px; margin-top:18px; }
           .search-bar { display:none; }
-
-          .route-card-pin { display:inline-flex; }
 
           .mobile-toolbar { display:flex; }
           .toolbar { display:contents; }
@@ -866,16 +837,6 @@ function ExplorePageInner() {
           .load-more-row { display:flex; }
           .results-count.mobile-only { display:block; }
           .route-grid, .loading-grid { grid-template-columns:repeat(2,1fr) !important; gap:12px; }
-
-          .route-card-img { height:140px; }
-          .route-card-body { padding:12px 14px 14px; }
-          .route-card-country { font-size:8px; margin-bottom:4px; }
-          .route-card-title { font-size:16px; min-height:auto; -webkit-line-clamp:1; margin-bottom:5px; }
-          .route-card-desc { -webkit-line-clamp:1; min-height:auto; margin-bottom:9px; font-size:11px; }
-          .route-card-meta { gap:9px; margin-bottom:9px; }
-          .route-card-meta-item { font-size:9px; }
-          .route-card-footer { padding-top:9px; }
-          .view-route-btn { font-size:9px; }
 
           .footer-social { display:flex; }
           /* Fix (Grundregel 8): Sprachmenü würde sonst mit right:0 links aus dem
@@ -1396,36 +1357,13 @@ function ExplorePageInner() {
             <>
               <div className="route-grid">
                 {displayedRoutes.map((route) => (
-                  <div key={route.id} className="route-card">
-                    <div className="route-card-img">
-                      {/* prefetch={false}: /routedetail/[id] wird nicht vorgerendert -> Prefetch-Payload existiert nicht (siehe ROUTING.md) */}
-                      <Link href={`/routedetail/${route.id}`} prefetch={false}>
-                        <img src={route.image_url || "/iceland.jpg"} alt={localizedRouteText(route, "title", lang)} onError={(e) => { e.currentTarget.src = "/iceland.jpg"; }} />
-                      </Link>
-                      <button className="save-btn" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSave(route.id); }} aria-label={savedRoutes.includes(route.id) ? "Remove from saved routes" : "Save route"}>
-                        <Heart size={16} strokeWidth={2} fill={savedRoutes.includes(route.id) ? "#ef4444" : "transparent"} stroke={savedRoutes.includes(route.id) ? "#ef4444" : "rgba(237,229,212,0.8)"} />
-                      </button>
-                      {route.type && <div className="route-card-type">{route.type}</div>}
-                    </div>
-                    <div className="route-card-body">
-                      <div className="route-card-country">
-                        <MapPin size={10} strokeWidth={2.2} className="route-card-pin" />
-                        {route.country}
-                      </div>
-                      <Link href={`/routedetail/${route.id}`} prefetch={false}><div className="route-card-title">{localizedRouteText(route, "title", lang)}</div></Link>
-                      <p className="route-card-desc">{localizedRouteText(route, "description", lang)}</p>
-                      <div className="route-card-meta">
-                        {route.duration && <div className="route-card-meta-item"><Clock size={12} strokeWidth={2} />{route.duration}</div>}
-                        {route.distance_km && <div className="route-card-meta-item"><Navigation size={12} strokeWidth={2} />{formatDistance(route.distance_km, unit)}</div>}
-                      </div>
-                      <div className="route-card-footer" style={!route.rating ? { justifyContent: "flex-end" } : undefined}>
-                        {route.rating && (
-                          <div className="route-card-rating"><Star size={13} strokeWidth={1.8} fill="currentColor" /> {route.rating.toFixed(1)}</div>
-                        )}
-                        <Link href={`/routedetail/${route.id}`} prefetch={false} className="view-route-btn">{t("explore.viewRoute")} <ArrowRight size={12} strokeWidth={2.5} /></Link>
-                      </div>
-                    </div>
-                  </div>
+                  <RouteCard
+                    key={route.id}
+                    route={route}
+                    viewRouteLabel={t("explore.viewRoute")}
+                    saved={savedRoutes.includes(route.id)}
+                    onToggleSave={toggleSave}
+                  />
                 ))}
               </div>
 

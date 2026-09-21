@@ -200,12 +200,86 @@ export const translations = {
   "common.routes":           { en: "routes",                                  de: "Routen",                                    ru: "маршрутов" },
 
 // ==================== Plan-Seite (/plan) ====================
-// Platzhalter-Seite. Die eigentliche Planner-Funktionalität folgt in Teil 2.
 
   "plan.eyebrow": { en: "Route Planner",  de: "Routenplaner",   ru: "Планировщик маршрутов" },
   "plan.title":   { en: "Plan Trip",      de: "Route planen",   ru: "Спланировать поездку" },
-  "plan.sub":     { en: "The route planner is on its way. Soon you'll be able to enter your start and destination and build a trip from our curated scenic routes.", de: "Der Routenplaner ist in Arbeit. Bald kannst du Start und Ziel eingeben und daraus einen Trip aus unseren kuratierten Panoramastrecken bauen.", ru: "Планировщик маршрутов в разработке. Скоро вы сможете указать начало и конец пути и составить поездку из наших живописных маршрутов." },
+  "plan.sub":     { en: "Enter your start and destination — we'll show you the curated scenic routes that lie along the way and turn your selection into a trip.", de: "Gib Start und Ziel ein — wir zeigen dir die kuratierten Panoramastrecken, die auf dem Weg liegen, und machen aus deiner Auswahl einen Trip.", ru: "Укажите начало и конец пути — мы покажем живописные маршруты по дороге и превратим ваш выбор в поездку." },
   "plan.back":    { en: "Back to home",   de: "Zurück zur Startseite", ru: "На главную" },
+
+  // Eingabeformular
+  "plan.form.title":            { en: "Where are you going?",   de: "Wohin geht die Reise?",      ru: "Куда вы едете?" },
+  "plan.form.start":            { en: "Start",                  de: "Start",                      ru: "Начало" },
+  "plan.form.end":              { en: "Destination",            de: "Ziel",                       ru: "Пункт назначения" },
+  "plan.form.startPlaceholder": { en: "e.g. Munich, Germany",   de: "z.B. München, Deutschland",  ru: "напр. Мюнхен, Германия" },
+  "plan.form.endPlaceholder":   { en: "e.g. Venice, Italy",     de: "z.B. Venedig, Italien",      ru: "напр. Венеция, Италия" },
+  "plan.form.calculate":        { en: "Calculate route",        de: "Route berechnen",            ru: "Рассчитать маршрут" },
+  "plan.form.calculating":      { en: "Calculating...",         de: "Wird berechnet...",          ru: "Расчёт..." },
+  "plan.consentHint":           { en: "Enable Google Maps below to search places and calculate routes.", de: "Aktiviere Google Maps weiter unten, um Orte zu suchen und Routen zu berechnen.", ru: "Включите Google Maps ниже, чтобы искать места и строить маршруты." },
+
+  // Karte & Zusammenfassung
+  "plan.map.title":      { en: "Your route",             de: "Deine Route",              ru: "Ваш маршрут" },
+  "plan.map.empty":      { en: "Enter a start and a destination to see your route on the map.", de: "Gib Start und Ziel ein, um deine Route auf der Karte zu sehen.", ru: "Укажите начало и конец, чтобы увидеть маршрут на карте." },
+  "plan.map.distance":   { en: "Total distance",         de: "Gesamtstrecke",            ru: "Общее расстояние" },
+  "plan.map.duration":   { en: "Driving time",           de: "Fahrzeit",                 ru: "Время в пути" },
+
+  // Treffer-Liste
+  "plan.matches.title":    { en: "Scenic routes along the way", de: "Panoramastrecken auf dem Weg", ru: "Живописные маршруты по пути" },
+  "plan.matches.subtitle": { en: "Curated routes whose start and end lie within {km} km of your route.", de: "Kuratierte Routen, deren Start und Ziel höchstens {km} km von deiner Strecke entfernt liegen.", ru: "Маршруты, начало и конец которых находятся не далее {km} км от вашего пути." },
+  "plan.matches.count":    { en: "{n} found",             de: "{n} gefunden",             ru: "найдено: {n}" },
+  "plan.matches.selected": { en: "{n} selected",          de: "{n} ausgewählt",           ru: "выбрано: {n}" },
+  "plan.matches.none":     { en: "No curated routes found along this route. Try a different start or destination.", de: "Auf dieser Strecke liegen keine kuratierten Routen. Probiere einen anderen Start oder ein anderes Ziel.", ru: "На этом пути нет подходящих маршрутов. Попробуйте изменить начало или конец." },
+  "plan.matches.skipped":  { en: "{n} curated routes have no coordinates yet and are not part of the match.", de: "{n} kuratierte Routen haben noch keine Koordinaten und nehmen am Abgleich nicht teil.", ru: "У {n} маршрутов пока нет координат, они не участвуют в подборе." },
+  "plan.select":           { en: "Add",                   de: "Hinzufügen",               ru: "Добавить" },
+  "plan.selected":         { en: "Added",                 de: "Hinzugefügt",              ru: "Добавлено" },
+
+  // Speichern
+  "plan.save":        { en: "Save as trip",   de: "Als Trip speichern",   ru: "Сохранить как поездку" },
+  "plan.saving":      { en: "Saving...",      de: "Wird gespeichert...",  ru: "Сохранение..." },
+  "plan.saveHint":    { en: "Select at least one scenic route to save a trip.", de: "Wähle mindestens eine Panoramastrecke aus, um einen Trip zu speichern.", ru: "Выберите хотя бы один маршрут, чтобы сохранить поездку." },
+
+  // Fehler
+  "plan.error.missingInput": { en: "Please enter both a start and a destination.", de: "Bitte gib Start und Ziel ein.", ru: "Пожалуйста, укажите начало и конец пути." },
+  "plan.error.directions":   { en: "We couldn't calculate a route between these two places.", de: "Zwischen diesen beiden Orten konnten wir keine Route berechnen.", ru: "Не удалось проложить маршрут между этими точками." },
+  "plan.error.maps":         { en: "The map service is currently unavailable. Please try again later.", de: "Der Kartendienst ist gerade nicht erreichbar. Bitte versuche es später erneut.", ru: "Картографический сервис сейчас недоступен. Попробуйте позже." },
+  "plan.error.save":         { en: "The trip couldn't be saved. Please try again.", de: "Der Trip konnte nicht gespeichert werden. Bitte versuche es erneut.", ru: "Не удалось сохранить поездку. Попробуйте ещё раз." },
+
+// ==================== Trip Builder (/trip) ====================
+
+  "trip.eyebrow":        { en: "Trip Builder",   de: "Trip Builder",      ru: "Конструктор поездки" },
+  "trip.titlePlaceholder": { en: "Name your trip", de: "Gib deinem Trip einen Namen", ru: "Назовите поездку" },
+  "trip.day":            { en: "Day",            de: "Tag",               ru: "День" },
+  "trip.addDay":         { en: "Add day",        de: "Tag hinzufügen",    ru: "Добавить день" },
+  "trip.removeDay":      { en: "Remove day",     de: "Tag entfernen",     ru: "Удалить день" },
+  "trip.removeStop":     { en: "Remove route",   de: "Route entfernen",   ru: "Удалить маршрут" },
+  "trip.moveUp":         { en: "Move up",        de: "Nach oben",         ru: "Вверх" },
+  "trip.moveDown":       { en: "Move down",      de: "Nach unten",        ru: "Вниз" },
+  "trip.emptyDay":       { en: "No routes on this day yet — drag one here.", de: "Noch keine Routen an diesem Tag — zieh eine hierher.", ru: "На этот день пока нет маршрутов — перетащите сюда." },
+  "trip.stats.days":     { en: "Days",           de: "Tage",              ru: "Дней" },
+  "trip.stats.routes":   { en: "Routes",         de: "Routen",            ru: "Маршрутов" },
+  "trip.backToTrips":    { en: "Back to my trips", de: "Zurück zu meinen Trips", ru: "Назад к моим поездкам" },
+  "trip.addMoreRoutes":  { en: "Add more routes", de: "Weitere Routen hinzufügen", ru: "Добавить ещё маршруты" },
+
+  // Autosave-Hinweis
+  "trip.saved.saving":     { en: "Saving...",             de: "Wird gespeichert...",      ru: "Сохранение..." },
+  "trip.saved.justNow":    { en: "Saved just now",        de: "Gerade gespeichert",       ru: "Сохранено только что" },
+  "trip.saved.minutesAgo": { en: "Last saved {n} min ago", de: "Zuletzt gespeichert vor {n} Min.", ru: "Сохранено {n} мин назад" },
+  "trip.saved.hoursAgo":   { en: "Last saved {n} h ago",   de: "Zuletzt gespeichert vor {n} Std.", ru: "Сохранено {n} ч назад" },
+  "trip.saved.error":      { en: "Couldn't save — retrying on the next change", de: "Speichern fehlgeschlagen — nächste Änderung versucht es erneut", ru: "Не удалось сохранить — повторим при следующем изменении" },
+
+  // Lade-/Fehlerzustände
+  "trip.loading":       { en: "Loading trip...",  de: "Trip wird geladen...", ru: "Загрузка поездки..." },
+  "trip.notFound":      { en: "This trip doesn't exist or doesn't belong to you.", de: "Diesen Trip gibt es nicht oder er gehört nicht zu deinem Konto.", ru: "Такой поездки нет или она принадлежит другому аккаунту." },
+  "trip.signInTitle":   { en: "Sign in to open your trip", de: "Melde dich an, um deinen Trip zu öffnen", ru: "Войдите, чтобы открыть поездку" },
+
+// ==================== My Trips — geplante Trips ====================
+
+  "mytrips.planned.title":     { en: "Your planned trips",  de: "Deine geplanten Trips",  ru: "Ваши запланированные поездки" },
+  "mytrips.planned.empty":     { en: "You haven't planned a trip yet.", de: "Du hast noch keinen Trip geplant.", ru: "Вы ещё не спланировали поездку." },
+  "mytrips.planned.emptyText": { en: "Enter a start and a destination in the route planner and turn the scenic routes along the way into a trip.", de: "Gib im Routenplaner Start und Ziel ein und mach aus den Panoramastrecken auf dem Weg einen Trip.", ru: "Укажите начало и конец в планировщике и превратите живописные маршруты по пути в поездку." },
+  "mytrips.planned.cta":       { en: "Plan a trip →",       de: "Trip planen →",          ru: "Спланировать поездку →" },
+  "mytrips.planned.days":      { en: "days",                de: "Tage",                   ru: "дн." },
+  "mytrips.planned.routes":    { en: "routes",              de: "Routen",                 ru: "маршр." },
+  "mytrips.planned.open":      { en: "Open trip",           de: "Trip öffnen",            ru: "Открыть поездку" },
 
 // ==================== Explore-Seite ====================
 

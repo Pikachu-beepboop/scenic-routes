@@ -59,9 +59,17 @@ type Lang = keyof typeof TEXT;
 export default function GoogleMapsGate({
   children,
   height,
+  onConsentChange,
 }: {
   children: React.ReactNode;
   height: number | string;
+  /**
+   * Optional: meldet dem Elternteil, ob Google Maps freigegeben ist.
+   * Der Route Planner braucht das, weil dort ausser der Karte auch
+   * Places-Autocomplete und Directions erst nach der Zustimmung laufen duerfen.
+   * Muss stabil sein (useCallback), sonst feuert der Effekt unten dauerhaft.
+   */
+  onConsentChange?: (granted: boolean) => void;
 }) {
   const { lang } = useLanguage();
   const t = TEXT[(lang as Lang) in TEXT ? (lang as Lang) : "de"];
@@ -88,6 +96,11 @@ export default function GoogleMapsGate({
 
     return () => { mounted = false; };
   }, [userId, authLoading]);
+
+  useEffect(() => {
+    if (consent === null) return;
+    onConsentChange?.(consent);
+  }, [consent, onConsentChange]);
 
   async function handleEnable() {
     if (enabling) return;
