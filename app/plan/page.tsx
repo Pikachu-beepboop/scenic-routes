@@ -295,6 +295,12 @@ export default function PlanPage() {
       const result = await computeDirections(origin, destination);
       const line: LngLat[] = overviewPathToLngLat(result);
 
+      // Ohne Streckenverlauf kann das Matching nichts finden — das ist dann ein
+      // Fehler in der Antwort, kein echtes "keine Treffer" (Issue #26).
+      if (line.length < 2) {
+        console.warn("plan: Directions-Antwort ohne verwertbaren Streckenverlauf");
+      }
+
       queryRef.current = { start: origin, end: destination };
       renderedSelectionRef.current = "";
 

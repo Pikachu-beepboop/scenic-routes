@@ -172,12 +172,94 @@ export async function computeDirections(
   });
 }
 
-/** Die Übersichts-Polylinie einer Directions-Antwort als [lng, lat]-Paare. */
+/**
+ * Ein Punkt aus einer Directions-Antwort als [lng, lat].
+ *
+ * `overview_path` liefert normalerweise `google.maps.LatLng`-Objekte mit den
+ * Methoden lat()/lng(); je nach API-Variante können es aber auch schlichte
+ * `{ lat, lng }`-Literale sein. Beides wird hier akzeptiert — der frühere Code
+ * rief blind `point.lng()` auf und wäre am Literal mit einem TypeError
+ * ausgestiegen (Issue #26).
+ */
+function toLngLat(point: any): [number, number] | null {
+  if (!point) return null;
+
+  const lat = typeof point.lat === "function" ? point.lat() : point.lat;
+  const lng = typeof point.lng === "function" ? point.lng() : point.lng;
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return [lng, lat];
+}
+
+/**
+ * Dekodiert eine Google-Encoded-Polyline ("overview_polyline.points").
+ * Wird nur als Rückfallebene gebraucht, wenn `overview_path` fehlt.
+ */
+function decodePolyline(encoded: string): [number, number][] {
+  const points: [number, number][] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < encoded.length) {
+    for (const axis of [0, 1]) {
+      let result = 0;
+      let shift = 0;
+      let byte: number;
+
+      do {
+        byte = encoded.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20 && index < encoded.length);
+
+      const delta = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+      if (axis === 0) lat += delta;
+      else lng += delta;
+    }
+
+    points.push([lng / 1e5, lat / 1e5]);
+  }
+
+  return points;
+}
+
+/**
+ * Die Übersichts-Polylinie einer Directions-Antwort als [lng, lat]-Paare.
+ *
+ * Reihenfolge der Quellen: `overview_path` (Normalfall), sonst die kodierte
+ * `overview_polyline`, sonst die Stützpunkte der einzelnen Steps. Liefert eine
+ * Antwort keine davon, kommt ein leeres Array zurück — und das Korridor-
+ * Matching findet dann garantiert nichts, weshalb der Aufrufer diesen Fall
+ * sichtbar machen sollte statt ihn als "keine Treffer" zu verkaufen.
+ */
 export function overviewPathToLngLat(result: any): [number, number][] {
-  const path: any[] = result?.routes?.[0]?.overview_path ?? [];
-  return path
-    .map((point): [number, number] => [point.lng(), point.lat()])
-    .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
+  const route = result?.routes?.[0];
+
+  const overviewPath: any[] = route?.overview_path ?? [];
+  const fromPath = overviewPath
+    .map(toLngLat)
+    .filter((point): point is [number, number] => point !== null);
+  if (fromPath.length >= 2) return fromPath;
+
+  const encoded: unknown = route?.overview_polyline?.points ?? route?.overview_polyline;
+  if (typeof encoded === "string" && encoded.length > 0) {
+    const fromPolyline = decodePolyline(encoded);
+    if (fromPolyline.length >= 2) return fromPolyline;
+  }
+
+  const fromSteps: [number, number][] = [];
+  for (const leg of (route?.legs ?? []) as any[]) {
+    for (const step of (leg?.steps ?? []) as any[]) {
+      const stepPath: any[] = step?.path ?? [step?.start_location, step?.end_location];
+      for (const point of stepPath) {
+        const converted = toLngLat(point);
+        if (converted) fromSteps.push(converted);
+      }
+    }
+  }
+
+  return fromSteps;
 }
 
 /** Gesamtstrecke (km) und Gesamtdauer (Sekunden) über alle Legs. */
