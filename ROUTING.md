@@ -80,6 +80,19 @@ Betroffene Stellen:
 `app/components/WorldMap.tsx` nutzt `router.push()` statt `<Link>` und prefetcht
 daher ohnehin nicht.
 
+## Folge daraus: neue Detailseiten bekommen kein dynamisches Segment
+
+Der Trip Builder braucht ebenfalls eine "eine Ressource pro Aufruf"-Seite. Er
+liegt trotzdem **nicht** unter `/trip/[id]`, sondern unter `/trip?id=<uuid>`:
+
+* `/trip` ist ein statisches Segment, wird also ganz normal vorgerendert,
+* die Trip-ID kommt per `useSearchParams()` zur Laufzeit,
+* damit existiert ein Prefetch-Artefakt, und es gibt weder Edge-Runtime-Zwang
+  noch die oben beschriebenen Konsolen-404er.
+
+`useSearchParams()` braucht in einer vorgerenderten Seite eine
+`<Suspense>`-Grenze — genauso wie auf `/explore`.
+
 ## Regel fuer neue Links
 
 Jeder neue `<Link href={"/routedetail/…"}>` bekommt `prefetch={false}`. Sonst

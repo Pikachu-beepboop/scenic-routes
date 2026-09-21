@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase, safeQuery, withTimeout } from "../../lib/supabase";
 import { useAuth, signOutSafe } from "../../lib/useAuth";
+import { fetchTrips, type Trip } from "../../lib/trips";
 import AuthModal from "../AuthModal";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
@@ -83,6 +84,9 @@ export default function MyTripsPage() {
   const { user, loading: authLoading } = useAuth();
   const [savedRoutes, setSavedRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // NEU (Trip Builder): die im Route Planner gespeicherten, mehrtägigen Trips
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(true);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -129,13 +133,16 @@ export default function MyTripsPage() {
 
     if (!user) {
       setSavedRoutes([]);
+      setTrips([]);
       setAvatarUrl("");
       setLoading(false);
+      setTripsLoading(false);
       return;
     }
 
     fetchSavedRoutes(user.id);
     fetchProfile(user.id);
+    loadTrips(user.id);
   }, [user, authLoading]);
 
   useEffect(() => {
@@ -188,6 +195,13 @@ export default function MyTripsPage() {
     // einer einzelnen Route via handleUnsave, damit "Load more" nicht
     // verlorengeht, wenn man danach eine Route löscht.
     setVisibleCount(MOBILE_PAGE_SIZE);
+  }
+
+  // NEU (Trip Builder): geplante Trips inkl. Tagen/Stopps laden
+  async function loadTrips(userId: string) {
+    setTripsLoading(true);
+    setTrips(await fetchTrips(userId));
+    setTripsLoading(false);
   }
 
   async function fetchProfile(userId: string) {
@@ -397,6 +411,29 @@ export default function MyTripsPage() {
         .btn-gold-filled:hover { background:#d8b978; transform:translateY(-1px); }
         .spinner { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
+
+        /* NEU (Trip Builder): geplante Trips */
+        .trips-section { background:var(--bg); padding:56px clamp(24px,5vw,80px) 8px; }
+        .trips-inner { max-width:1200px; margin:0 auto; }
+        .trips-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+        .trips-plan-link { font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); transition:color .2s; }
+        .trips-plan-link:hover { color:var(--cream); }
+        .trips-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        .trip-card { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:20px; overflow:hidden; background:var(--bg3); transition:transform .35s cubic-bezier(.25,.46,.45,.94), border-color .35s, box-shadow .35s; }
+        .trip-card:hover { transform:translateY(-5px); border-color:rgba(201,168,106,0.28); box-shadow:0 28px 70px rgba(0,0,0,0.28); }
+        .trip-card-thumb { height:160px; overflow:hidden; background:var(--bg2); }
+        .trip-card-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88); transition:transform .7s ease; }
+        .trip-card:hover .trip-card-thumb img { transform:scale(1.06); }
+        .trip-card-body { padding:18px; display:flex; flex-direction:column; gap:8px; flex:1; }
+        .trip-card-title { font-family:var(--serif); font-size:22px; font-weight:400; line-height:1.1; color:var(--cream); }
+        .trip-card-meta { font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--dim); }
+        .trip-card-open { display:inline-flex; align-items:center; gap:6px; margin-top:auto; padding-top:10px; font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
+        @media (max-width:1100px) { .trips-grid { grid-template-columns:repeat(2,1fr); } }
+        @media (max-width:760px) {
+          .trips-section { padding:36px 20px 8px; }
+          .trips-grid { grid-template-columns:1fr; }
+          .trip-card-thumb { height:170px; }
+        }
 
         /* FOOTER */
         .footer { background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; transition:background .35s; }
@@ -883,6 +920,61 @@ export default function MyTripsPage() {
             )}
           </div>
         </div>
+
+        {/* NEU (Trip Builder): Liste der geplanten Trips. Bewusst ausserhalb
+            des Hero-Bereichs und fuer Desktop wie Mobile dasselbe Markup —
+            das Grid faellt per Media-Query auf eine Spalte zurueck. */}
+        {user && (
+          <section className="trips-section">
+            <div className="trips-inner">
+              <div className="trips-head">
+                <h2 className="saved-preview-title">{t("mytrips.planned.title")}</h2>
+                <Link href="/plan" className="trips-plan-link">{t("mytrips.planned.cta")}</Link>
+              </div>
+
+              {tripsLoading ? (
+                <div className="saved-preview-empty"><div className="spinner" /></div>
+              ) : trips.length === 0 ? (
+                <div className="saved-preview-empty">
+                  <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
+                  <h3>{t("mytrips.planned.empty")}</h3>
+                  <p>{t("mytrips.planned.emptyText")}</p>
+                  <Link href="/plan" className="btn-gold-filled">{t("mytrips.planned.cta")}</Link>
+                </div>
+              ) : (
+                <div className="trips-grid">
+                  {trips.map((trip) => {
+                    const stops = trip.trip_days.flatMap((day) => day.trip_stops);
+                    const preview =
+                      stops.map((stop) => stop.routes?.image_url).find(Boolean) ||
+                      "/amalfi_coast_road.jpg";
+
+                    return (
+                      <Link key={trip.id} href={`/trip?id=${trip.id}`} className="trip-card">
+                        <div className="trip-card-thumb">
+                          <img
+                            src={preview}
+                            alt={trip.title}
+                            onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }}
+                          />
+                        </div>
+                        <div className="trip-card-body">
+                          <h3 className="trip-card-title">{trip.title}</h3>
+                          <p className="trip-card-meta">
+                            {trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}
+                          </p>
+                          <span className="trip-card-open">
+                            {t("mytrips.planned.open")} <ChevronRight size={12} strokeWidth={2.5} />
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* FOOTER */}
         <footer className="footer">
