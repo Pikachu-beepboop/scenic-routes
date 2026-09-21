@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "corridor:check": "node --experimental-strip-types scripts/check-route-corridor.ts",
     "images:check": "node scripts/normalize-image-names.mjs",
     "images:normalize": "node scripts/normalize-image-names.mjs --apply"
   },

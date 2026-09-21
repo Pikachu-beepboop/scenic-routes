@@ -9,6 +9,9 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // scripts/*.ts laufen mit `node --experimental-strip-types` und muessen
+    // relative Importe deshalb mit .ts-Endung schreiben.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

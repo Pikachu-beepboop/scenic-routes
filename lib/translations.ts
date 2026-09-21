@@ -224,7 +224,7 @@ export const translations = {
 
   // Treffer-Liste
   "plan.matches.title":    { en: "Scenic routes along the way", de: "Panoramastrecken auf dem Weg", ru: "Живописные маршруты по пути" },
-  "plan.matches.subtitle": { en: "Curated routes whose start and end lie within {km} km of your route.", de: "Kuratierte Routen, deren Start und Ziel höchstens {km} km von deiner Strecke entfernt liegen.", ru: "Маршруты, начало и конец которых находятся не далее {km} км от вашего пути." },
+  "plan.matches.subtitle": { en: "Curated routes that come within {km} km of your route without leading too far away from it.", de: "Kuratierte Routen, die deiner Strecke bis auf {km} km nahekommen, ohne zu weit davon wegzuführen.", ru: "Маршруты, подходящие к вашему пути ближе чем на {km} км и не уводящие слишком далеко." },
   "plan.matches.count":    { en: "{n} found",             de: "{n} gefunden",             ru: "найдено: {n}" },
   "plan.matches.selected": { en: "{n} selected",          de: "{n} ausgewählt",           ru: "выбрано: {n}" },
   "plan.matches.none":     { en: "No curated routes found along this route. Try a different start or destination.", de: "Auf dieser Strecke liegen keine kuratierten Routen. Probiere einen anderen Start oder ein anderes Ziel.", ru: "На этом пути нет подходящих маршрутов. Попробуйте изменить начало или конец." },
