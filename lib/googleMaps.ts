@@ -140,14 +140,23 @@ export type DirectionsWaypoint = { lat: number; lng: number };
 
 /**
  * Berechnet eine Fahrstrecke von `origin` nach `destination`, optional über
- * Zwischenstopps. Die Reihenfolge der Wegpunkte wird bewusst NICHT von Google
- * optimiert — sie kommt bereits sortiert aus dem Korridor-Matching
- * (siehe lib/routeCorridor.ts).
+ * Zwischenstopps.
+ *
+ * `optimizeWaypoints` ist standardmässig aus: die Reihenfolge kommt bereits
+ * sortiert aus der Vorauswahl (siehe lib/routeCorridor.ts), und bei mehreren
+ * ausgewählten Routen darf Google sie nicht umsortieren — es würde sonst
+ * Start und Ende derselben Panoramastrecke auseinanderreissen.
+ *
+ * Eingeschaltet wird sie nur an einer Stelle: bei der Umweg-Messung einer
+ * einzelnen Route (lib/routeDetour.ts). Dort sind es genau zwei Wegpunkte,
+ * Google kann also nichts anderes tun, als die günstigere der beiden
+ * Fahrtrichtungen zu wählen — und genau die will die Messung wissen.
  */
 export async function computeDirections(
   origin: string,
   destination: string,
-  waypoints: DirectionsWaypoint[] = []
+  waypoints: DirectionsWaypoint[] = [],
+  options: { optimizeWaypoints?: boolean } = {}
 ): Promise<any> {
   const maps = await loadGoogleMaps();
   const service = new maps.DirectionsService();
@@ -158,7 +167,7 @@ export async function computeDirections(
         origin,
         destination,
         travelMode: maps.TravelMode.DRIVING,
-        optimizeWaypoints: false,
+        optimizeWaypoints: options.optimizeWaypoints ?? false,
         waypoints: waypoints.map((point) => ({
           location: new maps.LatLng(point.lat, point.lng),
           stopover: true,
@@ -170,6 +179,19 @@ export async function computeDirections(
       }
     );
   });
+}
+
+/**
+ * Die von Google gewählte Wegpunkt-Reihenfolge (`waypoint_order`) — aber nur
+ * die Antwort auf die einzige Frage, die uns interessiert: hat Google die
+ * beiden übergebenen Wegpunkte vertauscht?
+ *
+ * Fehlt das Feld (ältere API-Variante, Anfrage ohne Optimierung), lautet die
+ * Antwort "nein" — dann gilt die Reihenfolge, die wir geschickt haben.
+ */
+export function waypointsWereSwapped(result: any): boolean {
+  const order: unknown = result?.routes?.[0]?.waypoint_order;
+  return Array.isArray(order) && order.length === 2 && order[0] === 1;
 }
 
 /**

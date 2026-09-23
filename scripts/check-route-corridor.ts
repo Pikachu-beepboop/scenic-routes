@@ -1,6 +1,6 @@
 /**
- * Prueft die Korridor-Mathematik aus lib/routeCorridor.ts isoliert nach —
- * ohne Browser, ohne Google-Maps-API, ohne npm install.
+ * Prueft die Geometrie und die Vorauswahl aus lib/routeCorridor.ts isoliert
+ * nach — ohne Browser, ohne Google-Maps-API, ohne npm install.
  *
  * Aufruf:
  *   node --experimental-strip-types scripts/check-route-corridor.ts
@@ -11,18 +11,22 @@
  *         Die Sollwerte stammen aus einer unabhaengigen Kontrollrechnung:
  *         die Linie wurde in 2000 Stuetzpunkte zerlegt und der kleinste
  *         Haversine-Abstand Punkt->Stuetzpunkt gebildet (siehe Issue #26).
- * Teil 2: die beiden Reproduktionsfaelle aus Issue #26 (Innsbruck -> Bozen und
- *         Muenchen -> Venedig) gegen echte Koordinaten aus `routes`.
- *         Die Strecken sind als grobe Stuetzpunkt-Polylinien der jeweiligen
- *         Autobahn hinterlegt (A12/A13/A22 bzw. A8/A93/A12/A13/A22/A4) — das
- *         genuegt, weil der Korridor in Zehner-Kilometern gemessen wird.
+ * Teil 2: die Reproduktionsfaelle gegen echte Koordinaten aus `routes` —
+ *         Innsbruck -> Bozen und Muenchen -> Venedig aus Issue #26, dazu
+ *         Chisinau -> Wien aus Issue #28. Die Strecken sind als grobe
+ *         Stuetzpunkt-Polylinien der jeweiligen Fernstrasse hinterlegt; das
+ *         genuegt, weil der Vorfilter in Zehner-Kilometern misst.
+ *
+ * Nicht geprueft wird hier Schritt 2 des Matchings (die gemessene
+ * Mehrfahrzeit) — der braucht die Directions-API und laeuft deshalb nur im
+ * Browser.
  */
 
 import {
-  CORRIDOR_DISTANCE_KM,
-  MAX_DETOUR_DISTANCE_KM,
-  findRoutesAlongCorridor,
+  CANDIDATE_RADIUS_KM,
+  MAX_DETOUR_CANDIDATES,
   pointToLineDistanceKm,
+  selectDetourCandidates,
   type LngLat,
 } from "../lib/routeCorridor.ts";
 
@@ -37,10 +41,16 @@ function check(name: string, actualKm: number, expectedKm: number, toleranceKm: 
   );
 }
 
-function checkCount(name: string, actual: number, expected: number): void {
-  const ok = actual === expected;
+function checkAtMost(name: string, actual: number, maximum: number): void {
+  const ok = actual <= maximum;
   if (!ok) failures++;
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}: ${actual} (erwartet ${expected})`);
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name}: ${actual} (erlaubt hoechstens ${maximum})`);
+}
+
+function checkContains(name: string, haystack: string[], needle: string): void {
+  const ok = haystack.includes(needle);
+  if (!ok) failures++;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
 }
 
 // --------------------------------------------------------------- Teil 1
@@ -95,8 +105,10 @@ type TestRoute = {
   end_lng: string;
 };
 
-/** Auszug aus `routes` (Stand Issue #26) — nur Eintraege mit vollstaendigen Koordinaten. */
+/** Auszug aus `routes` (Stand Issue #28) — nur Eintraege mit vollstaendigen Koordinaten. */
 const ROUTES: TestRoute[] = [
+  { title: "Transfagarasan", start_lat: "45.1405966", start_lng: "24.6685182", end_lat: "45.8034789", end_lng: "24.1449997" },
+  { title: "Transalpina", start_lat: "45.1745497", start_lng: "23.6655807", end_lat: "45.9595588", end_lng: "23.5663758" },
   { title: "Arlbergstrasse (L197)", start_lat: "47.14057", start_lng: "10.56558", end_lat: "47.15991", end_lng: "9.80821" },
   { title: "Grossglockner High Alpine Road", start_lat: "47.2873025", start_lng: "12.8248556", end_lat: "47.0662295", end_lng: "12.7906808" },
   { title: "Hahntennjoch", start_lat: "47.24013", start_lng: "10.73954", end_lat: "47.3238788", end_lng: "10.5179444" },
@@ -151,23 +163,60 @@ const MUENCHEN_VENEDIG: LngLat[] = [
   [12.3155, 45.4408], // Venedig
 ];
 
-function report(label: string, line: LngLat[], expectedMatches: number): void {
-  console.log(`--- ${label} (Anschluss ${CORRIDOR_DISTANCE_KM} km, Abschweifung ${MAX_DETOUR_DISTANCE_KM} km) ---`);
+/**
+ * Grobe Stuetzpunkte der E58/E578/E60 (Chisinau - Iasi - Targu Mures - Cluj -
+ * Oradea - Budapest - Wien).
+ *
+ * Bewusst die noerdliche Variante, also der fuer den Transfagarasan
+ * unguenstige Fall: die suedliche Route ueber Brasov und Sibiu laeuft ohnehin
+ * direkt an seinem Nordende vorbei. Wenn der Vorfilter ihn sogar hier findet,
+ * kommt er in Schritt 2 garantiert zur Messung.
+ */
+const CHISINAU_WIEN: LngLat[] = [
+  [28.8638, 47.0105], // Chisinau
+  [27.68, 47.35], // Sculeni (Grenze)
+  [27.5883, 47.1585], // Iasi
+  [26.9333, 47.2], // Targu Frumos
+  [26.3667, 47.2], // Targu Neamt
+  [25.8667, 46.9167], // Bicaz
+  [25.6, 46.7167], // Gheorgheni
+  [24.5583, 46.5425], // Targu Mures
+  [23.7833, 46.5667], // Turda
+  [23.6, 46.7712], // Cluj-Napoca
+  [21.9189, 47.0465], // Oradea
+  [21.6333, 47.5316], // Debrecen
+  [19.0402, 47.4979], // Budapest
+  [17.6353, 47.6875], // Gyoer
+  [16.3738, 48.2082], // Wien
+];
 
-  const matches = findRoutesAlongCorridor(ROUTES, line);
-  for (const match of matches) {
+function report(label: string, line: LngLat[], expectedTitles: string[]): void {
+  console.log(
+    `--- ${label} (Vorfilter ${CANDIDATE_RADIUS_KM} km, hoechstens ${MAX_DETOUR_CANDIDATES} Kandidaten) ---`
+  );
+
+  const candidates = selectDetourCandidates(ROUTES, line);
+  for (const candidate of candidates) {
     console.log(
-      `      ${match.route.title.padEnd(32)} naechster ${match.nearestDistanceKm.toFixed(1).padStart(6)} km | ` +
-        `Start ${match.startDistanceKm.toFixed(1).padStart(6)} km | Ende ${match.endDistanceKm.toFixed(1).padStart(6)} km`
+      `      ${candidate.route.title.padEnd(32)} naechster ${candidate.nearestDistanceKm.toFixed(1).padStart(6)} km | ` +
+        `Start ${candidate.startDistanceKm.toFixed(1).padStart(6)} km | Ende ${candidate.endDistanceKm.toFixed(1).padStart(6)} km | ` +
+        `${candidate.startFirst ? "Start zuerst" : "Ende zuerst"}`
     );
   }
 
-  checkCount(`${label}: Treffer`, matches.length, expectedMatches);
+  checkAtMost(`${label}: Kandidaten`, candidates.length, MAX_DETOUR_CANDIDATES);
+  const titles = candidates.map((candidate) => candidate.route.title);
+  for (const title of expectedTitles) {
+    checkContains(`${label}: "${title}" ist Kandidat`, titles, title);
+  }
   console.log("");
 }
 
-report("Innsbruck -> Bozen", INNSBRUCK_BOZEN, 2);
-report("Muenchen -> Venedig", MUENCHEN_VENEDIG, 2);
+// Issue #26: beide Strecken lieferten mit dem alten Korridor 0 Treffer.
+report("Innsbruck -> Bozen", INNSBRUCK_BOZEN, ["Grande Strada delle Dolomiti"]);
+report("Muenchen -> Venedig", MUENCHEN_VENEDIG, ["Grande Strada delle Dolomiti", "Passo Pordoi"]);
+// Issue #28: der Referenzfall fuer das umwegbasierte Matching.
+report("Chisinau -> Wien", CHISINAU_WIEN, ["Transfagarasan", "Transalpina"]);
 
 console.log(failures === 0 ? "Alle Faelle bestanden.\n" : `${failures} Fall/Faelle fehlgeschlagen.\n`);
 if (failures > 0) process.exitCode = 1;
