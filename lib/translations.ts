@@ -224,11 +224,20 @@ export const translations = {
 
   // Treffer-Liste
   "plan.matches.title":    { en: "Scenic routes along the way", de: "Panoramastrecken auf dem Weg", ru: "Живописные маршруты по пути" },
-  "plan.matches.subtitle": { en: "Curated routes that come within {km} km of your route without leading too far away from it.", de: "Kuratierte Routen, die deiner Strecke bis auf {km} km nahekommen, ohne zu weit davon wegzuführen.", ru: "Маршруты, подходящие к вашему пути ближе чем на {km} км и не уводящие слишком далеко." },
+  "plan.matches.subtitle": { en: "Curated routes worth a detour, sorted by the extra driving time they actually cost.", de: "Kuratierte Routen, für die sich ein Umweg lohnt — sortiert nach der Fahrzeit, die er tatsächlich kostet.", ru: "Маршруты, ради которых стоит сделать крюк, — по фактическому дополнительному времени в пути." },
   "plan.matches.count":    { en: "{n} found",             de: "{n} gefunden",             ru: "найдено: {n}" },
   "plan.matches.selected": { en: "{n} selected",          de: "{n} ausgewählt",           ru: "выбрано: {n}" },
   "plan.matches.none":     { en: "No curated routes found along this route. Try a different start or destination.", de: "Auf dieser Strecke liegen keine kuratierten Routen. Probiere einen anderen Start oder ein anderes Ziel.", ru: "На этом пути нет подходящих маршрутов. Попробуйте изменить начало или конец." },
+  "plan.matches.noneWithin": { en: "No scenic route fits within +{pct}% extra driving time. Move the slider to allow a bigger detour.", de: "Keine Panoramastrecke passt in +{pct}% zusätzliche Fahrzeit. Schieb den Regler weiter, um einen grösseren Umweg zuzulassen.", ru: "Ни один маршрут не укладывается в +{pct}% времени. Сдвиньте ползунок, чтобы разрешить больший крюк." },
   "plan.matches.skipped":  { en: "{n} curated routes have no coordinates yet and are not part of the match.", de: "{n} kuratierte Routen haben noch keine Koordinaten und nehmen am Abgleich nicht teil.", ru: "У {n} маршрутов пока нет координат, они не участвуют в подборе." },
+  "plan.matches.scoring":  { en: "Measuring the detour for {n} candidates...", de: "Umweg für {n} Kandidaten wird gemessen...", ru: "Считаем крюк для {n} вариантов..." },
+
+  // Umweg-Regler
+  "plan.detour.label": { en: "Extra driving time you'd accept", de: "Zusätzliche Fahrzeit, die du in Kauf nimmst", ru: "Допустимое дополнительное время в пути" },
+  "plan.detour.hint":  { en: "The detour times are measured once per calculated route — moving the slider only re-filters them and sends no new requests.", de: "Die Umweg-Zeiten werden einmal pro berechneter Strecke gemessen — der Regler filtert nur neu und schickt keine neuen Anfragen.", ru: "Время крюка считается один раз на маршрут — ползунок только заново фильтрует и не шлёт новых запросов." },
+  "plan.detour.badge": { en: "Detour +{time} (+{pct}%)", de: "Umweg +{time} (+{pct}%)", ru: "Крюк +{time} (+{pct}%)" },
+  "plan.detour.none":  { en: "Almost on the way", de: "Fast ohne Umweg", ru: "Почти по пути" },
+  "plan.detour.unknown": { en: "Detour unknown", de: "Umweg unbekannt", ru: "Крюк неизвестен" },
   "plan.select":           { en: "Add",                   de: "Hinzufügen",               ru: "Добавить" },
   "plan.selected":         { en: "Added",                 de: "Hinzugefügt",              ru: "Добавлено" },
 

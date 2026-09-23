@@ -7,7 +7,7 @@
 // trips / trip_days / trip_stops hängen an auth.uid(), der anonyme
 // `supabasePublic`-Client sähe also grundsätzlich nichts.
 
-import { supabase, safeQuery, withTimeout } from "./supabase";
+import { supabase, safeQuery, withTimeout, isAuthError, resetAuthState } from "./supabase";
 
 /** Die Routen-Felder, die Trip-Liste und Builder anzeigen. */
 export type TripRoute = {
@@ -105,53 +105,87 @@ export type NewTrip = {
   routeIds: string[];
 };
 
+export type CreateTripResult = {
+  /** Die ID des angelegten Trips — null, wenn schon der trips-Insert scheiterte. */
+  tripId: string | null;
+  /**
+   * Der tatsächliche Fehler des ersten fehlgeschlagenen Schritts.
+   *
+   * Vorher hat `safeQuery` jeden Fehler in ein stilles `null` verwandelt und
+   * /plan hat daraus ein generisches "konnte nicht gespeichert werden"
+   * gemacht — die Ursache war aus der laufenden App nicht mehr zu erkennen
+   * (Issue #28). Deshalb wird sie jetzt nach oben durchgereicht.
+   */
+  error: unknown;
+};
+
 /**
- * Legt einen Trip mit einem vorbefüllten Tag 1 an und liefert dessen ID.
+ * Legt einen Trip mit einem vorbefüllten Tag 1 an.
  *
  * Bewusst in drei Schritten statt per RPC: die RLS-Policies der Kindtabellen
  * prüfen jeweils gegen den bereits existierenden Elterndatensatz, die
  * Reihenfolge trips -> trip_days -> trip_stops ist also zwingend.
+ *
+ * Ein Fehler in Schritt 2 oder 3 lässt den bereits angelegten Trip stehen und
+ * liefert trotzdem dessen ID zurück — ein halb befüllter Trip im Builder ist
+ * für den Nutzer besser reparierbar als ein Trip, den er nirgends wiederfindet.
+ * Der Fehler wird aber mitgegeben, damit die Oberfläche ihn zeigen kann.
  */
-export async function createTrip(userId: string, trip: NewTrip): Promise<string | null> {
-  const created = await safeQuery<{ id: string }>(
-    supabase
-      .from("trips")
-      .insert({
-        user_id: userId,
-        title: trip.title,
-        start_location: trip.startLocation || null,
-        end_location: trip.endLocation || null,
-      })
-      .select("id")
-      .single(),
-    "createTrip"
-  );
-
-  if (!created?.id) return null;
-
-  const day = await safeQuery<{ id: string }>(
-    supabase
-      .from("trip_days")
-      .insert({ trip_id: created.id, day_number: 1, label: null })
-      .select("id")
-      .single(),
-    "createTrip.day"
-  );
-
-  if (day?.id && trip.routeIds.length > 0) {
-    await safeQuery(
-      supabase.from("trip_stops").insert(
-        trip.routeIds.map((routeId, index) => ({
-          trip_day_id: day.id,
-          route_id: routeId,
-          position: index,
-        }))
-      ),
-      "createTrip.stops"
+export async function createTrip(
+  userId: string,
+  trip: NewTrip
+): Promise<CreateTripResult> {
+  try {
+    const { data: created, error: tripError } = await withTimeout(
+      supabase
+        .from("trips")
+        .insert({
+          user_id: userId,
+          title: trip.title,
+          start_location: trip.startLocation || null,
+          end_location: trip.endLocation || null,
+        })
+        .select("id")
+        .single()
     );
-  }
 
-  return created.id;
+    if (tripError) throw tripError;
+    if (!created?.id) throw new Error("createTrip: Insert lieferte keine ID zurück");
+
+    const { data: day, error: dayError } = await withTimeout(
+      supabase
+        .from("trip_days")
+        .insert({ trip_id: created.id, day_number: 1, label: null })
+        .select("id")
+        .single()
+    );
+
+    if (dayError) return { tripId: created.id, error: dayError };
+    if (!day?.id) return { tripId: created.id, error: new Error("createTrip: kein Tag angelegt") };
+
+    if (trip.routeIds.length > 0) {
+      const { error: stopsError } = await withTimeout(
+        supabase.from("trip_stops").insert(
+          trip.routeIds.map((routeId, index) => ({
+            trip_day_id: day.id,
+            route_id: routeId,
+            position: index,
+          }))
+        )
+      );
+
+      if (stopsError) return { tripId: created.id, error: stopsError };
+    }
+
+    return { tripId: created.id, error: null };
+  } catch (err) {
+    console.error("createTrip failed:", err);
+    // Gleiche Regel wie in safeQuery: nur ein echter Auth-Fehler verwirft die
+    // Session. /plan schickt den Nutzer dann beim nächsten Klick sauber über
+    // /login und legt den gemerkten Trip danach automatisch an.
+    if (isAuthError(err)) await resetAuthState();
+    return { tripId: null, error: err };
+  }
 }
 
 /** Titel ändern (debounced aufgerufen). `updated_at` setzt der DB-Trigger. */

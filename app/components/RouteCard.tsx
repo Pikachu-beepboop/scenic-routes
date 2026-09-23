@@ -14,6 +14,7 @@
 // beim bestehenden CSS-Variablensystem (--bg3, --gold, --cream, …).
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Clock, Navigation, Star, Heart, ArrowRight, MapPin, Check, Plus } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { useUnit } from "../UnitContext";
@@ -59,6 +60,14 @@ type RouteCardProps = {
   onToggleSelect?: (routeId: string) => void;
   selectLabel?: string;
   selectedLabel?: string;
+
+  /**
+   * Freie Pille unten rechts auf dem Bild — der Route Planner zeigt darin die
+   * gemessene Mehrfahrzeit des Umwegs. Ohne Wert bleibt die Karte unverändert.
+   */
+  badge?: ReactNode;
+  /** true färbt die Pille als "liegt über der eingestellten Grenze" ein. */
+  badgeMuted?: boolean;
 };
 
 export default function RouteCard({
@@ -74,6 +83,8 @@ export default function RouteCard({
   onToggleSelect,
   selectLabel = "Add",
   selectedLabel = "Added",
+  badge,
+  badgeMuted = false,
 }: RouteCardProps) {
   const { lang } = useLanguage();
   const { unit } = useUnit();
@@ -129,6 +140,10 @@ export default function RouteCard({
         )}
 
         {route.type && <div className="route-card-type">{route.type}</div>}
+
+        {badge && (
+          <div className={`route-card-badge ${badgeMuted ? "is-muted" : ""}`}>{badge}</div>
+        )}
       </div>
 
       <div className="route-card-body">
@@ -213,6 +228,10 @@ export const ROUTE_CARD_STYLES = `
         .route-card-select.is-selected { background:var(--gold); border-color:var(--gold); color:#0c0b09; }
         .route-card-selected { border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
 
+        /* Freie Pille unten rechts (Route Planner: gemessene Mehrfahrzeit). */
+        .route-card-badge { position:absolute; bottom:12px; right:12px; z-index:5; display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; background:rgba(12,11,9,0.65); backdrop-filter:blur(12px); border:1px solid color-mix(in srgb, var(--gold) 45%, transparent); font-size:8px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
+        .route-card-badge.is-muted { border-color:rgba(237,229,212,0.16); color:rgba(237,229,212,0.7); }
+
         @media (max-width:760px) {
           .route-card-pin { display:inline-flex; }
           .route-card-img { height:140px; }
@@ -225,5 +244,6 @@ export const ROUTE_CARD_STYLES = `
           .route-card-footer { padding-top:9px; }
           .view-route-btn { font-size:9px; }
           .route-card-select { top:8px; left:8px; padding:6px 10px; font-size:7px; }
+          .route-card-badge { bottom:8px; right:8px; padding:4px 9px; font-size:7px; }
         }
 `;

@@ -1,31 +1,27 @@
-// Korridor-Matching für den Route Planner (/plan).
+// Geografische Vorauswahl für den Route Planner (/plan) — Schritt 1 von 2.
 //
-// Fragestellung: Liegt eine kuratierte Route "auf dem Weg" der gerade
-// berechneten Google-Directions-Strecke?
+// Fragestellung bis Issue #26: Liegt eine kuratierte Route "auf dem Weg"?
+// Gemessen wurde das rein geometrisch als Abstand zur direkten Strecke
+// (Korridor 20 km, Abschweifung max. 60 km). Genau das war laut Issue #28 zu
+// streng und ging am Produktgedanken vorbei: Nutzer wollen bewusst einen Umweg
+// in Kauf nehmen, um eine schöne Strecke mitzunehmen. Chișinău→Wien soll den
+// Transfagarasan vorschlagen, obwohl der ~80 km neben der direkten Strecke
+// liegt — ein reiner 20-km-Korridor kann das nie liefern.
 //
-// Kriterium laut Issue #24 war: sowohl der Start- als auch der Endpunkt der
-// kuratierten Route müssen innerhalb von CORRIDOR_DISTANCE_KM liegen. Genau das
-// hat in der Praxis immer 0 Treffer geliefert (Issue #26) — nicht wegen eines
-// Rechenfehlers, sondern weil kuratierte Routen Panoramastrecken von 30–300 km
-// Länge sind: sobald so eine Route vom Korridor wegführt, liegt ihr zweiter
-// Endpunkt zwangsläufig weit ausserhalb. Beispiel Grande Strada delle Dolomiti
-// auf München→Venedig: Start 0.9 km neben der Strecke (Bozen liegt direkt an
-// der A22), Ende 42.6 km entfernt (Cortina) → nach dem alten UND-Kriterium
-// kein Treffer, obwohl die Route offensichtlich am Weg beginnt.
+// Seit Issue #28 entscheidet deshalb nicht mehr die Luftlinie, sondern die
+// zusätzliche Fahrzeit. Das ist eine Directions-Frage, keine Geometriefrage,
+// und Directions-Anfragen sind teuer — eine pro Route wären 68 Anfragen je
+// Berechnung. Das Matching läuft darum zweistufig:
 //
-// Kriterium seit Issue #26, in zwei bewusst getrennten Schritten:
-//   1. Anschluss:   Die kuratierte Route muss dem berechneten Weg auf
-//                   CORRIDOR_DISTANCE_KM nahekommen. Gemessen wird nicht nur
-//                   Start/Ende gegen die Strecke, sondern der kleinste Abstand
-//                   zwischen der Strecke und der Start→Ziel-Verbindung der
-//                   kuratierten Route (sonst fallen Routen durch, die den
-//                   Korridor queren, deren Endpunkte aber beidseits daneben
-//                   liegen).
-//   2. Abschweifung: Kein Endpunkt darf weiter als MAX_DETOUR_DISTANCE_KM von
-//                   der Strecke weg liegen. Ohne diese Schranke würde jede
-//                   Route zählen, die den Korridor nur streift und danach
-//                   hunderte Kilometer davonläuft.
-// CORRIDOR_DISTANCE_KM bleibt dabei unverändert bei 20 km.
+//   Schritt 1 (diese Datei, rein lokal, ohne API):
+//     grobzügiger Radius CANDIDATE_RADIUS_KM um die direkte Strecke, danach
+//     Deckelung auf MAX_DETOUR_CANDIDATES Kandidaten. Aus 68 Routen werden so
+//     typischerweise 5–18, ohne einen einzigen Netzwerk-Request.
+//
+//   Schritt 2 (lib/routeDetour.ts, Directions nur für die Vorauswahl):
+//     misst je Kandidat die tatsächliche Mehrfahrzeit und legt sie im
+//     Frontend-State ab. Der Prozent-Regler auf /plan filtert danach nur noch
+//     diese zwischengespeicherten Zahlen — ohne neue Anfragen.
 //
 // Die Berechnung läuft bewusst komplett im Frontend zur Laufzeit — kein
 // PostGIS, und explizit kein Parsen von Koordinaten aus Google-Embed-Links.
@@ -39,20 +35,27 @@
 // deshalb bewusst dieselbe Signatur, damit ein späterer Wechsel auf
 // @turf/point-to-line-distance ein Einzeiler bleibt.
 
-/** Wie nah eine kuratierte Route der berechneten Strecke kommen muss ("Anschluss"). */
-export const CORRIDOR_DISTANCE_KM = 20;
+/**
+ * Radius um die direkte Strecke, innerhalb dessen eine kuratierte Route
+ * überhaupt als Umweg-Kandidat in Frage kommt.
+ *
+ * Bewusst grosszügig (Issue #28 nennt 80–100 km): der Vorfilter soll nur
+ * offensichtlich Unerreichbares aussortieren, die eigentliche Entscheidung
+ * trifft die gemessene Mehrfahrzeit in Schritt 2. 100 km deckt den
+ * Referenzfall ab — der Transfagarasan liegt rund 80 km neben der
+ * E60-Strecke, die Google für Chișinău→Wien wählt.
+ */
+export const CANDIDATE_RADIUS_KM = 100;
 
 /**
- * Wie weit ein Endpunkt einer kuratierten Route maximal von der berechneten
- * Strecke wegführen darf ("Abschweifung").
+ * Obergrenze für die Kandidatenliste und damit für die Zahl der
+ * Directions-Anfragen pro "Calculate Route"-Klick.
  *
- * Eigene Konstante, bewusst nicht als Aufweichung von CORRIDOR_DISTANCE_KM
- * gedacht: 20 km beschreibt weiterhin, was "am Weg" heisst, 60 km beschreibt,
- * wie weit eine Panoramastrecke dabei ins Seitental führen darf. 60 km ist die
- * Grössenordnung einer halben Tagesetappe und deckt die typischen Alpenrouten
- * im Datenbestand ab (Dolomitenstrasse Bozen→Cortina: 42.6 km).
+ * Issue #28 gibt 15–20 vor. 18 liegt in der Mitte und bleibt bei der
+ * Parallelität aus lib/routeDetour.ts deutlich unter dem Punkt, an dem Google
+ * mit OVER_QUERY_LIMIT antwortet.
  */
-export const MAX_DETOUR_DISTANCE_KM = 60;
+export const MAX_DETOUR_CANDIDATES = 18;
 
 /** [lng, lat] — dieselbe Achsenreihenfolge wie GeoJSON/turf. */
 export type LngLat = [number, number];
@@ -65,8 +68,11 @@ export type CorridorRoute = {
   end_lng?: number | string | null;
 };
 
-export type CorridorMatch<T> = {
+export type DetourCandidate<T> = {
   route: T;
+  /** Start- und Endkoordinate der kuratierten Route, [lng, lat]. */
+  start: LngLat;
+  end: LngLat;
   /** Abstand des Startpunkts zur berechneten Strecke, in km. */
   startDistanceKm: number;
   /** Abstand des Endpunkts zur berechneten Strecke, in km. */
@@ -75,10 +81,16 @@ export type CorridorMatch<T> = {
   nearestDistanceKm: number;
   /**
    * Position, an der die berechnete Strecke den Abzweig erreicht, in km ab
-   * Start — die kleinere der beiden Endpunkt-Projektionen. Nur für die
-   * Reihenfolge der Wegpunkte gedacht.
+   * Start — die kleinere der beiden Endpunkt-Projektionen. Bestimmt die
+   * Reihenfolge mehrerer Kandidaten als Wegpunkte.
    */
   alongTrackKm: number;
+  /**
+   * true, wenn der Startpunkt der kuratierten Route entlang der Fahrtrichtung
+   * vor ihrem Endpunkt liegt. Damit wird die Route in der Richtung befahren,
+   * in die man ohnehin unterwegs ist, statt am Ende zurückfahren zu müssen.
+   */
+  startFirst: boolean;
 };
 
 const EARTH_RADIUS_KM = 6371.0088;
@@ -255,25 +267,36 @@ export function hasUsableCoordinates(route: CorridorRoute): boolean {
 }
 
 /**
- * Filtert die kuratierten Routen auf jene, die "am Weg" liegen:
- *   - sie kommen der Strecke auf höchstens `maxDistanceKm` nahe   (Anschluss)
- *   - und kein Endpunkt liegt weiter als `maxDetourKm` entfernt   (Abschweifung)
+ * Schritt 1 des Umweg-Matchings: grobe geografische Vorauswahl, komplett ohne
+ * Netzwerk-Request.
  *
- * Siehe Kopfkommentar dieser Datei zur Begründung der beiden Schranken.
+ * Kriterium ist bewusst nur noch eine einzige, grosszügige Schranke: die Route
+ * muss der berechneten Strecke auf höchstens `radiusKm` nahekommen. Gemessen
+ * wird dabei nicht nur Start/Ende gegen die Strecke, sondern der kleinste
+ * Abstand zwischen der Strecke und der Start→Ziel-Verbindung der kuratierten
+ * Route — sonst fallen Routen durch, die den Korridor queren, deren Endpunkte
+ * aber beidseits daneben liegen.
  *
- * Das Ergebnis ist nach der Position entlang der Strecke sortiert — damit die
- * Auswahl später in einer sinnvollen Reihenfolge als Wegpunkte an die
- * Directions-API gehen kann.
+ * Die frühere zweite Schranke ("kein Endpunkt weiter als 60 km weg") ist
+ * entfallen: wie weit eine Route wegführen darf, beantwortet ab jetzt die
+ * gemessene Mehrfahrzeit aus Schritt 2 und der Regler des Nutzers, nicht mehr
+ * eine fest verdrahtete Luftlinie.
+ *
+ * Gedeckelt wird auf `limit` Kandidaten, weil jeder Kandidat in Schritt 2 eine
+ * Directions-Anfrage kostet. Gewählt werden die `limit` Routen mit dem
+ * kleinsten Abstand zur Strecke; das Ergebnis kommt nach Position entlang der
+ * Strecke sortiert zurück, damit mehrere ausgewählte Routen in einer
+ * sinnvollen Reihenfolge als Wegpunkte an Directions gehen.
  */
-export function findRoutesAlongCorridor<T extends CorridorRoute>(
+export function selectDetourCandidates<T extends CorridorRoute>(
   routes: T[],
   line: LngLat[],
-  maxDistanceKm: number = CORRIDOR_DISTANCE_KM,
-  maxDetourKm: number = MAX_DETOUR_DISTANCE_KM
-): CorridorMatch<T>[] {
+  radiusKm: number = CANDIDATE_RADIUS_KM,
+  limit: number = MAX_DETOUR_CANDIDATES
+): DetourCandidate<T>[] {
   if (line.length < 2) return [];
 
-  const matches: CorridorMatch<T>[] = [];
+  const candidates: DetourCandidate<T>[] = [];
 
   for (const route of routes) {
     const endpoints = getRouteEndpoints(route);
@@ -283,27 +306,30 @@ export function findRoutesAlongCorridor<T extends CorridorRoute>(
     const start = nearestOnLine(endpoints.start, line);
     const end = nearestOnLine(endpoints.end, line);
 
-    // Abschweifung: führt die Route zu weit weg, ist sie kein Zwischenstopp mehr.
-    if (Math.max(start.distanceKm, end.distanceKm) > maxDetourKm) continue;
-
-    // Anschluss: der Endpunkt-Abstand genügt als Nachweis, wenn er schon klein
-    // genug ist — nur sonst lohnt der Vergleich der gesamten Verbindung.
+    // Der Endpunkt-Abstand genügt als Nachweis, wenn er schon klein genug ist —
+    // nur sonst lohnt der teurere Vergleich der gesamten Verbindung.
     const nearestEndpointKm = Math.min(start.distanceKm, end.distanceKm);
     const nearestDistanceKm =
-      nearestEndpointKm <= maxDistanceKm
+      nearestEndpointKm <= radiusKm
         ? nearestEndpointKm
         : segmentToLineDistanceKm(endpoints.start, endpoints.end, line);
 
-    if (nearestDistanceKm > maxDistanceKm) continue;
+    if (nearestDistanceKm > radiusKm) continue;
 
-    matches.push({
+    candidates.push({
       route,
+      start: endpoints.start,
+      end: endpoints.end,
       startDistanceKm: start.distanceKm,
       endDistanceKm: end.distanceKm,
       nearestDistanceKm,
       alongTrackKm: Math.min(start.alongTrackKm, end.alongTrackKm),
+      startFirst: start.alongTrackKm <= end.alongTrackKm,
     });
   }
 
-  return matches.sort((a, b) => a.alongTrackKm - b.alongTrackKm);
+  return candidates
+    .sort((a, b) => a.nearestDistanceKm - b.nearestDistanceKm)
+    .slice(0, limit)
+    .sort((a, b) => a.alongTrackKm - b.alongTrackKm);
 }
