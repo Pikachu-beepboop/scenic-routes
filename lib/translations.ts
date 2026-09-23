@@ -280,6 +280,15 @@ export const translations = {
   "trip.notFound":      { en: "This trip doesn't exist or doesn't belong to you.", de: "Diesen Trip gibt es nicht oder er gehört nicht zu deinem Konto.", ru: "Такой поездки нет или она принадлежит другому аккаунту." },
   "trip.signInTitle":   { en: "Sign in to open your trip", de: "Melde dich an, um deinen Trip zu öffnen", ru: "Войдите, чтобы открыть поездку" },
 
+  // Ganzen Trip löschen (Issue #32) — Builder und /my-trips
+  "trip.delete":             { en: "Delete trip",       de: "Trip löschen",       ru: "Удалить поездку" },
+  "trip.deleteConfirmTitle": { en: "Delete this trip?", de: "Trip wirklich löschen?", ru: "Удалить эту поездку?" },
+  "trip.deleteConfirmText":  { en: "“{title}” will be permanently removed together with all its days and routes. This can't be undone.", de: "„{title}“ wird mit allen Tagen und Routen endgültig entfernt. Das lässt sich nicht rückgängig machen.", ru: "«{title}» будет удалена навсегда вместе со всеми днями и маршрутами. Это действие нельзя отменить." },
+  "trip.deleteConfirm":      { en: "Delete",            de: "Löschen",            ru: "Удалить" },
+  "trip.deleteCancel":       { en: "Cancel",            de: "Abbrechen",          ru: "Отмена" },
+  "trip.deleting":           { en: "Deleting...",       de: "Wird gelöscht...",   ru: "Удаление..." },
+  "trip.deleteError":        { en: "The trip couldn't be deleted. Please try again.", de: "Der Trip konnte nicht gelöscht werden. Bitte versuch es erneut.", ru: "Не удалось удалить поездку. Попробуйте ещё раз." },
+
 // ==================== My Trips — geplante Trips ====================
 
   "mytrips.planned.title":     { en: "Your planned trips",  de: "Deine geplanten Trips",  ru: "Ваши запланированные поездки" },
@@ -292,6 +301,9 @@ export const translations = {
   "mytrips.planned.error":     { en: "Your trips couldn't be loaded.", de: "Deine Trips konnten nicht geladen werden.", ru: "Не удалось загрузить поездки." },
   "mytrips.planned.errorText": { en: "Your saved trips are safe — this is only a loading problem. Please try again.", de: "Deine gespeicherten Trips sind nicht verloren — nur das Laden hat nicht geklappt. Bitte versuch es erneut.", ru: "Сохранённые поездки не потеряны — это лишь ошибка загрузки. Попробуйте ещё раз." },
   "mytrips.planned.retry":     { en: "Try again",           de: "Erneut versuchen",       ru: "Повторить" },
+  // Umschalter in der Hero-Karte (Issue #32) — sie ist die einzige Trip-Liste
+  "mytrips.tabs.saved":        { en: "Saved routes",        de: "Gemerkte Routen",        ru: "Сохранённые маршруты" },
+  "mytrips.tabs.trips":        { en: "Planned trips",       de: "Geplante Trips",         ru: "Поездки" },
 
 // ==================== Explore-Seite ====================
 

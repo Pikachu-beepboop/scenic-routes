@@ -10,19 +10,21 @@
 
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Navigation,
   CalendarDays, Route as RouteIcon, ArrowLeft, Compass,
 } from "lucide-react";
 
 import PlannerNav from "../components/PlannerNav";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useLanguage } from "../LanguageContext";
 import { useUnit } from "../UnitContext";
 import { useAuth } from "../../lib/useAuth";
 import { formatDistance } from "@/lib/formatDistance";
 import {
   addTripDay,
+  deleteTrip,
   deleteTripDay,
   deleteTripStop,
   fetchTrip,
@@ -95,6 +97,7 @@ function moveStop(
 function TripBuilder() {
   const searchParams = useSearchParams();
   const tripId = searchParams.get("id") ?? "";
+  const router = useRouter();
 
   const { t, lang } = useLanguage();
   const { unit } = useUnit();
@@ -115,6 +118,11 @@ function TripBuilder() {
   const titleTouched = useRef(false);
   const dragged = useRef<{ dayId: string; stopId: string } | null>(null);
   const [dropTarget, setDropTarget] = useState<{ dayId: string; index: number } | null>(null);
+
+  // Ganzen Trip löschen (Issue #32): erst Bestätigung, dann Delete + Redirect.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
 
   // ----------------------------------------------------------------- Laden
   useEffect(() => {
@@ -317,6 +325,26 @@ function TripBuilder() {
     );
   }
 
+  async function handleDeleteTrip() {
+    if (!tripId) return;
+    setDeleting(true);
+    setDeleteError(false);
+
+    // trip_days und trip_stops verschwinden per ON DELETE CASCADE mit.
+    if (await deleteTrip(tripId)) {
+      router.push("/my-trips");
+      return;
+    }
+
+    setDeleting(false);
+    setDeleteError(true);
+  }
+
+  const closeDeleteDialog = useCallback(() => {
+    setConfirmDelete(false);
+    setDeleteError(false);
+  }, []);
+
   // -------------------------------------------------------------- Anzeige
   const totalStops = useMemo(
     () => days.reduce((sum, day) => sum + day.stops.length, 0),
@@ -384,9 +412,18 @@ function TripBuilder() {
               <header className="tb-card tb-header">
                 <div className="tb-header-top">
                   <p className="tb-eyebrow">{t("trip.eyebrow")}</p>
-                  <span className={`tb-saved ${saveState === "error" ? "is-error" : ""}`}>
-                    {saveLabel()}
-                  </span>
+                  <div className="tb-header-actions">
+                    <span className={`tb-saved ${saveState === "error" ? "is-error" : ""}`}>
+                      {saveLabel()}
+                    </span>
+                    <button
+                      className="tb-delete-trip"
+                      onClick={() => setConfirmDelete(true)}
+                      title={t("trip.delete")}
+                    >
+                      <Trash2 size={13} strokeWidth={2} /> {t("trip.delete")}
+                    </button>
+                  </div>
                 </div>
 
                 <input
@@ -552,6 +589,19 @@ function TripBuilder() {
         </div>
       </div>
 
+      <ConfirmDialog
+        open={confirmDelete}
+        title={t("trip.deleteConfirmTitle")}
+        text={t("trip.deleteConfirmText").replace("{title}", title.trim() || t("trip.titlePlaceholder"))}
+        confirmLabel={t("trip.deleteConfirm")}
+        cancelLabel={t("trip.deleteCancel")}
+        busyLabel={t("trip.deleting")}
+        busy={deleting}
+        error={deleteError ? t("trip.deleteError") : undefined}
+        onConfirm={handleDeleteTrip}
+        onCancel={closeDeleteDialog}
+      />
+
       <style>{`
         .tb-wrap { width:100%; max-width:920px; display:flex; flex-direction:column; gap:18px; }
 
@@ -569,6 +619,9 @@ function TripBuilder() {
         .tb-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.3em; text-transform:uppercase; color:var(--gold); }
         .tb-saved { font-size:10px; font-weight:600; letter-spacing:0.06em; color:var(--dim); }
         .tb-saved.is-error { color:#e08080; }
+        .tb-header-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+        button.tb-delete-trip { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:none; color:var(--muted); font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; transition:all .18s; }
+        button.tb-delete-trip:hover { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
 
         .tb-title-input { width:100%; margin:14px 0 16px; padding:10px 0; border:none; border-bottom:1px solid var(--border); background:none; outline:none; font-family:var(--serif); font-size:clamp(26px,4vw,38px); font-weight:300; letter-spacing:-0.02em; color:var(--cream); transition:border-color .2s; }
         .tb-title-input:focus { border-bottom-color:var(--gold); }

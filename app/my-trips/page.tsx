@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase, safeQuery, withTimeout } from "../../lib/supabase";
 import { useAuth, signOutSafe } from "../../lib/useAuth";
-import { fetchTrips, type Trip } from "../../lib/trips";
+import { deleteTrip, fetchTrips, type Trip } from "../../lib/trips";
 import AuthModal from "../AuthModal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useLanguage } from "../LanguageContext";
 import {
   Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
   User as UserIcon, Map as MapIcon, Compass, LogOut, Globe,
-  Menu, ChevronDown,
+  Menu, ChevronDown, Trash2,
 } from "lucide-react";
 
 const fmtKm = (km?: number) =>
@@ -97,6 +98,12 @@ export default function MyTripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
   const [tripsError, setTripsError] = useState(false);
+  // Issue #32: Umschalter der Hero-Karte. null = automatisch (siehe activeTab).
+  const [panelTab, setPanelTab] = useState<"saved" | "trips" | null>(null);
+  // Issue #32: ganzen Trip löschen, mit Bestätigungsdialog
+  const [tripToDelete, setTripToDelete] = useState<Trip | null>(null);
+  const [deletingTrip, setDeletingTrip] = useState(false);
+  const [deleteTripError, setDeleteTripError] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -236,6 +243,34 @@ export default function MyTripsPage() {
     }
   }
 
+  async function handleDeleteTrip() {
+    if (!tripToDelete) return;
+    setDeletingTrip(true);
+    setDeleteTripError(false);
+
+    // trip_days und trip_stops verschwinden per ON DELETE CASCADE mit.
+    const ok = await deleteTrip(tripToDelete.id);
+    setDeletingTrip(false);
+
+    if (!ok) {
+      setDeleteTripError(true);
+      return;
+    }
+
+    const deletedId = tripToDelete.id;
+    setTrips((prev) => prev.filter((trip) => trip.id !== deletedId));
+    setTripToDelete(null);
+    // Auf dem Trips-Tab bleiben — sonst springt die Karte nach dem letzten
+    // gelöschten Trip automatisch auf "Noch keine gemerkten Routen" um.
+    setPanelTab("trips");
+  }
+
+  function closeDeleteDialog() {
+    if (deletingTrip) return;
+    setTripToDelete(null);
+    setDeleteTripError(false);
+  }
+
   async function handleLogout() {
     await signOutSafe();
     setSavedRoutes([]); setShowUserMenu(false);
@@ -264,20 +299,66 @@ export default function MyTripsPage() {
     updateSavedThumb();
     window.addEventListener("resize", updateSavedThumb);
     return () => window.removeEventListener("resize", updateSavedThumb);
-  }, [savedRoutes, trips, loading, user]);
+  }, [savedRoutes, trips, loading, tripsLoading, panelTab, user]);
 
   // NEU (Mobile): auf Mobile nur die sichtbare Teilmenge rendern, Desktop unverändert alles
   const displayedRoutes = isMobile ? savedRoutes.slice(0, visibleCount) : savedRoutes;
   const hasMoreMobile = isMobile && visibleCount < savedRoutes.length;
 
-  // Issue #30: Das Hero-Panel füllt den ganzen ersten Bildschirm. Ohne
-  // gemerkte Einzelrouten stand dort bisher "No saved routes yet." — auch
-  // dann, wenn gerade ein Trip gespeichert wurde, der erst unterhalb des Heros
-  // in "Your planned trips" auftaucht. In diesem Fall zeigt das Panel jetzt die
-  // geplanten Trips, und es wartet dafür auch auf deren Ladevorgang.
-  const showTripsInPanel = savedRoutes.length === 0 && trips.length > 0;
-  const panelLoading = loading || (savedRoutes.length === 0 && tripsLoading);
+  // Issue #32: Die Hero-Karte ist die einzige Anzeige der Trip-Liste — der
+  // frühere, vollbreite Abschnitt "Your planned trips" unterhalb des Heros
+  // zeigte dieselben Trips ein zweites Mal und ist entfallen. Damit Trips auch
+  // bei vorhandenen gemerkten Routen erreichbar bleiben, hat die Karte einen
+  // Umschalter "Gemerkte Routen / Geplante Trips".
+  //
+  // Solange der Nutzer nicht selbst umschaltet, gilt weiter die Regel aus
+  // Issue #30: ohne gemerkte Einzelrouten, aber mit Trips, zeigt die Karte
+  // die Trips — und wartet für diese Entscheidung auf beide Ladevorgänge.
+  // Ein Ladefehler der Trips zählt mit, damit er nicht hinter "Noch keine
+  // gemerkten Routen" verschwindet.
+  const autoTab = savedRoutes.length === 0 && (trips.length > 0 || tripsError) ? "trips" : "saved";
+  const activeTab = panelTab ?? autoTab;
+  const showTripsInPanel = activeTab === "trips";
+  const panelLoading =
+    panelTab === "trips" ? tripsLoading
+    : panelTab === "saved" ? loading
+    : loading || (savedRoutes.length === 0 && tripsLoading);
   const panelTitle = t(showTripsInPanel ? "mytrips.planned.title" : "mytrips.savedTitle");
+
+  const panelTabs = user ? (
+    <div className="panel-tabs" role="tablist">
+      {(["saved", "trips"] as const).map((tab) => (
+        <button
+          key={tab}
+          role="tab"
+          aria-selected={activeTab === tab}
+          className={`panel-tab ${activeTab === tab ? "active" : ""}`}
+          onClick={() => setPanelTab(tab)}
+        >
+          {t(tab === "saved" ? "mytrips.tabs.saved" : "mytrips.tabs.trips")}
+          <span className="panel-tab-count">{tab === "saved" ? savedRoutes.length : trips.length}</span>
+        </button>
+      ))}
+    </div>
+  ) : null;
+
+  // Fehler- und Leerzustand der Trip-Liste — vorher nur im entfallenen
+  // unteren Abschnitt vorhanden, jetzt in der Karte (Desktop und Mobile).
+  const tripsStateBlock = tripsError ? (
+    <div className="saved-preview-empty">
+      <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
+      <h3>{t("mytrips.planned.error")}</h3>
+      <p>{t("mytrips.planned.errorText")}</p>
+      <button className="btn-gold-filled" onClick={() => user && loadTrips(user.id)}>{t("mytrips.planned.retry")}</button>
+    </div>
+  ) : trips.length === 0 ? (
+    <div className="saved-preview-empty">
+      <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
+      <h3>{t("mytrips.planned.empty")}</h3>
+      <p>{t("mytrips.planned.emptyText")}</p>
+      <Link href="/plan" className="btn-gold-filled">{t("mytrips.planned.cta")}</Link>
+    </div>
+  ) : null;
 
   return (
     <>
@@ -433,27 +514,23 @@ export default function MyTripsPage() {
         .spinner { width:36px; height:36px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .7s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
 
-        /* NEU (Trip Builder): geplante Trips */
-        .trips-section { background:var(--bg); padding:56px clamp(24px,5vw,80px) 8px; }
-        .trips-inner { max-width:1200px; margin:0 auto; }
-        .trips-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+        /* Issue #32: Umschalter + Fusszeile der Hero-Karte — sie ist die
+           einzige Trip-Liste, der vollbreite Abschnitt darunter ist entfallen. */
+        .saved-preview-head { flex-wrap:wrap; }
+        .panel-tabs { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--border); border-radius:999px; background:color-mix(in srgb, var(--border) 30%, transparent); flex-shrink:0; }
+        button.panel-tab { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--dim); white-space:nowrap; transition:background .2s, color .2s; }
+        button.panel-tab:hover { color:var(--cream); }
+        button.panel-tab.active { background:var(--gold); color:#0c0b09; }
+        .panel-tab-count { opacity:0.7; }
+        .saved-preview-foot { display:flex; justify-content:flex-end; padding-top:18px; margin-top:6px; border-top:1px solid var(--border); }
         .trips-plan-link { font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); transition:color .2s; }
         .trips-plan-link:hover { color:var(--cream); }
-        .trips-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-        .trip-card { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:20px; overflow:hidden; background:var(--bg3); transition:transform .35s cubic-bezier(.25,.46,.45,.94), border-color .35s, box-shadow .35s; }
-        .trip-card:hover { transform:translateY(-5px); border-color:rgba(201,168,106,0.28); box-shadow:0 28px 70px rgba(0,0,0,0.28); }
-        .trip-card-thumb { height:160px; overflow:hidden; background:var(--bg2); }
-        .trip-card-thumb img { width:100%; height:100%; object-fit:cover; filter:brightness(0.88); transition:transform .7s ease; }
-        .trip-card:hover .trip-card-thumb img { transform:scale(1.06); }
-        .trip-card-body { padding:18px; display:flex; flex-direction:column; gap:8px; flex:1; }
-        .trip-card-title { font-family:var(--serif); font-size:22px; font-weight:400; line-height:1.1; color:var(--cream); }
-        .trip-card-meta { font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--dim); }
-        .trip-card-open { display:inline-flex; align-items:center; gap:6px; margin-top:auto; padding-top:10px; font-size:10px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
-        @media (max-width:1100px) { .trips-grid { grid-template-columns:repeat(2,1fr); } }
+        .light .trips-plan-link { color:#8A6A2E; }
+        .light .trips-plan-link:hover { color:var(--cream); }
         @media (max-width:760px) {
-          .trips-section { padding:36px 20px 8px; }
-          .trips-grid { grid-template-columns:1fr; }
-          .trip-card-thumb { height:170px; }
+          .mobile-saved-section .panel-tabs { display:flex; width:100%; margin-bottom:14px; }
+          .mobile-saved-section button.panel-tab { flex:1; justify-content:center; }
+          .mobile-trips-foot { justify-content:center; margin-bottom:32px; }
         }
 
         /* FOOTER */
@@ -810,9 +887,8 @@ export default function MyTripsPage() {
             <div className="saved-preview-panel">
               <div className="saved-preview-head">
                 <h2 className="saved-preview-title">{panelTitle}</h2>
+                {panelTabs}
               </div>
-
-              {/* Planned-Tab wurde entfernt */}
 
               {!user ? (
                 <div className="saved-preview-empty">
@@ -826,40 +902,49 @@ export default function MyTripsPage() {
                   <div className="spinner" />
                 </div>
               ) : showTripsInPanel ? (
-                <div className="saved-preview-list-wrap">
-                  <div className="saved-preview-list" ref={savedListRef} onScroll={updateSavedThumb}>
-                    {trips.map((trip) => {
-                      const { stops, preview, countries } = tripSummary(trip);
-                      return (
-                        <div key={trip.id} className="saved-preview-item">
-                          <Link href={`/trip?id=${trip.id}`} className="saved-preview-thumb">
-                            <img src={preview} alt={trip.title} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
-                          </Link>
-                          <div>
-                            <p className="saved-preview-country">{countries.join(" · ") || t("home.popular.fallbackType")}</p>
-                            <Link href={`/trip?id=${trip.id}`}>
-                              <h3 className="saved-preview-name">{trip.title}</h3>
-                            </Link>
-                            <div className="saved-preview-meta">
-                              <span>{trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}</span>
+                tripsStateBlock ?? (
+                  <>
+                    <div className="saved-preview-list-wrap">
+                      <div className="saved-preview-list" ref={savedListRef} onScroll={updateSavedThumb}>
+                        {trips.map((trip) => {
+                          const { stops, preview, countries } = tripSummary(trip);
+                          return (
+                            <div key={trip.id} className="saved-preview-item">
+                              <Link href={`/trip?id=${trip.id}`} className="saved-preview-thumb">
+                                <img src={preview} alt={trip.title} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
+                              </Link>
+                              <div>
+                                <p className="saved-preview-country">{countries.join(" · ") || t("home.popular.fallbackType")}</p>
+                                <Link href={`/trip?id=${trip.id}`}>
+                                  <h3 className="saved-preview-name">{trip.title}</h3>
+                                </Link>
+                                <div className="saved-preview-meta">
+                                  <span>{trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}</span>
+                                </div>
+                              </div>
+                              <div className="saved-preview-action-wrap">
+                                <Link href={`/trip?id=${trip.id}`} className="saved-preview-action" title={t("mytrips.planned.open")}><ChevronRight size={19} strokeWidth={2} /></Link>
+                                <button className="saved-preview-remove" onClick={() => setTripToDelete(trip)} title={t("trip.delete")} aria-label={t("trip.delete")}><Trash2 size={14} strokeWidth={2} /></button>
+                              </div>
                             </div>
-                          </div>
-                          <div className="saved-preview-action-wrap">
-                            <Link href={`/trip?id=${trip.id}`} className="saved-preview-action" title={t("mytrips.planned.open")}><ChevronRight size={19} strokeWidth={2} /></Link>
-                          </div>
+                          );
+                        })}
+                      </div>
+                      {savedThumb.visible && (
+                        <div className="custom-scrollbar-track">
+                          <div
+                            className="custom-scrollbar-thumb"
+                            style={{ height: savedThumb.height, transform: `translateY(${savedThumb.top}px)` }}
+                          />
                         </div>
-                      );
-                    })}
-                  </div>
-                  {savedThumb.visible && (
-                    <div className="custom-scrollbar-track">
-                      <div
-                        className="custom-scrollbar-thumb"
-                        style={{ height: savedThumb.height, transform: `translateY(${savedThumb.top}px)` }}
-                      />
+                      )}
                     </div>
-                  )}
-                </div>
+                    {/* "Plan a trip →" stand vorher nur im entfallenen unteren Abschnitt */}
+                    <div className="saved-preview-foot">
+                      <Link href="/plan" className="trips-plan-link">{t("mytrips.planned.cta")}</Link>
+                    </div>
+                  </>
+                )
               ) : savedRoutes.length === 0 ? (
                 <div className="saved-preview-empty">
                   <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
@@ -915,6 +1000,7 @@ export default function MyTripsPage() {
           <div className="mobile-saved-head">
             <h2 className="saved-preview-title">{panelTitle}</h2>
           </div>
+          {panelTabs}
 
           <div className="mobile-route-list">
             {!user ? (
@@ -929,28 +1015,36 @@ export default function MyTripsPage() {
                 <div className="spinner" />
               </div>
             ) : showTripsInPanel ? (
-              trips.map((trip) => {
-                const { stops, preview, countries } = tripSummary(trip);
-                return (
-                  <div key={trip.id} className="mobile-route-row">
-                    <Link href={`/trip?id=${trip.id}`} className="mobile-route-thumb">
-                      <img src={preview} alt={trip.title} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
-                    </Link>
-                    <div className="mobile-route-info">
-                      <p className="mobile-route-country">{countries.join(" · ") || t("home.popular.fallbackType")}</p>
-                      <Link href={`/trip?id=${trip.id}`}>
-                        <h3 className="mobile-route-title">{trip.title}</h3>
-                      </Link>
-                      <div className="mobile-route-meta">
-                        <span>{trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}</span>
+              tripsStateBlock ?? (
+                <>
+                  {trips.map((trip) => {
+                    const { stops, preview, countries } = tripSummary(trip);
+                    return (
+                      <div key={trip.id} className="mobile-route-row">
+                        <Link href={`/trip?id=${trip.id}`} className="mobile-route-thumb">
+                          <img src={preview} alt={trip.title} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
+                        </Link>
+                        <div className="mobile-route-info">
+                          <p className="mobile-route-country">{countries.join(" · ") || t("home.popular.fallbackType")}</p>
+                          <Link href={`/trip?id=${trip.id}`}>
+                            <h3 className="mobile-route-title">{trip.title}</h3>
+                          </Link>
+                          <div className="mobile-route-meta">
+                            <span>{trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}</span>
+                          </div>
+                        </div>
+                        <div className="mobile-route-actions">
+                          <Link href={`/trip?id=${trip.id}`} className="mobile-route-open" title={t("mytrips.planned.open")}><ChevronRight size={15} strokeWidth={2} /></Link>
+                          <button className="mobile-route-remove" onClick={() => setTripToDelete(trip)} title={t("trip.delete")} aria-label={t("trip.delete")}><Trash2 size={12} strokeWidth={2} /></button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mobile-route-actions">
-                      <Link href={`/trip?id=${trip.id}`} className="mobile-route-open" title={t("mytrips.planned.open")}><ChevronRight size={15} strokeWidth={2} /></Link>
-                    </div>
+                    );
+                  })}
+                  <div className="saved-preview-foot mobile-trips-foot">
+                    <Link href="/plan" className="trips-plan-link">{t("mytrips.planned.cta")}</Link>
                   </div>
-                );
-              })
+                </>
+              )
             ) : savedRoutes.length === 0 ? (
               <div className="saved-preview-empty">
                 <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
@@ -1000,64 +1094,21 @@ export default function MyTripsPage() {
           </div>
         </div>
 
-        {/* NEU (Trip Builder): Liste der geplanten Trips. Bewusst ausserhalb
-            des Hero-Bereichs und fuer Desktop wie Mobile dasselbe Markup —
-            das Grid faellt per Media-Query auf eine Spalte zurueck. */}
-        {user && (
-          <section className="trips-section">
-            <div className="trips-inner">
-              <div className="trips-head">
-                <h2 className="saved-preview-title">{t("mytrips.planned.title")}</h2>
-                <Link href="/plan" className="trips-plan-link">{t("mytrips.planned.cta")}</Link>
-              </div>
-
-              {tripsLoading ? (
-                <div className="saved-preview-empty"><div className="spinner" /></div>
-              ) : tripsError ? (
-                <div className="saved-preview-empty">
-                  <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
-                  <h3>{t("mytrips.planned.error")}</h3>
-                  <p>{t("mytrips.planned.errorText")}</p>
-                  <button className="btn-gold-filled" onClick={() => user && loadTrips(user.id)}>{t("mytrips.planned.retry")}</button>
-                </div>
-              ) : trips.length === 0 ? (
-                <div className="saved-preview-empty">
-                  <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
-                  <h3>{t("mytrips.planned.empty")}</h3>
-                  <p>{t("mytrips.planned.emptyText")}</p>
-                  <Link href="/plan" className="btn-gold-filled">{t("mytrips.planned.cta")}</Link>
-                </div>
-              ) : (
-                <div className="trips-grid">
-                  {trips.map((trip) => {
-                    const { stops, preview } = tripSummary(trip);
-
-                    return (
-                      <Link key={trip.id} href={`/trip?id=${trip.id}`} className="trip-card">
-                        <div className="trip-card-thumb">
-                          <img
-                            src={preview}
-                            alt={trip.title}
-                            onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }}
-                          />
-                        </div>
-                        <div className="trip-card-body">
-                          <h3 className="trip-card-title">{trip.title}</h3>
-                          <p className="trip-card-meta">
-                            {trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}
-                          </p>
-                          <span className="trip-card-open">
-                            {t("mytrips.planned.open")} <ChevronRight size={12} strokeWidth={2.5} />
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+        {/* Issue #32: der vollbreite Abschnitt "Your planned trips" wurde
+            entfernt — die Trip-Liste lebt nur noch in der Hero-Karte (bzw.
+            deren Mobile-Pendant oben). */}
+        <ConfirmDialog
+          open={tripToDelete !== null}
+          title={t("trip.deleteConfirmTitle")}
+          text={t("trip.deleteConfirmText").replace("{title}", tripToDelete?.title ?? "")}
+          confirmLabel={t("trip.deleteConfirm")}
+          cancelLabel={t("trip.deleteCancel")}
+          busyLabel={t("trip.deleting")}
+          busy={deletingTrip}
+          error={deleteTripError ? t("trip.deleteError") : undefined}
+          onConfirm={handleDeleteTrip}
+          onCancel={closeDeleteDialog}
+        />
 
         {/* FOOTER */}
         <footer className="footer">
