@@ -289,6 +289,9 @@ export const translations = {
   "mytrips.planned.days":      { en: "days",                de: "Tage",                   ru: "дн." },
   "mytrips.planned.routes":    { en: "routes",              de: "Routen",                 ru: "маршр." },
   "mytrips.planned.open":      { en: "Open trip",           de: "Trip öffnen",            ru: "Открыть поездку" },
+  "mytrips.planned.error":     { en: "Your trips couldn't be loaded.", de: "Deine Trips konnten nicht geladen werden.", ru: "Не удалось загрузить поездки." },
+  "mytrips.planned.errorText": { en: "Your saved trips are safe — this is only a loading problem. Please try again.", de: "Deine gespeicherten Trips sind nicht verloren — nur das Laden hat nicht geklappt. Bitte versuch es erneut.", ru: "Сохранённые поездки не потеряны — это лишь ошибка загрузки. Попробуйте ещё раз." },
+  "mytrips.planned.retry":     { en: "Try again",           de: "Erneut versuchen",       ru: "Повторить" },
 
 // ==================== Explore-Seite ====================
 

@@ -68,8 +68,14 @@ function normalizeTrip(trip: Trip): Trip {
   return { ...trip, trip_days: days };
 }
 
-/** Alle Trips eines Users, neueste Änderung zuerst. */
-export async function fetchTrips(userId: string): Promise<Trip[]> {
+/**
+ * Alle Trips eines Users, neueste Änderung zuerst.
+ *
+ * `null` = die Abfrage ist fehlgeschlagen. Vorher wurde daraus ein leeres
+ * Array, und /my-trips zeigte "noch keinen Trip geplant" — ein Lesefehler sah
+ * damit exakt so aus wie ein Speicherfehler (Issue #30).
+ */
+export async function fetchTrips(userId: string): Promise<Trip[] | null> {
   const data = await safeQuery<Trip[]>(
     supabase
       .from("trips")
@@ -79,7 +85,7 @@ export async function fetchTrips(userId: string): Promise<Trip[]> {
     "fetchTrips"
   );
 
-  return (data ?? []).map(normalizeTrip);
+  return data ? data.map(normalizeTrip) : null;
 }
 
 /** Ein einzelner Trip inkl. Tagen und Stopps. */
