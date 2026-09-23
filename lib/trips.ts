@@ -223,6 +223,31 @@ export async function addTripDay(
   );
 }
 
+/**
+ * Löscht einen ganzen Trip (Issue #32).
+ *
+ * trip_days hängen per ON DELETE CASCADE an trips, trip_stops per ON DELETE
+ * CASCADE an trip_days — ein einziger Delete auf trips räumt also alle drei
+ * Tabellen auf. `.select("id")` holt die gelöschte Zeile zurück: blockiert RLS
+ * den Delete, meldet PostgREST keinen Fehler, sondern löscht still 0 Zeilen.
+ * Das wird hier als Fehlschlag gewertet, damit die Liste den Trip nicht
+ * fälschlich ausblendet.
+ */
+export async function deleteTrip(tripId: string): Promise<boolean> {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from("trips").delete().eq("id", tripId).select("id")
+    );
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error("deleteTrip: kein Trip gelöscht");
+    return true;
+  } catch (err) {
+    console.error("deleteTrip failed:", err);
+    if (isAuthError(err)) await resetAuthState();
+    return false;
+  }
+}
+
 export async function deleteTripDay(dayId: string): Promise<boolean> {
   try {
     // trip_stops hängen per ON DELETE CASCADE dran und verschwinden mit.
