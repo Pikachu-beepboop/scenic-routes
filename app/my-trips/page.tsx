@@ -79,6 +79,15 @@ const FOOTER_COLUMNS = [
 // NEU (Mobile): wie viele Route-Einträge initial + pro "Load more"-Klick angezeigt werden
 const MOBILE_PAGE_SIZE = 4;
 
+/** Stopps, Vorschaubild und Länder eines Trips — für Hero-Panel und Trip-Grid. */
+function tripSummary(trip: Trip) {
+  const stops = trip.trip_days.flatMap((day) => day.trip_stops);
+  const preview =
+    stops.map((stop) => stop.routes?.image_url).find(Boolean) || "/amalfi_coast_road.jpg";
+  const countries = [...new Set(stops.map((stop) => stop.routes?.country).filter(Boolean))];
+  return { stops, preview, countries };
+}
+
 export default function MyTripsPage() {
   // GEÄNDERT: zentraler Auth-State statt eigenem getSession()/Listener.
   const { user, loading: authLoading } = useAuth();
@@ -87,6 +96,7 @@ export default function MyTripsPage() {
   // NEU (Trip Builder): die im Route Planner gespeicherten, mehrtägigen Trips
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
+  const [tripsError, setTripsError] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -200,7 +210,9 @@ export default function MyTripsPage() {
   // NEU (Trip Builder): geplante Trips inkl. Tagen/Stopps laden
   async function loadTrips(userId: string) {
     setTripsLoading(true);
-    setTrips(await fetchTrips(userId));
+    const data = await fetchTrips(userId);
+    setTrips(data ?? []);
+    setTripsError(data === null);
     setTripsLoading(false);
   }
 
@@ -252,11 +264,20 @@ export default function MyTripsPage() {
     updateSavedThumb();
     window.addEventListener("resize", updateSavedThumb);
     return () => window.removeEventListener("resize", updateSavedThumb);
-  }, [savedRoutes, loading, user]);
+  }, [savedRoutes, trips, loading, user]);
 
   // NEU (Mobile): auf Mobile nur die sichtbare Teilmenge rendern, Desktop unverändert alles
   const displayedRoutes = isMobile ? savedRoutes.slice(0, visibleCount) : savedRoutes;
   const hasMoreMobile = isMobile && visibleCount < savedRoutes.length;
+
+  // Issue #30: Das Hero-Panel füllt den ganzen ersten Bildschirm. Ohne
+  // gemerkte Einzelrouten stand dort bisher "No saved routes yet." — auch
+  // dann, wenn gerade ein Trip gespeichert wurde, der erst unterhalb des Heros
+  // in "Your planned trips" auftaucht. In diesem Fall zeigt das Panel jetzt die
+  // geplanten Trips, und es wartet dafür auch auf deren Ladevorgang.
+  const showTripsInPanel = savedRoutes.length === 0 && trips.length > 0;
+  const panelLoading = loading || (savedRoutes.length === 0 && tripsLoading);
+  const panelTitle = t(showTripsInPanel ? "mytrips.planned.title" : "mytrips.savedTitle");
 
   return (
     <>
@@ -788,7 +809,7 @@ export default function MyTripsPage() {
 
             <div className="saved-preview-panel">
               <div className="saved-preview-head">
-                <h2 className="saved-preview-title">{t("mytrips.savedTitle")}</h2>
+                <h2 className="saved-preview-title">{panelTitle}</h2>
               </div>
 
               {/* Planned-Tab wurde entfernt */}
@@ -800,9 +821,44 @@ export default function MyTripsPage() {
                   <p>{t("mytrips.empty.signInText")}</p>
                   <Link href="/login" className="btn-gold-filled">{t("mytrips.empty.loginBtn")}</Link>
                 </div>
-              ) : loading ? (
+              ) : panelLoading ? (
                 <div className="saved-preview-empty">
                   <div className="spinner" />
+                </div>
+              ) : showTripsInPanel ? (
+                <div className="saved-preview-list-wrap">
+                  <div className="saved-preview-list" ref={savedListRef} onScroll={updateSavedThumb}>
+                    {trips.map((trip) => {
+                      const { stops, preview, countries } = tripSummary(trip);
+                      return (
+                        <div key={trip.id} className="saved-preview-item">
+                          <Link href={`/trip?id=${trip.id}`} className="saved-preview-thumb">
+                            <img src={preview} alt={trip.title} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
+                          </Link>
+                          <div>
+                            <p className="saved-preview-country">{countries.join(" · ") || t("home.popular.fallbackType")}</p>
+                            <Link href={`/trip?id=${trip.id}`}>
+                              <h3 className="saved-preview-name">{trip.title}</h3>
+                            </Link>
+                            <div className="saved-preview-meta">
+                              <span>{trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}</span>
+                            </div>
+                          </div>
+                          <div className="saved-preview-action-wrap">
+                            <Link href={`/trip?id=${trip.id}`} className="saved-preview-action" title={t("mytrips.planned.open")}><ChevronRight size={19} strokeWidth={2} /></Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {savedThumb.visible && (
+                    <div className="custom-scrollbar-track">
+                      <div
+                        className="custom-scrollbar-thumb"
+                        style={{ height: savedThumb.height, transform: `translateY(${savedThumb.top}px)` }}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : savedRoutes.length === 0 ? (
                 <div className="saved-preview-empty">
@@ -857,7 +913,7 @@ export default function MyTripsPage() {
             Ersetzt visuell die (auf Mobile ausgeblendete) .saved-preview-panel. */}
         <div className="mobile-saved-section mobile-only">
           <div className="mobile-saved-head">
-            <h2 className="saved-preview-title">{t("mytrips.savedTitle")}</h2>
+            <h2 className="saved-preview-title">{panelTitle}</h2>
           </div>
 
           <div className="mobile-route-list">
@@ -868,10 +924,33 @@ export default function MyTripsPage() {
                 <p>{t("mytrips.empty.signInText")}</p>
                 <Link href="/login" className="btn-gold-filled">{t("mytrips.empty.loginBtn")}</Link>
               </div>
-            ) : loading ? (
+            ) : panelLoading ? (
               <div className="saved-preview-empty">
                 <div className="spinner" />
               </div>
+            ) : showTripsInPanel ? (
+              trips.map((trip) => {
+                const { stops, preview, countries } = tripSummary(trip);
+                return (
+                  <div key={trip.id} className="mobile-route-row">
+                    <Link href={`/trip?id=${trip.id}`} className="mobile-route-thumb">
+                      <img src={preview} alt={trip.title} onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }} />
+                    </Link>
+                    <div className="mobile-route-info">
+                      <p className="mobile-route-country">{countries.join(" · ") || t("home.popular.fallbackType")}</p>
+                      <Link href={`/trip?id=${trip.id}`}>
+                        <h3 className="mobile-route-title">{trip.title}</h3>
+                      </Link>
+                      <div className="mobile-route-meta">
+                        <span>{trip.trip_days.length} {t("mytrips.planned.days")} · {stops.length} {t("mytrips.planned.routes")}</span>
+                      </div>
+                    </div>
+                    <div className="mobile-route-actions">
+                      <Link href={`/trip?id=${trip.id}`} className="mobile-route-open" title={t("mytrips.planned.open")}><ChevronRight size={15} strokeWidth={2} /></Link>
+                    </div>
+                  </div>
+                );
+              })
             ) : savedRoutes.length === 0 ? (
               <div className="saved-preview-empty">
                 <div className="saved-preview-empty-icon"><Heart size={24} strokeWidth={1.8} /></div>
@@ -934,6 +1013,13 @@ export default function MyTripsPage() {
 
               {tripsLoading ? (
                 <div className="saved-preview-empty"><div className="spinner" /></div>
+              ) : tripsError ? (
+                <div className="saved-preview-empty">
+                  <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
+                  <h3>{t("mytrips.planned.error")}</h3>
+                  <p>{t("mytrips.planned.errorText")}</p>
+                  <button className="btn-gold-filled" onClick={() => user && loadTrips(user.id)}>{t("mytrips.planned.retry")}</button>
+                </div>
               ) : trips.length === 0 ? (
                 <div className="saved-preview-empty">
                   <div className="saved-preview-empty-icon"><MapIcon size={24} strokeWidth={1.8} /></div>
@@ -944,10 +1030,7 @@ export default function MyTripsPage() {
               ) : (
                 <div className="trips-grid">
                   {trips.map((trip) => {
-                    const stops = trip.trip_days.flatMap((day) => day.trip_stops);
-                    const preview =
-                      stops.map((stop) => stop.routes?.image_url).find(Boolean) ||
-                      "/amalfi_coast_road.jpg";
+                    const { stops, preview } = tripSummary(trip);
 
                     return (
                       <Link key={trip.id} href={`/trip?id=${trip.id}`} className="trip-card">
