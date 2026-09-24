@@ -17,6 +17,19 @@
 export const GOOGLE_MAPS_BROWSER_KEY =
   process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 
+/**
+ * NEU: Die Grundstrecke (direkte Route Start -> Ziel) wird mit aktueller
+ * Verkehrslage angefragt. Das ändert nur, WELCHE Route Google empfiehlt —
+ * näher an dem, was google.com/maps zeigt. Die Fahrzeiten, mit denen die
+ * Umweg-Messung rechnet (`leg.duration`), bleiben verkehrsunabhängig und
+ * damit mit den Kandidaten-Anfragen vergleichbar.
+ *
+ * Kosten: genau eine Anfrage pro Klick auf "Calculate Route" wird in Googles
+ * höherer Preisstufe (mit Verkehrsdaten) abgerechnet. Auf false setzen, um
+ * das abzuschalten.
+ */
+export const USE_TRAFFIC_FOR_BASELINE = true;
+
 const CALLBACK_NAME = "__scenicRoutesGoogleMapsReady";
 const SCRIPT_ID = "scenic-routes-google-maps";
 
@@ -151,34 +164,117 @@ export type DirectionsWaypoint = { lat: number; lng: number };
  * einzelnen Route (lib/routeDetour.ts). Dort sind es genau zwei Wegpunkte,
  * Google kann also nichts anderes tun, als die günstigere der beiden
  * Fahrtrichtungen zu wählen — und genau die will die Messung wissen.
+ *
+ * NEU:
+ *   `alternatives` — Google liefert bis zu drei Streckenvarianten statt nur
+ *                    seiner Empfehlung. Funktioniert nur ohne Wegpunkte.
+ *   `traffic`      — Routenwahl mit aktueller Verkehrslage (Abfahrt jetzt).
  */
 export async function computeDirections(
   origin: string,
   destination: string,
   waypoints: DirectionsWaypoint[] = [],
-  options: { optimizeWaypoints?: boolean } = {}
+  options: { optimizeWaypoints?: boolean; alternatives?: boolean; traffic?: boolean } = {}
 ): Promise<any> {
   const maps = await loadGoogleMaps();
   const service = new maps.DirectionsService();
 
+  const request: any = {
+    origin,
+    destination,
+    travelMode: maps.TravelMode.DRIVING,
+    optimizeWaypoints: options.optimizeWaypoints ?? false,
+    waypoints: waypoints.map((point) => ({
+      location: new maps.LatLng(point.lat, point.lng),
+      stopover: true,
+    })),
+  };
+
+  if (options.alternatives && waypoints.length === 0) {
+    request.provideRouteAlternatives = true;
+  }
+
+  if (options.traffic) {
+    request.drivingOptions = {
+      departureTime: new Date(),
+      trafficModel: maps.TrafficModel?.BEST_GUESS ?? "bestguess",
+    };
+  }
+
   return new Promise((resolve, reject) => {
-    service.route(
-      {
-        origin,
-        destination,
-        travelMode: maps.TravelMode.DRIVING,
-        optimizeWaypoints: options.optimizeWaypoints ?? false,
-        waypoints: waypoints.map((point) => ({
-          location: new maps.LatLng(point.lat, point.lng),
-          stopover: true,
-        })),
-      },
-      (result: any, status: any) => {
-        if (status === maps.DirectionsStatus.OK && result) resolve(result);
-        else reject(new Error(String(status)));
-      }
-    );
+    service.route(request, (result: any, status: any) => {
+      if (status === maps.DirectionsStatus.OK && result) resolve(result);
+      else reject(new Error(String(status)));
+    });
   });
+}
+
+/**
+ * NEU: Die Grundstrecke für den Route Planner — mit Alternativen und (falls
+ * aktiviert) Verkehrslage. Lehnt Google die Anfrage mit Verkehrsdaten ab
+ * (z.B. weil der Key dafür nicht freigeschaltet ist), wird sie einmal ohne
+ * Verkehrsdaten wiederholt, damit der Planner trotzdem funktioniert.
+ */
+export async function computeBaselineDirections(
+  origin: string,
+  destination: string
+): Promise<any> {
+  if (USE_TRAFFIC_FOR_BASELINE) {
+    try {
+      return await computeDirections(origin, destination, [], {
+        alternatives: true,
+        traffic: true,
+      });
+    } catch (err) {
+      console.warn("plan: Grundstrecke mit Verkehrslage fehlgeschlagen, rechne ohne", err);
+    }
+  }
+
+  return computeDirections(origin, destination, [], { alternatives: true });
+}
+
+/** NEU: Eine von Google gelieferte Streckenvariante, für die Auswahl über der Karte. */
+export type RouteOption = {
+  /** Index in `result.routes`. */
+  index: number;
+  /** Googles Kurzbeschreibung, z.B. "E45" oder "A10" — kann leer sein. */
+  summary: string;
+  km: number;
+  seconds: number;
+};
+
+/** NEU: Alle Streckenvarianten einer Directions-Antwort. */
+export function listRouteOptions(result: any): RouteOption[] {
+  const allRoutes: any[] = result?.routes ?? [];
+
+  return allRoutes.map((route, index) => {
+    let meters = 0;
+    let seconds = 0;
+    for (const leg of (route?.legs ?? []) as any[]) {
+      meters += leg?.distance?.value ?? 0;
+      seconds += leg?.duration?.value ?? 0;
+    }
+    return {
+      index,
+      summary: typeof route?.summary === "string" ? route.summary : "",
+      km: meters / 1000,
+      seconds,
+    };
+  });
+}
+
+/**
+ * NEU: Dieselbe Directions-Antwort, reduziert auf genau eine Streckenvariante.
+ *
+ * Alle anderen Helfer hier (overviewPathToLngLat, summarizeDirections) und
+ * der DirectionsRenderer lesen `routes[0]` — mit der reduzierten Antwort
+ * arbeiten sie ohne Änderung auf der gewählten Variante.
+ */
+export function pickRoute(result: any, index: number): any {
+  const allRoutes: any[] = result?.routes ?? [];
+  const route = allRoutes[index] ?? allRoutes[0];
+  if (!route) return result;
+  return { ...result, routes: [route] };
 }
 
 /**

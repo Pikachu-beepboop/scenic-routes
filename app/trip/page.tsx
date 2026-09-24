@@ -7,6 +7,11 @@
 // nicht vorgerendert und erzeugen die in ROUTING.md beschriebenen
 // Prefetch-404er. Mit Query-Parameter bleibt die Seite eine ganz normale,
 // vorgerenderte Client-Page.
+//
+// NEU: Passende Routen für genau diese Strecke ergänzen. Die Links führen zu
+// /plan?trip=<id> (neue Routen landen am letzten Tag) bzw.
+// /plan?trip=<id>&day=<dayId> (neue Routen landen an genau diesem Tag).
+// Der Planner übernimmt Start/Ziel des Trips und rechnet automatisch.
 
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -36,6 +41,17 @@ import {
 } from "../../lib/trips";
 
 import "../profile/profile.css";
+
+// NEU: Texte für die "Routen ergänzen"-Links. Lokal statt in
+// lib/translations, gleiches Muster wie GoogleMapsGate — kann später in die
+// zentrale Übersetzungsdatei wandern.
+const ADD_TEXT = {
+  de: { findRoutes: "Passende Routen finden", addRoutes: "Routen hinzufügen", newTrip: "Neuen Trip planen" },
+  en: { findRoutes: "Find routes for this trip", addRoutes: "Add routes", newTrip: "Plan a new trip" },
+  ru: { findRoutes: "Найти маршруты для поездки", addRoutes: "Добавить маршруты", newTrip: "Спланировать новую поездку" },
+} as const;
+
+type AddLang = keyof typeof ADD_TEXT;
 
 type BuilderStop = {
   id: string;
@@ -100,6 +116,7 @@ function TripBuilder() {
   const router = useRouter();
 
   const { t, lang } = useLanguage();
+  const tx = ADD_TEXT[(lang as AddLang) in ADD_TEXT ? (lang as AddLang) : "de"];
   const { unit } = useUnit();
   const { user, loading: authLoading } = useAuth();
 
@@ -366,6 +383,10 @@ function TripBuilder() {
     tripId ? `/trip?id=${tripId}` : "/trip"
   )}`;
 
+  // NEU: Ziele für "Routen ergänzen" — ohne day landen sie am letzten Tag.
+  const planHref = (dayId?: string) =>
+    `/plan?trip=${encodeURIComponent(tripId)}${dayId ? `&day=${encodeURIComponent(dayId)}` : ""}`;
+
   return (
     <div className="pp">
       <div className="pp-bg">
@@ -459,20 +480,34 @@ function TripBuilder() {
                     <h2 className="tb-day-title">
                       {t("trip.day")} {day.dayNumber}
                     </h2>
-                    {days.length > 1 && (
-                      <button
-                        className="tb-icon-btn tb-icon-danger"
-                        onClick={() => handleRemoveDay(day.id)}
-                        title={t("trip.removeDay")}
-                        aria-label={t("trip.removeDay")}
-                      >
-                        <Trash2 size={14} strokeWidth={2} />
-                      </button>
-                    )}
+                    <div className="tb-day-head-actions">
+                      {/* NEU: Routen gezielt für diesen Tag ergänzen */}
+                      {day.stops.length > 0 && (
+                        <Link href={planHref(day.id)} className="tb-day-add" draggable={false}>
+                          <Plus size={12} strokeWidth={2.4} /> {tx.addRoutes}
+                        </Link>
+                      )}
+                      {days.length > 1 && (
+                        <button
+                          className="tb-icon-btn tb-icon-danger"
+                          onClick={() => handleRemoveDay(day.id)}
+                          title={t("trip.removeDay")}
+                          aria-label={t("trip.removeDay")}
+                        >
+                          <Trash2 size={14} strokeWidth={2} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {day.stops.length === 0 ? (
-                    <p className="tb-day-empty">{t("trip.emptyDay")}</p>
+                    <div className="tb-day-empty">
+                      <p>{t("trip.emptyDay")}</p>
+                      {/* NEU: direkt passende Routen für diese Strecke suchen */}
+                      <Link href={planHref(day.id)} className="tb-find-routes" draggable={false}>
+                        <Compass size={13} strokeWidth={2} /> {tx.findRoutes}
+                      </Link>
+                    </div>
                   ) : (
                     <div className="tb-stops">
                       {day.stops.map((stop, stopIndex) => (
@@ -577,8 +612,10 @@ function TripBuilder() {
                 <button className="tb-add-day" onClick={handleAddDay}>
                   <Plus size={14} strokeWidth={2.4} /> {t("trip.addDay")}
                 </button>
+                    {/* Startet einen komplett neuen Trip im leeren Planner. Das
+                   Ergänzen dieses Trips läuft über "Routen hinzufügen" am Tag. */}
                 <Link href="/plan" className="tb-secondary-link">
-                  <Compass size={13} strokeWidth={2} /> {t("trip.addMoreRoutes")}
+                  <Compass size={13} strokeWidth={2} /> {tx.newTrip}
                 </Link>
                 <Link href="/my-trips" className="tb-secondary-link">
                   <ArrowLeft size={13} strokeWidth={2} /> {t("trip.backToTrips")}
@@ -633,7 +670,14 @@ function TripBuilder() {
 
         .tb-day-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding-bottom:14px; border-bottom:1px solid var(--border); margin-bottom:6px; }
         .tb-day-title { font-family:var(--serif); font-size:24px; font-weight:400; color:var(--cream); }
-        .tb-day-empty { padding:24px; margin-top:10px; border:1px dashed var(--border); border-radius:16px; text-align:center; font-size:12.5px; color:var(--dim); }
+        .tb-day-head-actions { display:flex; align-items:center; gap:12px; }
+        .tb-day-add { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); white-space:nowrap; transition:opacity .2s; }
+        .tb-day-add:hover { opacity:0.75; }
+
+        .tb-day-empty { display:flex; flex-direction:column; align-items:center; gap:14px; padding:24px; margin-top:10px; border:1px dashed var(--border); border-radius:16px; text-align:center; }
+        .tb-day-empty p { font-size:12.5px; color:var(--dim); }
+        .tb-find-routes { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border:1px solid var(--gold); border-radius:999px; background:var(--gold); color:#0c0b09; font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:transform .2s; }
+        .tb-find-routes:hover { transform:translateY(-1px); }
 
         .tb-stops { display:flex; flex-direction:column; }
         .tb-stop { display:grid; grid-template-columns:auto 84px 1fr auto; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); background:transparent; transition:background .15s, box-shadow .15s; }

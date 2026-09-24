@@ -150,6 +150,13 @@ export default function GoogleMapsGate({
   );
 }
 
+// GEÄNDERT: Button- und Link-Selektoren sind jetzt an .gm-gate und das
+// Element gebunden (".gm-gate button.gm-gate-btn", ".gm-gate a.gm-gate-link").
+// Grund: Auf /plan lädt die Seite profile.css, dessen globale Button-/Link-
+// Regeln den grünen Hintergrund und die Linkfarbe überschrieben haben. Übrig
+// blieb nur die dunkle Schrift (#05130d), die im Dark Mode unsichtbar war.
+// Die höhere Spezifität setzt sich unabhängig von der CSS-Ladereihenfolge
+// durch; auf der Route-Detail-Seite ändert sich optisch nichts.
 const GATE_STYLES = `
   .gm-gate {
     width: 100%;
@@ -196,13 +203,14 @@ const GATE_STYLES = `
     max-width: 340px;
   }
 
-  .gm-gate-btn {
+  .gm-gate button.gm-gate-btn {
     margin-top: 4px;
     padding: 11px 26px;
     border: none;
     border-radius: 999px;
     background: #10b981;
     color: #05130d;
+    font-family: inherit;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -210,8 +218,8 @@ const GATE_STYLES = `
     cursor: pointer;
     transition: background .2s, transform .2s;
   }
-  .gm-gate-btn:hover:not(:disabled) { background: #34d399; transform: translateY(-1px); }
-  .gm-gate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .gm-gate button.gm-gate-btn:hover:not(:disabled) { background: #34d399; transform: translateY(-1px); }
+  .gm-gate button.gm-gate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .gm-gate-note {
     font-size: 10.5px;
@@ -220,7 +228,7 @@ const GATE_STYLES = `
     line-height: 1.6;
   }
 
-  .gm-gate-link {
+  .gm-gate a.gm-gate-link {
     display: inline-flex;
     align-items: center;
     gap: 4px;

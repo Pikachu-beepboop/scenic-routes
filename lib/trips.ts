@@ -194,6 +194,40 @@ export async function createTrip(
   }
 }
 
+/**
+ * NEU: Hängt Routen ans Ende eines bestehenden Tages an.
+ *
+ * Genutzt von /plan im "Trip ergänzen"-Modus (/plan?trip=<id>[&day=<dayId>]).
+ * `startPosition` ist die Anzahl der Stopps, die der Tag schon hat — die
+ * neuen Stopps werden dahinter einsortiert, die bestehende Reihenfolge bleibt
+ * unangetastet.
+ */
+export async function addStopsToDay(
+  dayId: string,
+  routeIds: string[],
+  startPosition: number
+): Promise<boolean> {
+  if (routeIds.length === 0) return true;
+
+  try {
+    const { error } = await withTimeout(
+      supabase.from("trip_stops").insert(
+        routeIds.map((routeId, index) => ({
+          trip_day_id: dayId,
+          route_id: routeId,
+          position: startPosition + index,
+        }))
+      )
+    );
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("addStopsToDay failed:", err);
+    if (isAuthError(err)) await resetAuthState();
+    return false;
+  }
+}
+
 /** Titel ändern (debounced aufgerufen). `updated_at` setzt der DB-Trigger. */
 export async function updateTripTitle(tripId: string, title: string): Promise<boolean> {
   try {
