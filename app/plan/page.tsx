@@ -113,6 +113,7 @@ const TRIP_TEXT = {
     addError: "Die Routen konnten nicht hinzugefügt werden. Bitte versuch es erneut.",
     tripLoadError: "Der Trip konnte nicht geladen werden. Du kannst hier trotzdem einen neuen Trip planen.",
     toBuilder: "Zum Trip Builder",
+    restored: "Deine Auswahl von vorhin wurde wiederhergestellt.",
     variantsLabel: "Streckenvariante",
     via: "über {road}",
     variantN: "Variante {n}",
@@ -127,6 +128,7 @@ const TRIP_TEXT = {
     addError: "The routes couldn't be added. Please try again.",
     tripLoadError: "The trip couldn't be loaded. You can still plan a new trip here.",
     toBuilder: "Open Trip Builder",
+    restored: "Your previous selection has been restored.",
     variantsLabel: "Route option",
     via: "via {road}",
     variantN: "Option {n}",
@@ -141,6 +143,7 @@ const TRIP_TEXT = {
     addError: "Не удалось добавить маршруты. Попробуйте ещё раз.",
     tripLoadError: "Не удалось загрузить поездку. Вы всё равно можете спланировать новую.",
     toBuilder: "Открыть конструктор поездки",
+    restored: "Ваш предыдущий выбор восстановлен.",
     variantsLabel: "Вариант маршрута",
     via: "через {road}",
     variantN: "Вариант {n}",
@@ -177,6 +180,75 @@ function formatDuration(totalSeconds: number): string {
 const NEGLIGIBLE_DETOUR_SECONDS = 300;
 
 /**
+ * NEU: Kurzfristiger Entwurf des Planners.
+ *
+ * Wird gespeichert, kurz bevor ein nicht eingeloggter Nutzer beim Klick auf
+ * "Als Trip speichern" zum Login geschickt wird. Kommt er ohne Login zurück
+ * (z.B. über "Go back"), stellt /plan Start, Ziel, Streckenvariante, Regler
+ * und die gewählten Routen wieder her.
+ *
+ * sessionStorage statt localStorage: gilt nur für diesen Tab und verschwindet
+ * beim Schließen — wirklich nur ein kurzfristiger Zwischenstand. Nach einer
+ * Stunde gilt er als veraltet und wird ignoriert.
+ */
+const PLAN_DRAFT_KEY = "scenicRoutes.planDraft";
+const PLAN_DRAFT_MAX_AGE_MS = 60 * 60 * 1000;
+
+type PlanDraft = {
+  start: string;
+  end: string;
+  routeIds: string[];
+  routeIndex: number;
+  detourLimitPct: number;
+  savedAt: number;
+};
+
+function savePlanDraft(draft: PlanDraft) {
+  try {
+    window.sessionStorage.setItem(PLAN_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // Speicher voll oder gesperrt (z.B. privater Modus) — dann eben ohne Entwurf.
+  }
+}
+
+function readPlanDraft(): PlanDraft | null {
+  try {
+    const raw = window.sessionStorage.getItem(PLAN_DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw) as Partial<PlanDraft>;
+    if (
+      typeof draft.start !== "string" ||
+      typeof draft.end !== "string" ||
+      !Array.isArray(draft.routeIds) ||
+      typeof draft.savedAt !== "number" ||
+      Date.now() - draft.savedAt > PLAN_DRAFT_MAX_AGE_MS
+    ) {
+      window.sessionStorage.removeItem(PLAN_DRAFT_KEY);
+      return null;
+    }
+    return {
+      start: draft.start,
+      end: draft.end,
+      routeIds: draft.routeIds.filter((id): id is string => typeof id === "string"),
+      routeIndex: typeof draft.routeIndex === "number" ? draft.routeIndex : 0,
+      detourLimitPct:
+        typeof draft.detourLimitPct === "number" ? draft.detourLimitPct : DEFAULT_DETOUR_LIMIT_PCT,
+      savedAt: draft.savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearPlanDraft() {
+  try {
+    window.sessionStorage.removeItem(PLAN_DRAFT_KEY);
+  } catch {
+    // ignorieren
+  }
+}
+
+/**
  * Freitextfeld mit Google-Places-Vorschlägen. Die Liste wird bewusst selbst
  * gerendert (statt mit dem Google-Widget), damit sie dem bestehenden
  * Design-/Variablensystem folgt.
@@ -200,13 +272,17 @@ function PlaceField({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  // Nach dem Übernehmen eines Vorschlags soll die Änderung keine neue Abfrage
-  // auslösen — sonst klappt die Liste sofort wieder auf.
-  const skipNextLookup = useRef(false);
+  // GEÄNDERT: Vorschläge nur für Text, den der Nutzer selbst getippt hat.
+  // Wird der Wert von außen gesetzt (Entwurf wiederhergestellt, Trip-ergänzen-
+  // Modus) oder ein Vorschlag übernommen, weicht er vom zuletzt getippten Text
+  // ab — dann keine Abfrage und keine aufklappende Liste. Ersetzt das frühere
+  // skipNextLookup, das nur den Fall "Vorschlag übernommen" abdeckte.
+  const lastTypedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (skipNextLookup.current) {
-      skipNextLookup.current = false;
+    if (value !== lastTypedRef.current) {
+      setSuggestions([]);
+      setOpen(false);
       return;
     }
 
@@ -254,7 +330,10 @@ function PlaceField({
           value={value}
           placeholder={placeholder}
           autoComplete="off"
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            lastTypedRef.current = e.target.value;
+            onChange(e.target.value);
+          }}
           onFocus={() => setOpen(suggestions.length > 0)}
         />
       </div>
@@ -267,7 +346,6 @@ function PlaceField({
               type="button"
               className="rp-suggestion"
               onClick={() => {
-                skipNextLookup.current = true;
                 onChange(suggestion.text);
                 setSuggestions([]);
                 setOpen(false);
@@ -578,6 +656,12 @@ function PlanPageContent() {
   const [addError, setAddError] = useState(false);
   const autoCalcDoneRef = useRef(false);
 
+  // NEU: Wiederherstellung nach Rückkehr vom Login ohne Anmeldung
+  const [restoreDraft, setRestoreDraft] = useState<PlanDraft | null>(null);
+  const [restoredNotice, setRestoredNotice] = useState(false);
+  // Routen, die nach der nächsten Umweg-Messung wieder ausgewählt werden
+  const restoreIdsRef = useRef<string[] | null>(null);
+
   // Google Maps darf erst nach der Cookie-Zustimmung angesprochen werden —
   // das gilt hier nicht nur für die Karte, sondern auch für Places und
   // Directions. Den Zustand meldet der bestehende GoogleMapsGate-Wrapper.
@@ -758,9 +842,19 @@ function PlanPageContent() {
     if (isCancelled()) return;
 
     setCandidates(scored);
+
+    // NEU: Auswahl aus dem Entwurf wieder setzen — nur Routen, die für diese
+    // Strecke tatsächlich wieder gefunden wurden.
+    const restoreIds = restoreIdsRef.current;
+    if (restoreIds) {
+      restoreIdsRef.current = null;
+      const available = new Set(scored.map((candidate) => candidate.route.id));
+      const restored = restoreIds.filter((id) => available.has(id));
+      if (restored.length > 0) setSelectedIds(restored);
+    }
   }
 
-  async function handleCalculate() {
+  async function handleCalculate(preferredRouteIndex = 0) {
     const origin = start.trim();
     const destination = end.trim();
 
@@ -791,13 +885,18 @@ function PlanPageContent() {
       baseResultRef.current = result;
       queryRef.current = { start: origin, end: destination };
 
-      setRouteOptions(listRouteOptions(result));
-      activeRouteIndexRef.current = 0;
-      setActiveRouteIndex(0);
+      const options = listRouteOptions(result);
+      setRouteOptions(options);
+      // Normalfall 0 (Googles Empfehlung); beim Wiederherstellen die Variante
+      // von vorhin, sofern es sie wieder gibt.
+      const startIndex =
+        preferredRouteIndex > 0 && preferredRouteIndex < options.length ? preferredRouteIndex : 0;
+      activeRouteIndexRef.current = startIndex;
+      setActiveRouteIndex(startIndex);
       setHasResult(true);
 
       // Variante 0 = Googles Empfehlung
-      await runMatching(0, run);
+      await runMatching(startIndex, run);
     } catch (err) {
       console.error("plan: Directions-Anfrage fehlgeschlagen", err);
       if (isCancelled()) return;
@@ -857,6 +956,38 @@ function PlanPageContent() {
       void handleSelectRouteOption(index);
     };
   });
+
+  // NEU: Entwurf beim Laden übernehmen (nicht im Trip-ergänzen-Modus — dort
+  // kommen Start/Ziel aus dem Trip).
+  useEffect(() => {
+    if (tripParam) return;
+    const draft = readPlanDraft();
+    if (!draft) return;
+    clearPlanDraft();
+    setStart(draft.start);
+    setEnd(draft.end);
+    setDetourLimitPct(draft.detourLimitPct);
+    setRestoreDraft(draft);
+    // nur beim ersten Laden
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // NEU: Mit dem Entwurf einmalig automatisch rechnen, sobald Google Maps
+  // freigegeben und die Routen geladen sind; danach Variante und Auswahl
+  // wiederherstellen (siehe runMatching).
+  useEffect(() => {
+    if (!restoreDraft || autoCalcDoneRef.current) return;
+    if (!mapsConsent || routes.length === 0) return;
+    if (!start.trim() || !end.trim()) return;
+
+    autoCalcDoneRef.current = true;
+    restoreIdsRef.current = restoreDraft.routeIds;
+    setRestoredNotice(true);
+    const routeIndex = restoreDraft.routeIndex;
+    setRestoreDraft(null);
+    void handleCalculate(routeIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoreDraft, mapsConsent, routes, start, end]);
 
   // Im Trip-ergänzen-Modus einmalig automatisch rechnen, sobald Start/Ziel
   // übernommen, die Routen geladen und Google Maps freigegeben sind.
@@ -1086,6 +1217,16 @@ function PlanPageContent() {
     if (!resolvedUserId) {
       setSaving(false);
       savePendingTrip(pending);
+      // NEU: zusätzlich den sichtbaren Planner-Stand merken, falls der Nutzer
+      // ohne Login zurückkommt
+      savePlanDraft({
+        start: start.trim(),
+        end: end.trim(),
+        routeIds: pending.routeIds,
+        routeIndex: activeRouteIndexRef.current,
+        detourLimitPct,
+        savedAt: Date.now(),
+      });
       router.push(`/login?redirect=${encodeURIComponent("/plan")}`);
       return;
     }
@@ -1104,6 +1245,7 @@ function PlanPageContent() {
     if (error) console.error("plan: Trip angelegt, aber unvollständig", error);
 
     clearPendingTrip();
+    clearPlanDraft();
     router.push(`/trip?id=${tripId}`);
   }
 
@@ -1169,6 +1311,7 @@ function PlanPageContent() {
       // Erst nach dem erfolgreichen Anlegen verwerfen — vorher würde ein
       // Fehlschlag die Auswahl des Nutzers endgültig vernichten.
       clearPendingTrip();
+      clearPlanDraft();
       router.replace(`/trip?id=${tripId}`);
     })();
   }, [authLoading, resolveUserId, router]);
@@ -1240,6 +1383,8 @@ function PlanPageContent() {
               </div>
             )}
             {tripLoadFailed && <p className="rp-error">{tx.tripLoadError}</p>}
+            {/* NEU: nach Rückkehr vom Login ohne Anmeldung */}
+            {restoredNotice && <p className="rp-restored">{tx.restored}</p>}
 
             <div className="rp-form">
               <PlaceField
@@ -1260,7 +1405,10 @@ function PlanPageContent() {
               />
               <button
                 className="rp-calc-btn"
-                onClick={handleCalculate}
+                onClick={() => {
+                  setRestoredNotice(false);
+                  void handleCalculate();
+                }}
                 disabled={calculating || !mapsConsent}
               >
                 <Search size={13} strokeWidth={2.4} />
@@ -1499,6 +1647,7 @@ function PlanPageContent() {
         .rp-trip-banner p { font-size:12.5px; line-height:1.6; color:var(--cream); }
         .rp-trip-banner-link { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); white-space:nowrap; transition:opacity .2s; }
         .rp-trip-banner-link:hover { opacity:0.75; }
+        .rp-restored { padding:12px 16px; border:1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius:12px; background:color-mix(in srgb, var(--gold) 10%, transparent); font-size:12.5px; color:var(--cream); }
 
         .rp-form { display:grid; grid-template-columns:1fr 1fr auto; gap:14px; align-items:end; }
         .rp-field { position:relative; display:flex; flex-direction:column; gap:8px; min-width:0; }
