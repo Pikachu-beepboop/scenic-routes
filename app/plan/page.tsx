@@ -14,9 +14,12 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   MapPin, Flag, Navigation, Clock, Search, Compass, ArrowRight, ArrowLeft, Plus,
+  ChevronDown, Globe,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import PlannerNav from "../components/PlannerNav";
+import { ThemeSwitch } from "../components/ThemeSwitch";
 import GoogleMapsGate from "../components/GoogleMapsGate";
 import RouteCard, { ROUTE_CARD_STYLES } from "../components/RouteCard";
 import { useLanguage } from "../LanguageContext";
@@ -52,7 +55,7 @@ import {
   type PlaceSuggestion,
   type RouteOption,
 } from "../../lib/googleMaps";
-import { addStopsToDay, createTrip, fetchTrip, fetchTrips, touchTrip } from "../../lib/trips";
+import { addStopsToDay, createTrip, fetchTrip, touchTrip } from "../../lib/trips";
 import { clearPendingTrip, readPendingTrip, savePendingTrip } from "../../lib/tripHandoff";
 
 // Gleiches CSS wie Profile/Support: liefert das bestehende Farb-Variablen-System
@@ -280,6 +283,243 @@ function PlaceField({
   );
 }
 
+// ----------------------------------------------------------------------
+// NEU: Footer — Inhalt und Optik 1:1 wie auf /my-trips (Logo, Tagline,
+// vier Link-Spalten, Copyright, Sprachauswahl, Theme-Switch, Akkordeon
+// auf Mobile). Klassen mit Präfix "sf-", Button-/Link-Selektoren mit
+// Element-Präfix wegen der globalen Resets aus profile.css.
+// ----------------------------------------------------------------------
+
+// Identisch zu FOOTER_COLUMNS auf /my-trips.
+const FOOTER_COLUMNS = [
+  {
+    id: "explore",
+    headingKey: "footer.col.explore" as const,
+    links: [
+      { key: "footer.link.allRoutes" as const, href: "/explore", protected: false },
+      { key: "footer.link.myTrips" as const, href: "/my-trips", protected: true },
+      { key: "footer.link.profile" as const, href: "/profile", protected: true },
+    ],
+  },
+  {
+    id: "about",
+    headingKey: "footer.col.about" as const,
+    links: [
+      // Traveller Pass ist ein Tab auf der Profile-Page (?tab=pass).
+      { key: "footer.link.travellerPass" as const, href: "/profile?tab=pass", protected: true },
+      { key: "footer.link.about" as const, href: "/about", protected: false },
+      { key: "footer.link.ourTeam" as const, href: "/about#team", protected: false },
+    ],
+  },
+  {
+    id: "support",
+    headingKey: "footer.col.support" as const,
+    links: [
+      // Eingeloggt direkt zum Support-Tab im Profil, sonst zur öffentlichen
+      // /support-Seite.
+      { key: "footer.link.faq" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.contact" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+    ],
+  },
+  {
+    id: "legal",
+    headingKey: "footer.col.legal" as const,
+    links: [
+      { key: "footer.link.termsOfUse" as const, href: "/legal/terms", protected: false },
+      { key: "footer.link.privacyPolicy" as const, href: "/legal/privacy", protected: false },
+      { key: "footer.link.imprint" as const, href: "/legal/imprint", protected: false },
+    ],
+  },
+];
+
+function PageFooter() {
+  const { t, lang, setLang } = useLanguage();
+  const { theme } = useTheme();
+  const { user } = useAuth();
+
+  const [mounted, setMounted] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  // Logo-Variante hängt am Theme — erst nach dem Mount auswerten, sonst
+  // weicht das Server-HTML vom Client ab.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!showLangMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".sf-lang-wrap")) setShowLangMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showLangMenu]);
+
+  return (
+    <footer className="sf">
+      <div className="sf-inner">
+        <div className="sf-top">
+          <div className="sf-brand">
+            <div className="sf-logo-container">
+              <img
+                src="/logodark.png"
+                alt="Scenic Routes"
+                className={`sf-logo ${mounted && theme === "light" ? "sf-logo-light" : "sf-logo-dark"}`}
+              />
+            </div>
+            <p className="sf-tagline">{t("home.footer.tagline")}</p>
+          </div>
+
+          {FOOTER_COLUMNS.map(({ id, headingKey, links }) => {
+            const isOpen = openSection === id;
+            return (
+              <div className="sf-col" key={id}>
+                {/* Auf Desktop wirkungslos (pointer-events:none), auf Mobile
+                    klappt der Kopf die Spalte auf und zu. */}
+                <button
+                  type="button"
+                  className="sf-col-header"
+                  onClick={() => setOpenSection(isOpen ? null : id)}
+                  aria-expanded={isOpen}
+                >
+                  <span className="sf-col-title">{t(headingKey)}</span>
+                  <ChevronDown size={14} className={`sf-col-chevron ${isOpen ? "open" : ""}`} />
+                </button>
+
+                <div className={`sf-col-links ${isOpen ? "open" : ""}`}>
+                  <div className="sf-col-links-inner">
+                    {links.map((link) => {
+                      const target =
+                        user && "loggedInHref" in link && link.loggedInHref
+                          ? link.loggedInHref
+                          : link.href;
+                      // Geschützte Links ohne Session erst zum Login, mit
+                      // Rücksprung zum eigentlichen Ziel.
+                      const finalHref =
+                        link.protected && !user
+                          ? `/login?redirect=${encodeURIComponent(target)}`
+                          : target;
+
+                      return (
+                        <Link href={finalHref} key={link.key} className="sf-link">
+                          {t(link.key)}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="sf-bottom">
+          <p className="sf-copy">
+            © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
+          </p>
+
+          <div className="sf-controls">
+            <div className="sf-lang-wrap">
+              <button
+                type="button"
+                className="sf-lang-btn"
+                onClick={() => setShowLangMenu((prev) => !prev)}
+                aria-expanded={showLangMenu}
+              >
+                <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
+              </button>
+
+              {showLangMenu && (
+                <div className="sf-lang-menu">
+                  {(
+                    [
+                      ["en", "English"],
+                      ["de", "Deutsch"],
+                      ["ru", "Русский"],
+                    ] as const
+                  ).map(([code, label]) => (
+                    <button
+                      key={code}
+                      type="button"
+                      className={`sf-lang-option ${lang === code ? "active" : ""}`}
+                      onClick={() => {
+                        setLang(code);
+                        setShowLangMenu(false);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <ThemeSwitch />
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .sf { position:relative; z-index:5; width:100%; background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; font-family:var(--sans, 'Inter', system-ui, sans-serif); transition:background .35s; }
+        .sf-inner { max-width:1200px; margin:0 auto; }
+        .sf-top { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+
+        .sf-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
+        .sf-logo { display:block; height:auto; }
+        .sf-logo-light { width:180px; }
+        .sf-logo-dark { width:220px; filter:invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
+        .sf-tagline { margin:0 0 18px; max-width:200px; font-size:12px; font-weight:300; line-height:1.7; color:var(--dim); }
+
+        .sf button.sf-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; padding:0; border:none; background:none; text-align:left; cursor:default; pointer-events:none; font:inherit; }
+        .sf-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+        .sf-col-chevron { display:none; color:var(--dim); flex-shrink:0; transition:transform .3s; }
+        .sf-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .sf-col-links { overflow:visible; max-height:none; }
+        .sf-col-links-inner { padding-top:14px; }
+        .sf a.sf-link { display:block; margin-bottom:10px; font-size:12px; font-weight:300; color:var(--dim); text-decoration:none; transition:color .2s; }
+        .sf a.sf-link:hover { color:var(--cream); }
+
+        .sf-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+        .sf-copy { margin:0; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); }
+        .sf-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+
+        .sf-lang-wrap { position:relative; }
+        .sf button.sf-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; border-radius:0; background:none; font-family:inherit; font-size:16px; font-weight:400; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); cursor:pointer; transition:color .2s; }
+        .sf button.sf-lang-btn:hover { color:var(--cream); }
+        /* Wie auf /my-trips: im Light-Theme ist --muted reines Schwarz, der
+           Button bekommt deshalb in Ruhe die hellere --dim-Farbe. */
+        .light .sf button.sf-lang-btn { color:var(--dim); }
+        .light .sf button.sf-lang-btn:hover { color:var(--cream); }
+        .sf-lang-menu { position:absolute; bottom:calc(100% + 10px); right:0; z-index:50; min-width:150px; overflow:hidden; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb, var(--bg) 97%, transparent); backdrop-filter:blur(24px); box-shadow:0 24px 60px rgba(0,0,0,0.55); animation:sfDropIn .2s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes sfDropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .sf button.sf-lang-option { display:block; width:100%; padding:10px 14px; border:none; background:none; text-align:left; font-family:inherit; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:background .15s, color .15s; }
+        .sf button.sf-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
+        .sf button.sf-lang-option.active { color:var(--gold); font-weight:700; }
+
+        @media (max-width:1100px) {
+          .sf-top { grid-template-columns:1fr 1fr 1fr; }
+          .sf-top > .sf-brand { grid-column:1 / -1; }
+        }
+
+        @media (max-width:760px) {
+          .sf-top { grid-template-columns:1fr; }
+          .sf-brand { text-align:center; }
+          .sf-logo-container { justify-content:center; margin:0 auto; }
+          .sf-tagline { margin-left:auto; margin-right:auto; }
+          .sf button.sf-col-header { cursor:pointer; pointer-events:auto; }
+          .sf-col-chevron { display:block; }
+          .sf-col-links { overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .sf-col-links.open { max-height:400px; }
+          .sf-bottom { flex-direction:column; align-items:flex-start; }
+          .sf-lang-menu { left:0; right:auto; }
+        }
+      `}</style>
+    </footer>
+  );
+}
+
 function PlanPageContent() {
   const { t, lang } = useLanguage();
   const tx = TRIP_TEXT[(lang as TripLang) in TRIP_TEXT ? (lang as TripLang) : "de"];
@@ -288,6 +528,9 @@ function PlanPageContent() {
   const searchParams = useSearchParams();
   const tripParam = searchParams.get("trip") ?? "";
   const dayParam = searchParams.get("day") ?? "";
+  // NEU: Herkunft aus dem Trip Builder durchreichen, damit der Builder nach
+  // der Rückkehr weiterhin den passenden Rückweg anbietet.
+  const fromSuffix = searchParams.get("from") === "builder" ? "&from=builder" : "";
   const { user, loading: authLoading } = useAuth();
   const userId = user?.id ?? null;
 
@@ -334,9 +577,6 @@ function PlanPageContent() {
   const [tripLoadFailed, setTripLoadFailed] = useState(false);
   const [addError, setAddError] = useState(false);
   const autoCalcDoneRef = useRef(false);
-
-  // Zuletzt bearbeiteter Trip für den "Zum Trip Builder"-Link unten
-  const [latestTripId, setLatestTripId] = useState<string | null>(null);
 
   // Google Maps darf erst nach der Cookie-Zustimmung angesprochen werden —
   // das gilt hier nicht nur für die Karte, sondern auch für Places und
@@ -422,22 +662,6 @@ function PlanPageContent() {
       cancelled = true;
     };
   }, [tripParam, dayParam, userId, authLoading]);
-
-  // ------------------------------------ Zuletzt bearbeiteten Trip laden
-  useEffect(() => {
-    if (!userId) {
-      setLatestTripId(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const trips = await fetchTrips(userId);
-      if (!cancelled) setLatestTripId(trips?.[0]?.id ?? null);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
 
   const existingRouteIds = useMemo(
     () => new Set(targetTrip?.existingRouteIds ?? []),
@@ -913,7 +1137,7 @@ function PlanPageContent() {
 
     // updated_at nachziehen, damit der Trip auf /my-trips nach oben rutscht.
     await touchTrip(targetTrip.id, targetTrip.title);
-    router.push(`/trip?id=${targetTrip.id}`);
+    router.push(`/trip?id=${targetTrip.id}${fromSuffix}`);
   }
 
   // Rückkehr vom Login mit gemerkter Auswahl -> Trip anlegen und weiterleiten.
@@ -969,9 +1193,9 @@ function PlanPageContent() {
   // Trip-ergänzen-Modus.
   const newSelectionCount = selectedIds.filter((id) => !existingRouteIds.has(id)).length;
 
-  // Ziel des "Zum Trip Builder"-Links: der gerade ergänzte Trip, sonst der
-  // zuletzt bearbeitete.
-  const builderTripId = targetTrip?.id ?? latestTripId;
+  // Ziel des "Zum Trip Builder"-Links: im Trip-ergänzen-Modus der gerade
+  // ergänzte Trip, sonst die Übersicht aller Trips (/trip ohne ID).
+  const builderHref = targetTrip ? `/trip?id=${targetTrip.id}${fromSuffix}` : "/trip";
 
   return (
     <div className="pp">
@@ -1010,7 +1234,7 @@ function PlanPageContent() {
                     .replace("{title}", targetTrip.title)
                     .replace("{day}", String(targetTrip.dayNumber))}
                 </p>
-                <Link href={`/trip?id=${targetTrip.id}`} className="rp-trip-banner-link">
+                <Link href={`/trip?id=${targetTrip.id}${fromSuffix}`} className="rp-trip-banner-link">
                   <ArrowLeft size={12} strokeWidth={2.4} /> {tx.backToTrip}
                 </Link>
               </div>
@@ -1240,10 +1464,10 @@ function PlanPageContent() {
             <Link href="/" className="rp-back">
               {t("plan.back")}
             </Link>
-            {/* Direkt in den Trip Builder — der gerade ergänzte Trip, sonst
-                der zuletzt bearbeitete */}
-            {builderTripId && (
-              <Link href={`/trip?id=${builderTripId}`} className="rp-back rp-back-builder">
+            {/* In den Trip Builder — Übersicht aller Trips bzw. der gerade
+                ergänzte Trip. Nur eingeloggt, Trips gehören zum Konto. */}
+            {userId && (
+              <Link href={builderHref} className="rp-back rp-back-builder">
                 {tx.toBuilder}
                 <ArrowRight size={12} strokeWidth={2.4} />
               </Link>
@@ -1251,6 +1475,9 @@ function PlanPageContent() {
           </div>
         </div>
       </div>
+
+      {/* NEU: Footer wie auf /my-trips (Abschnitt "Footer" oben in dieser Datei) */}
+      <PageFooter />
 
       <style>{`
         .rp-wrap { width:100%; max-width:1180px; display:flex; flex-direction:column; gap:22px; }
@@ -1339,8 +1566,6 @@ function PlanPageContent() {
         .rp-back { align-self:center; display:inline-flex; align-items:center; gap:8px; padding:6px 0 10px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
         .rp-back:hover { color:var(--gold); }
         .rp-bottom-links { align-self:center; display:flex; align-items:center; justify-content:center; gap:32px; flex-wrap:wrap; }
-        .rp-back-builder { color:var(--gold); }
-        .rp-back-builder:hover { color:var(--cream); }
 
         ${ROUTE_CARD_STYLES}
 

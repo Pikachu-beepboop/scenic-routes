@@ -18,10 +18,12 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Navigation,
-  CalendarDays, Route as RouteIcon, ArrowLeft, Compass,
+  CalendarDays, Route as RouteIcon, ArrowLeft, Compass, ChevronRight, Globe,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import PlannerNav from "../components/PlannerNav";
+import { ThemeSwitch } from "../components/ThemeSwitch";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useLanguage } from "../LanguageContext";
 import { useUnit } from "../UnitContext";
@@ -33,10 +35,12 @@ import {
   deleteTripDay,
   deleteTripStop,
   fetchTrip,
+  fetchTrips,
   persistDayNumbers,
   persistStopOrder,
   touchTrip,
   updateTripTitle,
+  type Trip,
   type TripRoute,
 } from "../../lib/trips";
 
@@ -46,9 +50,54 @@ import "../profile/profile.css";
 // lib/translations, gleiches Muster wie GoogleMapsGate — kann später in die
 // zentrale Übersetzungsdatei wandern.
 const ADD_TEXT = {
-  de: { findRoutes: "Passende Routen finden", addRoutes: "Routen hinzufügen", newTrip: "Neuen Trip planen" },
-  en: { findRoutes: "Find routes for this trip", addRoutes: "Add routes", newTrip: "Plan a new trip" },
-  ru: { findRoutes: "Найти маршруты для поездки", addRoutes: "Добавить маршруты", newTrip: "Спланировать новую поездку" },
+  de: {
+    findRoutes: "Passende Routen finden",
+    addRoutes: "Routen hinzufügen",
+    newTrip: "Neuen Trip planen",
+    allTrips: "Alle Trips",
+    backToAll: "Zurück zu allen Trips",
+    overviewTitle: "Deine Trips",
+    overviewSub: "Alles, was du im Route Planner gebaut hast. Öffne einen Trip, um Tage und Routen zu bearbeiten.",
+    overviewEmpty: "Du hast noch keinen Trip geplant.",
+    overviewEmptyText: "Gib im Route Planner Start und Ziel ein, wähle Panoramarouten entlang der Strecke und speichere sie als Trip.",
+    overviewError: "Deine Trips konnten nicht geladen werden.",
+    retry: "Erneut versuchen",
+    noRoutes: "Noch keine Routen",
+    updated: "Bearbeitet am {date}",
+    more: "+{n} weitere",
+  },
+  en: {
+    findRoutes: "Find routes for this trip",
+    addRoutes: "Add routes",
+    newTrip: "Plan a new trip",
+    allTrips: "All trips",
+    backToAll: "Back to all trips",
+    overviewTitle: "Your trips",
+    overviewSub: "Everything you've built in the Route Planner. Open a trip to edit its days and routes.",
+    overviewEmpty: "You haven't planned a trip yet.",
+    overviewEmptyText: "Enter a start and destination in the Route Planner, pick scenic routes along the way and save them as a trip.",
+    overviewError: "Your trips couldn't be loaded.",
+    retry: "Try again",
+    noRoutes: "No routes yet",
+    updated: "Edited {date}",
+    more: "+{n} more",
+  },
+  ru: {
+    findRoutes: "Найти маршруты для поездки",
+    addRoutes: "Добавить маршруты",
+    newTrip: "Спланировать новую поездку",
+    allTrips: "Все поездки",
+    backToAll: "Назад ко всем поездкам",
+    overviewTitle: "Ваши поездки",
+    overviewSub: "Всё, что вы создали в планировщике маршрутов. Откройте поездку, чтобы изменить дни и маршруты.",
+    overviewEmpty: "Вы ещё не спланировали ни одной поездки.",
+    overviewEmptyText: "Укажите старт и цель в планировщике, выберите живописные маршруты по пути и сохраните их как поездку.",
+    overviewError: "Не удалось загрузить ваши поездки.",
+    retry: "Повторить",
+    noRoutes: "Пока нет маршрутов",
+    updated: "Изменено {date}",
+    more: "+{n} ещё",
+  },
 } as const;
 
 type AddLang = keyof typeof ADD_TEXT;
@@ -110,9 +159,252 @@ function moveStop(
   return next;
 }
 
+// ----------------------------------------------------------------------
+// NEU: Footer — Inhalt und Optik 1:1 wie auf /my-trips (Logo, Tagline,
+// vier Link-Spalten, Copyright, Sprachauswahl, Theme-Switch, Akkordeon
+// auf Mobile). Klassen mit Präfix "sf-", Button-/Link-Selektoren mit
+// Element-Präfix wegen der globalen Resets aus profile.css.
+// ----------------------------------------------------------------------
+
+// Identisch zu FOOTER_COLUMNS auf /my-trips.
+const FOOTER_COLUMNS = [
+  {
+    id: "explore",
+    headingKey: "footer.col.explore" as const,
+    links: [
+      { key: "footer.link.allRoutes" as const, href: "/explore", protected: false },
+      { key: "footer.link.myTrips" as const, href: "/my-trips", protected: true },
+      { key: "footer.link.profile" as const, href: "/profile", protected: true },
+    ],
+  },
+  {
+    id: "about",
+    headingKey: "footer.col.about" as const,
+    links: [
+      // Traveller Pass ist ein Tab auf der Profile-Page (?tab=pass).
+      { key: "footer.link.travellerPass" as const, href: "/profile?tab=pass", protected: true },
+      { key: "footer.link.about" as const, href: "/about", protected: false },
+      { key: "footer.link.ourTeam" as const, href: "/about#team", protected: false },
+    ],
+  },
+  {
+    id: "support",
+    headingKey: "footer.col.support" as const,
+    links: [
+      // Eingeloggt direkt zum Support-Tab im Profil, sonst zur öffentlichen
+      // /support-Seite.
+      { key: "footer.link.faq" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.contact" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+      { key: "footer.link.sendFeedback" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
+    ],
+  },
+  {
+    id: "legal",
+    headingKey: "footer.col.legal" as const,
+    links: [
+      { key: "footer.link.termsOfUse" as const, href: "/legal/terms", protected: false },
+      { key: "footer.link.privacyPolicy" as const, href: "/legal/privacy", protected: false },
+      { key: "footer.link.imprint" as const, href: "/legal/imprint", protected: false },
+    ],
+  },
+];
+
+function PageFooter() {
+  const { t, lang, setLang } = useLanguage();
+  const { theme } = useTheme();
+  const { user } = useAuth();
+
+  const [mounted, setMounted] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  // Logo-Variante hängt am Theme — erst nach dem Mount auswerten, sonst
+  // weicht das Server-HTML vom Client ab.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!showLangMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".sf-lang-wrap")) setShowLangMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showLangMenu]);
+
+  return (
+    <footer className="sf">
+      <div className="sf-inner">
+        <div className="sf-top">
+          <div className="sf-brand">
+            <div className="sf-logo-container">
+              <img
+                src="/logodark.png"
+                alt="Scenic Routes"
+                className={`sf-logo ${mounted && theme === "light" ? "sf-logo-light" : "sf-logo-dark"}`}
+              />
+            </div>
+            <p className="sf-tagline">{t("home.footer.tagline")}</p>
+          </div>
+
+          {FOOTER_COLUMNS.map(({ id, headingKey, links }) => {
+            const isOpen = openSection === id;
+            return (
+              <div className="sf-col" key={id}>
+                {/* Auf Desktop wirkungslos (pointer-events:none), auf Mobile
+                    klappt der Kopf die Spalte auf und zu. */}
+                <button
+                  type="button"
+                  className="sf-col-header"
+                  onClick={() => setOpenSection(isOpen ? null : id)}
+                  aria-expanded={isOpen}
+                >
+                  <span className="sf-col-title">{t(headingKey)}</span>
+                  <ChevronDown size={14} className={`sf-col-chevron ${isOpen ? "open" : ""}`} />
+                </button>
+
+                <div className={`sf-col-links ${isOpen ? "open" : ""}`}>
+                  <div className="sf-col-links-inner">
+                    {links.map((link) => {
+                      const target =
+                        user && "loggedInHref" in link && link.loggedInHref
+                          ? link.loggedInHref
+                          : link.href;
+                      // Geschützte Links ohne Session erst zum Login, mit
+                      // Rücksprung zum eigentlichen Ziel.
+                      const finalHref =
+                        link.protected && !user
+                          ? `/login?redirect=${encodeURIComponent(target)}`
+                          : target;
+
+                      return (
+                        <Link href={finalHref} key={link.key} className="sf-link">
+                          {t(link.key)}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="sf-bottom">
+          <p className="sf-copy">
+            © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
+          </p>
+
+          <div className="sf-controls">
+            <div className="sf-lang-wrap">
+              <button
+                type="button"
+                className="sf-lang-btn"
+                onClick={() => setShowLangMenu((prev) => !prev)}
+                aria-expanded={showLangMenu}
+              >
+                <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
+              </button>
+
+              {showLangMenu && (
+                <div className="sf-lang-menu">
+                  {(
+                    [
+                      ["en", "English"],
+                      ["de", "Deutsch"],
+                      ["ru", "Русский"],
+                    ] as const
+                  ).map(([code, label]) => (
+                    <button
+                      key={code}
+                      type="button"
+                      className={`sf-lang-option ${lang === code ? "active" : ""}`}
+                      onClick={() => {
+                        setLang(code);
+                        setShowLangMenu(false);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <ThemeSwitch />
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .sf { position:relative; z-index:5; width:100%; background:var(--bg); border-top:1px solid var(--border); padding:56px clamp(24px,5vw,80px) 28px; font-family:var(--sans, 'Inter', system-ui, sans-serif); transition:background .35s; }
+        .sf-inner { max-width:1200px; margin:0 auto; }
+        .sf-top { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1fr; gap:28px; padding-bottom:40px; border-bottom:1px solid var(--border); margin-bottom:22px; }
+
+        .sf-logo-container { width:220px; height:147px; display:flex; align-items:center; flex-shrink:0; }
+        .sf-logo { display:block; height:auto; }
+        .sf-logo-light { width:180px; }
+        .sf-logo-dark { width:220px; filter:invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6)); }
+        .sf-tagline { margin:0 0 18px; max-width:200px; font-size:12px; font-weight:300; line-height:1.7; color:var(--dim); }
+
+        .sf button.sf-col-header { display:flex; align-items:center; justify-content:space-between; width:100%; padding:0; border:none; background:none; text-align:left; cursor:default; pointer-events:none; font:inherit; }
+        .sf-col-title { font-size:9px; font-weight:800; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+        .sf-col-chevron { display:none; color:var(--dim); flex-shrink:0; transition:transform .3s; }
+        .sf-col-chevron.open { transform:rotate(180deg); color:var(--gold); }
+        .sf-col-links { overflow:visible; max-height:none; }
+        .sf-col-links-inner { padding-top:14px; }
+        .sf a.sf-link { display:block; margin-bottom:10px; font-size:12px; font-weight:300; color:var(--dim); text-decoration:none; transition:color .2s; }
+        .sf a.sf-link:hover { color:var(--cream); }
+
+        .sf-bottom { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+        .sf-copy { margin:0; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--dim); }
+        .sf-controls { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+
+        .sf-lang-wrap { position:relative; }
+        .sf button.sf-lang-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; border-radius:0; background:none; font-family:inherit; font-size:16px; font-weight:400; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); cursor:pointer; transition:color .2s; }
+        .sf button.sf-lang-btn:hover { color:var(--cream); }
+        /* Wie auf /my-trips: im Light-Theme ist --muted reines Schwarz, der
+           Button bekommt deshalb in Ruhe die hellere --dim-Farbe. */
+        .light .sf button.sf-lang-btn { color:var(--dim); }
+        .light .sf button.sf-lang-btn:hover { color:var(--cream); }
+        .sf-lang-menu { position:absolute; bottom:calc(100% + 10px); right:0; z-index:50; min-width:150px; overflow:hidden; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb, var(--bg) 97%, transparent); backdrop-filter:blur(24px); box-shadow:0 24px 60px rgba(0,0,0,0.55); animation:sfDropIn .2s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes sfDropIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        .sf button.sf-lang-option { display:block; width:100%; padding:10px 14px; border:none; background:none; text-align:left; font-family:inherit; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; transition:background .15s, color .15s; }
+        .sf button.sf-lang-option:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
+        .sf button.sf-lang-option.active { color:var(--gold); font-weight:700; }
+
+        @media (max-width:1100px) {
+          .sf-top { grid-template-columns:1fr 1fr 1fr; }
+          .sf-top > .sf-brand { grid-column:1 / -1; }
+        }
+
+        @media (max-width:760px) {
+          .sf-top { grid-template-columns:1fr; }
+          .sf-brand { text-align:center; }
+          .sf-logo-container { justify-content:center; margin:0 auto; }
+          .sf-tagline { margin-left:auto; margin-right:auto; }
+          .sf button.sf-col-header { cursor:pointer; pointer-events:auto; }
+          .sf-col-chevron { display:block; }
+          .sf-col-links { overflow:hidden; max-height:0; transition:max-height .3s ease; }
+          .sf-col-links.open { max-height:400px; }
+          .sf-bottom { flex-direction:column; align-items:flex-start; }
+          .sf-lang-menu { left:0; right:auto; }
+        }
+      `}</style>
+    </footer>
+  );
+}
+
 function TripBuilder() {
   const searchParams = useSearchParams();
   const tripId = searchParams.get("id") ?? "";
+  // NEU: Herkunft — "builder" = aus der Übersicht /trip gekommen. Bestimmt,
+  // welcher Rückweg unten angeboten wird, und wird durch /plan durchgereicht.
+  const fromBuilder = searchParams.get("from") === "builder";
+  // NEU: "mytrips" = über My Trips -> Trip -> "All trips" in die Übersicht
+  // gekommen. Nur dann bietet die Übersicht "Back to my trips" an.
+  const fromMyTrips = searchParams.get("from") === "mytrips";
   const router = useRouter();
 
   const { t, lang } = useLanguage();
@@ -141,6 +433,11 @@ function TripBuilder() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
+  // NEU: Übersicht aller Trips (/trip ohne ?id=)
+  const [overviewTrips, setOverviewTrips] = useState<Trip[]>([]);
+  const [overviewError, setOverviewError] = useState(false);
+  const [overviewReload, setOverviewReload] = useState(0);
+
   // ----------------------------------------------------------------- Laden
   useEffect(() => {
     if (authLoading) return;
@@ -149,13 +446,28 @@ function TripBuilder() {
       setLoading(false);
       return;
     }
+    let cancelled = false;
+
+    // NEU: Ohne ?id= zeigt /trip die Übersicht aller Trips (vorher:
+    // "nicht gefunden"). Gleiche Abfrage wie /my-trips, neueste zuerst.
     if (!tripId) {
-      setNotFound(true);
-      setLoading(false);
-      return;
+      setLoading(true);
+      (async () => {
+        const data = await fetchTrips(user.id);
+        if (cancelled) return;
+        setOverviewTrips(data ?? []);
+        setOverviewError(data === null);
+        setLoading(false);
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
+    // Beim Wechsel aus der Übersicht (oder von einem anderen Trip) keinen
+    // alten Stand kurz aufblitzen lassen.
+    setLoading(true);
+    setNotFound(false);
 
     (async () => {
       const trip = await fetchTrip(tripId, user.id);
@@ -186,7 +498,7 @@ function TripBuilder() {
     return () => {
       cancelled = true;
     };
-  }, [tripId, user, authLoading]);
+  }, [tripId, user, authLoading, overviewReload]);
 
   useEffect(() => {
     const interval = setInterval(() => tick((value) => value + 1), 30_000);
@@ -385,7 +697,9 @@ function TripBuilder() {
 
   // NEU: Ziele für "Routen ergänzen" — ohne day landen sie am letzten Tag.
   const planHref = (dayId?: string) =>
-    `/plan?trip=${encodeURIComponent(tripId)}${dayId ? `&day=${encodeURIComponent(dayId)}` : ""}`;
+    `/plan?trip=${encodeURIComponent(tripId)}` +
+    (dayId ? `&day=${encodeURIComponent(dayId)}` : "") +
+    (fromBuilder ? "&from=builder" : "");
 
   return (
     <div className="pp">
@@ -418,6 +732,128 @@ function TripBuilder() {
                 {t("nav.login")}
               </Link>
             </div>
+          ) : !tripId ? (
+            // ------------------------------------------------ NEU: Übersicht
+            <>
+              <header className="tb-card tb-header">
+                <p className="tb-eyebrow">{t("trip.eyebrow")}</p>
+                <h1 className="tb-overview-title">{tx.overviewTitle}</h1>
+                <p className="tb-overview-sub">{tx.overviewSub}</p>
+              </header>
+
+              {overviewError ? (
+                <div className="tb-card tb-state">
+                  <h2 className="tb-state-title">{tx.overviewError}</h2>
+                  <button
+                    className="tb-add-day"
+                    onClick={() => setOverviewReload((value) => value + 1)}
+                  >
+                    {tx.retry}
+                  </button>
+                </div>
+              ) : overviewTrips.length === 0 ? (
+                <div className="tb-card tb-state">
+                  <span className="tb-state-icon">
+                    <Compass size={22} strokeWidth={1.6} />
+                  </span>
+                  <h2 className="tb-state-title">{tx.overviewEmpty}</h2>
+                  <p>{tx.overviewEmptyText}</p>
+                  <Link href="/plan" className="tb-primary-link">
+                    {tx.newTrip}
+                  </Link>
+                </div>
+              ) : (
+                <div className="tb-card tb-overview-list">
+                  {overviewTrips.map((trip) => {
+                    const stops = trip.trip_days.flatMap((day) => day.trip_stops);
+                    const preview =
+                      stops.map((stop) => stop.routes?.image_url).find(Boolean) ||
+                      "/amalfi_coast_road.jpg";
+                    const countries = [
+                      ...new Set(stops.map((stop) => stop.routes?.country).filter(Boolean)),
+                    ];
+                    const titles = stops
+                      .map((stop) => localizedTitle(stop.routes, lang))
+                      .filter(Boolean);
+                    const shown = titles.slice(0, 4);
+                    const updated = trip.updated_at
+                      ? new Date(trip.updated_at).toLocaleDateString(lang, {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "";
+
+                    return (
+                      <Link
+                        key={trip.id}
+                        href={`/trip?id=${trip.id}&from=builder`}
+                        className="tb-overview-item"
+                      >
+                        <span className="tb-overview-thumb">
+                          <img
+                            src={preview}
+                            alt={trip.title}
+                            onError={(e) => {
+                              e.currentTarget.src = "/amalfi_coast_road.jpg";
+                            }}
+                          />
+                        </span>
+
+                        <span className="tb-overview-info">
+                          {countries.length > 0 && (
+                            <span className="tb-stop-country">{countries.join(" · ")}</span>
+                          )}
+                          <span className="tb-overview-name">{trip.title}</span>
+                          <span className="tb-overview-meta">
+                            <span>
+                              <CalendarDays size={11} strokeWidth={2} />
+                              {trip.trip_days.length} {t("trip.stats.days")}
+                            </span>
+                            <span>
+                              <RouteIcon size={11} strokeWidth={2} />
+                              {stops.length} {t("trip.stats.routes")}
+                            </span>
+                            {updated && <span>{tx.updated.replace("{date}", updated)}</span>}
+                          </span>
+                          <span className="tb-overview-routes">
+                            {shown.length === 0 ? (
+                              <span className="tb-overview-chip is-empty">{tx.noRoutes}</span>
+                            ) : (
+                              shown.map((name, index) => (
+                                <span key={`${name}-${index}`} className="tb-overview-chip">
+                                  {name}
+                                </span>
+                              ))
+                            )}
+                            {titles.length > shown.length && (
+                              <span className="tb-overview-chip is-more">
+                                {tx.more.replace("{n}", String(titles.length - shown.length))}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+
+                        <span className="tb-overview-open" aria-hidden="true">
+                          <ChevronRight size={18} strokeWidth={2} />
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="tb-footer-actions">
+                <Link href="/plan" className="tb-add-day tb-add-day-link">
+                  <Plus size={14} strokeWidth={2.4} /> {tx.newTrip}
+                </Link>
+                {fromMyTrips && (
+                  <Link href="/my-trips" className="tb-secondary-link">
+                    <ArrowLeft size={13} strokeWidth={2} /> {t("trip.backToTrips")}
+                  </Link>
+                )}
+              </div>
+            </>
           ) : notFound ? (
             <div className="tb-card tb-state">
               <span className="tb-state-icon">
@@ -612,19 +1048,35 @@ function TripBuilder() {
                 <button className="tb-add-day" onClick={handleAddDay}>
                   <Plus size={14} strokeWidth={2.4} /> {t("trip.addDay")}
                 </button>
-                    {/* Startet einen komplett neuen Trip im leeren Planner. Das
-                   Ergänzen dieses Trips läuft über "Routen hinzufügen" am Tag. */}
+                {/* Startet einen komplett neuen Trip im leeren Planner. Das
+                    Ergänzen dieses Trips läuft über "Routen hinzufügen" am Tag. */}
                 <Link href="/plan" className="tb-secondary-link">
                   <Compass size={13} strokeWidth={2} /> {tx.newTrip}
                 </Link>
-                <Link href="/my-trips" className="tb-secondary-link">
-                  <ArrowLeft size={13} strokeWidth={2} /> {t("trip.backToTrips")}
-                </Link>
+                {/* NEU: Rückweg je nach Herkunft — aus der Übersicht nur
+                    "Zurück zu allen Trips", sonst wie bisher */}
+                {fromBuilder ? (
+                  <Link href="/trip" className="tb-secondary-link">
+                    <ArrowLeft size={13} strokeWidth={2} /> {tx.backToAll}
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/trip?from=mytrips" className="tb-secondary-link">
+                      <RouteIcon size={13} strokeWidth={2} /> {tx.allTrips}
+                    </Link>
+                    <Link href="/my-trips" className="tb-secondary-link">
+                      <ArrowLeft size={13} strokeWidth={2} /> {t("trip.backToTrips")}
+                    </Link>
+                  </>
+                )}
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* NEU: Footer wie auf /my-trips (Abschnitt "Footer" oben in dieser Datei) */}
+      <PageFooter />
 
       <ConfirmDialog
         open={confirmDelete}
@@ -697,6 +1149,30 @@ function TripBuilder() {
         button.tb-icon-btn:disabled { opacity:0.3; cursor:not-allowed; }
         button.tb-icon-danger:hover:not(:disabled) { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
 
+        /* NEU: Übersicht aller Trips */
+        .tb-overview-title { margin:14px 0 10px; font-family:var(--serif); font-size:clamp(30px,4.4vw,44px); font-weight:300; letter-spacing:-0.02em; color:var(--cream); }
+        .tb-overview-sub { margin-bottom:16px; max-width:560px; font-size:13px; line-height:1.7; color:var(--dim); }
+        .tb-overview-list { display:flex; flex-direction:column; padding-top:10px; padding-bottom:10px; }
+        .tb-overview-item { display:grid; grid-template-columns:120px 1fr auto; align-items:center; gap:18px; padding:16px 0; border-bottom:1px solid var(--border); color:inherit; text-decoration:none; transition:background .15s; }
+        .tb-overview-item:last-child { border-bottom:none; }
+        .tb-overview-thumb { display:block; width:120px; height:86px; border-radius:14px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); }
+        .tb-overview-thumb img { width:100%; height:100%; object-fit:cover; transition:transform .6s ease; }
+        .tb-overview-item:hover .tb-overview-thumb img { transform:scale(1.06); }
+        .tb-overview-info { display:flex; flex-direction:column; gap:6px; min-width:0; }
+        .tb-overview-name { font-family:var(--serif); font-size:22px; font-weight:400; line-height:1.15; color:var(--cream); transition:color .2s; }
+        .tb-overview-item:hover .tb-overview-name { color:var(--gold); }
+        .tb-overview-meta { display:flex; flex-wrap:wrap; gap:14px; font-size:10.5px; font-weight:500; color:var(--dim); }
+        .tb-overview-meta > span { display:inline-flex; align-items:center; gap:5px; }
+        .tb-overview-meta svg { color:var(--gold); }
+        .tb-overview-routes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+        .tb-overview-chip { padding:4px 10px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:600; color:var(--muted); white-space:nowrap; }
+        .tb-overview-chip.is-more { color:var(--gold); border-color:color-mix(in srgb, var(--gold) 40%, transparent); }
+        .tb-overview-chip.is-empty { font-style:italic; color:var(--dim); }
+        .tb-overview-open { display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; border:1px solid color-mix(in srgb, var(--gold) 45%, transparent); color:var(--gold); transition:all .2s; }
+        .tb-overview-item:hover .tb-overview-open { background:var(--gold); color:var(--bg); transform:translateX(2px); }
+        .tb-add-day-link { display:inline-flex; align-items:center; gap:9px; padding:14px 26px; border:1px dashed color-mix(in srgb, var(--gold) 45%, transparent); border-radius:999px; background:color-mix(in srgb, var(--gold) 8%, transparent); color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:background .2s; }
+        .tb-add-day-link:hover { background:color-mix(in srgb, var(--gold) 16%, transparent); }
+
         .tb-footer-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
         button.tb-add-day { display:inline-flex; align-items:center; gap:9px; padding:14px 26px; border:1px dashed color-mix(in srgb, var(--gold) 45%, transparent); border-radius:999px; background:color-mix(in srgb, var(--gold) 8%, transparent); color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:background .2s; }
         button.tb-add-day:hover { background:color-mix(in srgb, var(--gold) 16%, transparent); }
@@ -715,6 +1191,11 @@ function TripBuilder() {
           .tb-stop-title { font-size:15px; }
           .tb-stop-actions { flex-direction:column; gap:5px; }
           .tb-footer-actions { flex-direction:column; align-items:stretch; }
+          .tb-overview-item { grid-template-columns:72px 1fr auto; gap:12px; }
+          .tb-overview-thumb { width:72px; height:58px; }
+          .tb-overview-name { font-size:17px; }
+          .tb-overview-open { width:32px; height:32px; }
+          .tb-add-day-link { justify-content:center; }
           button.tb-add-day { justify-content:center; }
           .tb-secondary-link { justify-content:center; }
         }
