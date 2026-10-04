@@ -426,7 +426,13 @@ export default function RouteDetailPage() {
     const params = useParams();
     const router = useRouter();
     const pathname = usePathname();
-    const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
+    // GEÄNDERT: Query (z.B. ?from=/plan…) beim Login-Rücksprung mitnehmen,
+    // sonst wüsste "Go back" nach dem Einloggen nicht mehr, woher man kam.
+    const [currentSearch, setCurrentSearch] = useState('');
+    useEffect(() => {
+        setCurrentSearch(window.location.search);
+    }, []);
+    const loginHref = `/login?redirect=${encodeURIComponent(pathname + currentSearch)}`;
 
     const [route, setRoute] = useState<Route | null>(null);
     const [loading, setLoading] = useState(true);
@@ -466,8 +472,20 @@ export default function RouteDetailPage() {
         ? t('routeDetail.aboutHeadingWithName').replace('{route}', routeTitle)
         : t('routeDetail.aboutHeadingNoName');
 
+    // GEÄNDERT: Bringt der Link ein ?from= mit (z.B. vom Route Planner), führt
+    // "Go back" gezielt dorthin — der Browserverlauf ist nach Weiterleitungen
+    // unzuverlässig. Nur Adressen der eigenen Seite ("/…", nicht "//…"), damit
+    // ein manipulierter Link nicht auf fremde Seiten umleiten kann.
     const handleBack = () => {
-        if (typeof window !== 'undefined' && window.history.length > 1) {
+        if (typeof window === 'undefined') return;
+
+        const from = new URLSearchParams(window.location.search).get('from');
+        if (from && from.startsWith('/') && !from.startsWith('//')) {
+            router.push(from);
+            return;
+        }
+
+        if (window.history.length > 1) {
             router.back();
         } else {
             router.push('/explore');

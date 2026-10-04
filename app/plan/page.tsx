@@ -55,7 +55,7 @@ import {
   type PlaceSuggestion,
   type RouteOption,
 } from "../../lib/googleMaps";
-import { addStopsToDay, createTrip, fetchTrip, touchTrip } from "../../lib/trips";
+import { addStopsToDay, createTrip, deleteTripStop, fetchTrip, touchTrip } from "../../lib/trips";
 import { clearPendingTrip, readPendingTrip, savePendingTrip } from "../../lib/tripHandoff";
 
 // Gleiches CSS wie Profile/Support: liefert das bestehende Farb-Variablen-System
@@ -98,6 +98,8 @@ type TargetTrip = {
   dayStopCount: number;
   /** Routen, die schon irgendwo im Trip liegen — werden nicht erneut angeboten. */
   existingRouteIds: string[];
+  /** NEU: Stopp-IDs je Route (eine Route kann an mehreren Tagen liegen) — zum Entfernen. */
+  stopIdsByRoute: Record<string, string[]>;
 };
 
 // Texte für die neuen Planner-Funktionen. Lokal statt in lib/translations,
@@ -105,45 +107,66 @@ type TargetTrip = {
 // Übersetzungsdatei wandern.
 const TRIP_TEXT = {
   de: {
-    banner: "Du ergänzt deinen Trip „{title}“ – neue Routen landen an Tag {day}.",
+    banner: "Du bearbeitest deinen Trip „{title}“ – neue Routen landen an Tag {day}, abgewählte werden entfernt.",
     backToTrip: "Zurück zum Trip",
     addToTrip: "Zum Trip hinzufügen",
     adding: "Wird hinzugefügt…",
-    inTrip: "Bereits im Trip",
-    addError: "Die Routen konnten nicht hinzugefügt werden. Bitte versuch es erneut.",
+    inTrip: "Im Trip",
+    willRemove: "Wird entfernt",
+    applyChanges: "Änderungen speichern",
+    applying: "Wird gespeichert…",
+    changesAdd: "+{n} hinzufügen",
+    changesRemove: "−{n} entfernen",
+    noChanges: "Wähle Routen aus oder ab, um deinen Trip zu ändern.",
+    addError: "Die Änderungen konnten nicht gespeichert werden. Bitte versuch es erneut.",
     tripLoadError: "Der Trip konnte nicht geladen werden. Du kannst hier trotzdem einen neuen Trip planen.",
     toBuilder: "Zum Trip Builder",
     restored: "Deine Auswahl von vorhin wurde wiederhergestellt.",
+    detourRemembered: "Deine Einstellung wird gespeichert und beim nächsten Besuch übernommen.",
     variantsLabel: "Streckenvariante",
     via: "über {road}",
     variantN: "Variante {n}",
     variantsHint: "Du kannst auch direkt auf eine graue Linie in der Karte klicken. Die gewählte Variante bestimmt, welche Panoramarouten als passend gelten – beim Wechsel wird deine Auswahl zurückgesetzt.",
   },
   en: {
-    banner: "You're adding routes to “{title}” – they'll go to day {day}.",
+    banner: "You're editing “{title}” – new routes go to day {day}, deselected ones will be removed.",
     backToTrip: "Back to trip",
     addToTrip: "Add to trip",
     adding: "Adding…",
-    inTrip: "Already in trip",
-    addError: "The routes couldn't be added. Please try again.",
+    inTrip: "In your trip",
+    willRemove: "Will be removed",
+    applyChanges: "Save changes",
+    applying: "Saving…",
+    changesAdd: "+{n} to add",
+    changesRemove: "−{n} to remove",
+    noChanges: "Select or deselect routes to change your trip.",
+    addError: "Your changes couldn't be saved. Please try again.",
     tripLoadError: "The trip couldn't be loaded. You can still plan a new trip here.",
     toBuilder: "Open Trip Builder",
     restored: "Your previous selection has been restored.",
+    detourRemembered: "Your setting is saved and applied on your next visit.",
     variantsLabel: "Route option",
     via: "via {road}",
     variantN: "Option {n}",
     variantsHint: "You can also click a grey line on the map. The selected option decides which scenic routes count as along the way – switching resets your selection.",
   },
   ru: {
-    banner: "Вы дополняете поездку «{title}» – новые маршруты попадут в день {day}.",
+    banner: "Вы редактируете поездку «{title}» – новые маршруты попадут в день {day}, снятые будут удалены.",
     backToTrip: "Назад к поездке",
     addToTrip: "Добавить в поездку",
     adding: "Добавляем…",
-    inTrip: "Уже в поездке",
-    addError: "Не удалось добавить маршруты. Попробуйте ещё раз.",
+    inTrip: "В поездке",
+    willRemove: "Будет удалён",
+    applyChanges: "Сохранить изменения",
+    applying: "Сохраняем…",
+    changesAdd: "+{n} добавить",
+    changesRemove: "−{n} удалить",
+    noChanges: "Выберите или снимите маршруты, чтобы изменить поездку.",
+    addError: "Не удалось сохранить изменения. Попробуйте ещё раз.",
     tripLoadError: "Не удалось загрузить поездку. Вы всё равно можете спланировать новую.",
     toBuilder: "Открыть конструктор поездки",
     restored: "Ваш предыдущий выбор восстановлен.",
+    detourRemembered: "Ваша настройка сохраняется и применяется при следующем визите.",
     variantsLabel: "Вариант маршрута",
     via: "через {road}",
     variantN: "Вариант {n}",
@@ -152,6 +175,14 @@ const TRIP_TEXT = {
 } as const;
 
 type TripLang = keyof typeof TRIP_TEXT;
+
+/**
+ * NEU: Firefox stellt beim Neuladen den alten disabled-Zustand von Buttons
+ * wieder her, bevor React die Seite übernimmt -> Hydration-Warnung.
+ * autocomplete="off" verhindert das. Als Spread-Objekt übergeben, weil die
+ * React-Typen autoComplete an <button> nicht kennen (der Browser schon).
+ */
+const NO_FORM_STATE_RESTORE = { autoComplete: "off" };
 
 /** Karten-Mittelpunkt, bevor eine Route berechnet wurde (Mitteleuropa). */
 const DEFAULT_MAP_CENTER = { lat: 47.2, lng: 10.5 };
@@ -192,6 +223,32 @@ const NEGLIGIBLE_DETOUR_SECONDS = 300;
  * Stunde gilt er als veraltet und wird ignoriert.
  */
 const PLAN_DRAFT_KEY = "scenicRoutes.planDraft";
+
+/**
+ * NEU: Dauerhaft gemerkter Stand des Umweg-Reglers (localStorage, pro Browser).
+ * Damit der Nutzer ihn nicht bei jedem Besuch neu einstellen muss.
+ */
+const DETOUR_PREF_KEY = "scenicRoutes.detourLimitPct";
+
+function readDetourPref(): number | null {
+  try {
+    const raw = window.localStorage.getItem(DETOUR_PREF_KEY);
+    if (raw === null) return null;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return null;
+    return Math.min(MAX_DETOUR_LIMIT_PCT, Math.max(MIN_DETOUR_LIMIT_PCT, Math.round(value)));
+  } catch {
+    return null;
+  }
+}
+
+function saveDetourPref(value: number) {
+  try {
+    window.localStorage.setItem(DETOUR_PREF_KEY, String(value));
+  } catch {
+    // Speicher gesperrt (z.B. privater Modus) — dann eben ohne Merken.
+  }
+}
 const PLAN_DRAFT_MAX_AGE_MS = 60 * 60 * 1000;
 
 type PlanDraft = {
@@ -201,6 +258,14 @@ type PlanDraft = {
   routeIndex: number;
   detourLimitPct: number;
   savedAt: number;
+  /**
+   * NEU: Planner-Adresse inkl. Parametern (z.B. "/plan?trip=…&day=…"), zu der
+   * der Entwurf gehört. Wird nur dort wiederhergestellt — ein Entwurf aus dem
+   * Trip-bearbeiten-Modus landet so nie in einem anderen Trip.
+   */
+  context?: string;
+  /** NEU: ohne Hinweis "wiederhergestellt" (Rückkehr von der Detailseite). */
+  silent?: boolean;
 };
 
 function savePlanDraft(draft: PlanDraft) {
@@ -234,6 +299,8 @@ function readPlanDraft(): PlanDraft | null {
       detourLimitPct:
         typeof draft.detourLimitPct === "number" ? draft.detourLimitPct : DEFAULT_DETOUR_LIMIT_PCT,
       savedAt: draft.savedAt,
+      context: typeof draft.context === "string" ? draft.context : undefined,
+      silent: draft.silent === true,
     };
   } catch {
     return null;
@@ -609,6 +676,10 @@ function PlanPageContent() {
   // NEU: Herkunft aus dem Trip Builder durchreichen, damit der Builder nach
   // der Rückkehr weiterhin den passenden Rückweg anbietet.
   const fromSuffix = searchParams.get("from") === "builder" ? "&from=builder" : "";
+  // NEU: aktuelle Planner-Adresse — Rückweg für die Detailseite und Schlüssel
+  // für den Entwurf.
+  const searchString = searchParams.toString();
+  const planUrl = searchString ? `/plan?${searchString}` : "/plan";
   const { user, loading: authLoading } = useAuth();
   const userId = user?.id ?? null;
 
@@ -736,6 +807,12 @@ function PlanPageContent() {
         dayNumber: day.day_number,
         dayStopCount: day.trip_stops.length,
         existingRouteIds: trip.trip_days.flatMap((d) => d.trip_stops.map((stop) => stop.route_id)),
+        stopIdsByRoute: trip.trip_days
+          .flatMap((d) => d.trip_stops)
+          .reduce<Record<string, string[]>>((acc, stop) => {
+            (acc[stop.route_id] ??= []).push(stop.id);
+            return acc;
+          }, {}),
       });
 
       if (trip.start_location) setStart(trip.start_location);
@@ -843,15 +920,20 @@ function PlanPageContent() {
 
     setCandidates(scored);
 
-    // NEU: Auswahl aus dem Entwurf wieder setzen — nur Routen, die für diese
-    // Strecke tatsächlich wieder gefunden wurden.
+    // NEU: Vorauswahl setzen — aus dem wiederhergestellten Entwurf und im
+    // Trip-bearbeiten-Modus die Routen, die schon im Trip liegen. Jeweils nur
+    // Routen, die für diese Strecke tatsächlich gefunden wurden.
+    const available = new Set(scored.map((candidate) => candidate.route.id));
+    const initial = new Set<string>();
     const restoreIds = restoreIdsRef.current;
     if (restoreIds) {
+      // Entwurf hat Vorrang: er enthält auch bewusst abgewählte Trip-Routen.
       restoreIdsRef.current = null;
-      const available = new Set(scored.map((candidate) => candidate.route.id));
-      const restored = restoreIds.filter((id) => available.has(id));
-      if (restored.length > 0) setSelectedIds(restored);
+      for (const id of restoreIds) if (available.has(id)) initial.add(id);
+    } else {
+      for (const id of existingRouteIds) if (available.has(id)) initial.add(id);
     }
+    if (initial.size > 0) setSelectedIds([...initial]);
   }
 
   async function handleCalculate(preferredRouteIndex = 0) {
@@ -957,12 +1039,21 @@ function PlanPageContent() {
     };
   });
 
-  // NEU: Entwurf beim Laden übernehmen (nicht im Trip-ergänzen-Modus — dort
-  // kommen Start/Ziel aus dem Trip).
+  // NEU: Gemerkten Reglerwert beim Laden übernehmen. Steht vor dem
+  // Entwurf-Effekt: ein wiederhergestellter Entwurf hat Vorrang.
   useEffect(() => {
-    if (tripParam) return;
+    const saved = readDetourPref();
+    if (saved !== null) setDetourLimitPct(saved);
+  }, []);
+
+  // NEU: Entwurf beim Laden übernehmen — nur, wenn er zu genau dieser
+  // Planner-Adresse gehört (Entwürfe ohne Adresse stammen vom Login-Umweg und
+  // gelten nur für den normalen Planner ohne Trip).
+  useEffect(() => {
     const draft = readPlanDraft();
     if (!draft) return;
+    const matches = draft.context ? draft.context === planUrl : !tripParam;
+    if (!matches) return;
     clearPlanDraft();
     setStart(draft.start);
     setEnd(draft.end);
@@ -982,7 +1073,7 @@ function PlanPageContent() {
 
     autoCalcDoneRef.current = true;
     restoreIdsRef.current = restoreDraft.routeIds;
-    setRestoredNotice(true);
+    if (!restoreDraft.silent) setRestoredNotice(true);
     const routeIndex = restoreDraft.routeIndex;
     setRestoreDraft(null);
     void handleCalculate(routeIndex);
@@ -1003,24 +1094,24 @@ function PlanPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetTrip, mapsConsent, routes, start, end]);
 
-  const toggleSelect = useCallback(
-    (routeId: string) => {
-      // Routen, die schon im Ziel-Trip liegen, sind nicht wählbar.
-      if (existingRouteIds.has(routeId)) return;
-      setSelectedIds((prev) =>
-        prev.includes(routeId) ? prev.filter((id) => id !== routeId) : [...prev, routeId]
-      );
-    },
-    [existingRouteIds]
-  );
+  // GEÄNDERT: Routen, die schon im Ziel-Trip liegen, sind vorausgewählt und
+  // dürfen abgewählt werden — sie werden dann beim Speichern entfernt.
+  const toggleSelect = useCallback((routeId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(routeId) ? prev.filter((id) => id !== routeId) : [...prev, routeId]
+    );
+  }, []);
 
   /**
    * Was die Liste zeigt. Hängt am Regler — und bewusst an nichts anderem: hier
    * wird nur gefiltert, nie nachgeladen.
    */
   const visibleCandidates = useMemo(
-    () => filterByDetourLimit(candidates, detourLimitPct, selectedIds),
-    [candidates, detourLimitPct, selectedIds]
+    () =>
+      // Trip-Routen bleiben immer sichtbar — auch abgewählt, damit man sie
+      // wieder dazunehmen kann.
+      filterByDetourLimit(candidates, detourLimitPct, [...selectedIds, ...existingRouteIds]),
+    [candidates, detourLimitPct, selectedIds, existingRouteIds]
   );
 
   /**
@@ -1226,6 +1317,7 @@ function PlanPageContent() {
         routeIndex: activeRouteIndexRef.current,
         detourLimitPct,
         savedAt: Date.now(),
+        context: planUrl,
       });
       router.push(`/login?redirect=${encodeURIComponent("/plan")}`);
       return;
@@ -1250,28 +1342,32 @@ function PlanPageContent() {
   }
 
   /**
-   * Auswahl an den Zieltag des bestehenden Trips anhängen und zurück in den
-   * Builder. Routen, die schon im Trip liegen, werden sicherheitshalber
-   * nochmals herausgefiltert.
+   * GEÄNDERT: Änderungen am bestehenden Trip übernehmen und zurück in den
+   * Builder. Neu gewählte Routen werden an den Zieltag angehängt, abgewählte
+   * Trip-Routen entfernt (an allen Tagen, an denen sie liegen).
+   *
+   * Entfernt werden nur Routen, die hier als Kandidat angezeigt wurden —
+   * Trip-Routen, die für diese Strecke gar nicht vorkommen, bleiben unberührt.
    */
-  async function handleAddToTrip() {
+  async function handleApplyTripChanges() {
     if (!targetTrip) return;
 
-    const routeIds = selectedCandidates
-      .map((candidate) => candidate.route.id)
-      .filter((id) => !existingRouteIds.has(id));
-
-    if (routeIds.length === 0) {
-      setErrorKey("plan.saveHint");
-      return;
-    }
+    const { toAdd, toRemove } = tripChanges;
+    if (toAdd.length === 0 && toRemove.length === 0) return;
 
     setErrorKey("");
     setAddError(false);
     setSaving(true);
 
-    const ok = await addStopsToDay(targetTrip.dayId, routeIds, targetTrip.dayStopCount);
-    if (!ok) {
+    const removeStopIds = toRemove.flatMap((routeId) => targetTrip.stopIdsByRoute[routeId] ?? []);
+    const results = await Promise.all([
+      toAdd.length > 0
+        ? addStopsToDay(targetTrip.dayId, toAdd, targetTrip.dayStopCount)
+        : Promise.resolve(true),
+      ...removeStopIds.map((stopId) => deleteTripStop(stopId)),
+    ]);
+
+    if (results.some((ok) => !ok)) {
       setSaving(false);
       setAddError(true);
       return;
@@ -1316,6 +1412,25 @@ function PlanPageContent() {
     })();
   }, [authLoading, resolveUserId, router]);
 
+  /**
+   * NEU: Vor dem Wechsel zur Detailseite den sichtbaren Stand merken, damit
+   * der Rückweg (über ?from=) genau dorthin zurückführt — mit Strecke,
+   * Variante, Regler und Auswahl, ohne Hinweis-Banner.
+   */
+  const handleViewRoute = useCallback(() => {
+    if (!queryRef.current.start || !queryRef.current.end) return;
+    savePlanDraft({
+      start: queryRef.current.start,
+      end: queryRef.current.end,
+      routeIds: selectedIds,
+      routeIndex: activeRouteIndexRef.current,
+      detourLimitPct,
+      savedAt: Date.now(),
+      context: planUrl,
+      silent: true,
+    });
+  }, [selectedIds, detourLimitPct, planUrl]);
+
   /** Text der Umweg-Pille auf der Routenkarte. */
   const detourBadge = useCallback(
     (candidate: ScoredCandidate<PlannerRoute>): string => {
@@ -1334,7 +1449,18 @@ function PlanPageContent() {
 
   // Neue (noch nicht im Trip liegende) Auswahl — steuert den Button im
   // Trip-ergänzen-Modus.
-  const newSelectionCount = selectedIds.filter((id) => !existingRouteIds.has(id)).length;
+  const tripChanges = useMemo(() => {
+    const candidateIds = new Set(candidates.map((candidate) => candidate.route.id));
+    // In Fahrtrichtung sortiert, wie beim Anlegen eines neuen Trips
+    const toAdd = selectedCandidates
+      .map((candidate) => candidate.route.id)
+      .filter((id) => !existingRouteIds.has(id));
+    const toRemove = [...existingRouteIds].filter(
+      (id) => candidateIds.has(id) && !selectedIds.includes(id)
+    );
+    return { toAdd, toRemove };
+  }, [candidates, selectedCandidates, selectedIds, existingRouteIds]);
+  const hasTripChanges = tripChanges.toAdd.length > 0 || tripChanges.toRemove.length > 0;
 
   // Ziel des "Zum Trip Builder"-Links: im Trip-ergänzen-Modus der gerade
   // ergänzte Trip, sonst die Übersicht aller Trips (/trip ohne ID).
@@ -1405,6 +1531,7 @@ function PlanPageContent() {
               />
               <button
                 className="rp-calc-btn"
+                {...NO_FORM_STATE_RESTORE}
                 onClick={() => {
                   setRestoredNotice(false);
                   void handleCalculate();
@@ -1519,7 +1646,11 @@ function PlanPageContent() {
                   max={MAX_DETOUR_LIMIT_PCT}
                   step={1}
                   value={detourLimitPct}
-                  onChange={(event) => setDetourLimitPct(Number(event.target.value))}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    setDetourLimitPct(value);
+                    saveDetourPref(value);
+                  }}
                   style={
                     {
                       "--rp-detour-fill": `${
@@ -1535,6 +1666,7 @@ function PlanPageContent() {
                   <span>+{MAX_DETOUR_LIMIT_PCT}%</span>
                 </div>
                 <p className="rp-note">{t("plan.detour.hint")}</p>
+                <p className="rp-note">{tx.detourRemembered}</p>
               </div>
 
               {scoringCount > 0 ? (
@@ -1550,23 +1682,30 @@ function PlanPageContent() {
               ) : (
                 <div className="rp-route-grid">
                   {visibleCandidates.map((candidate) => {
-                    // Bereits im Ziel-Trip -> nicht wählbar, eigene Pille
+                    // Trip-Route: ausgewählt = bleibt drin, abgewählt = wird entfernt
                     const inTrip = existingRouteIds.has(candidate.route.id);
+                    const selected = selectedIds.includes(candidate.route.id);
                     return (
                       <RouteCard
                         key={candidate.route.id}
                         route={candidate.route}
                         viewRouteLabel={t("explore.viewRoute")}
-                        selectable={!inTrip}
-                        selected={selectedIds.includes(candidate.route.id)}
+                        selectable
+                        selected={selected}
+                        removing={inTrip && !selected}
                         onToggleSelect={toggleSelect}
+                        detailHref={`/routedetail/${candidate.route.id}?from=${encodeURIComponent(planUrl)}`}
+                        onViewRoute={handleViewRoute}
                         selectLabel={t("plan.select")}
                         selectedLabel={t("plan.selected")}
-                        badge={inTrip ? tx.inTrip : detourBadge(candidate)}
+                        badge={
+                          inTrip ? (selected ? tx.inTrip : tx.willRemove) : detourBadge(candidate)
+                        }
                         badgeMuted={
-                          inTrip ||
-                          candidate.detourRatio === null ||
-                          candidate.detourRatio * 100 > detourLimitPct
+                          (inTrip && !selected) ||
+                          (!inTrip &&
+                            (candidate.detourRatio === null ||
+                              candidate.detourRatio * 100 > detourLimitPct))
                         }
                       />
                     );
@@ -1584,15 +1723,17 @@ function PlanPageContent() {
                 {targetTrip ? (
                   <button
                     className="rp-save-btn"
-                    onClick={handleAddToTrip}
-                    disabled={saving || newSelectionCount === 0}
+                    {...NO_FORM_STATE_RESTORE}
+                    onClick={handleApplyTripChanges}
+                    disabled={saving || !hasTripChanges}
                   >
                     <Plus size={13} strokeWidth={2.4} />
-                    {saving ? tx.adding : tx.addToTrip}
+                    {saving ? tx.applying : tx.applyChanges}
                   </button>
                 ) : (
                   <button
                     className="rp-save-btn"
+                    {...NO_FORM_STATE_RESTORE}
                     onClick={handleSaveTrip}
                     disabled={saving || selectedIds.length === 0}
                   >
@@ -1600,8 +1741,23 @@ function PlanPageContent() {
                     <ArrowRight size={13} strokeWidth={2.4} />
                   </button>
                 )}
-                {(targetTrip ? newSelectionCount === 0 : selectedIds.length === 0) && (
-                  <p className="rp-hint">{t("plan.saveHint")}</p>
+                {targetTrip ? (
+                  // Nur die Teile, die wirklich zutreffen, getrennt mit " / ".
+                  // Ohne Änderungen kein Text.
+                  hasTripChanges && (
+                    <p className="rp-hint">
+                      {[
+                        tripChanges.toAdd.length > 0 &&
+                          tx.changesAdd.replace("{n}", String(tripChanges.toAdd.length)),
+                        tripChanges.toRemove.length > 0 &&
+                          tx.changesRemove.replace("{n}", String(tripChanges.toRemove.length)),
+                      ]
+                        .filter(Boolean)
+                        .join(" / ")}
+                    </p>
+                  )
+                ) : (
+                  selectedIds.length === 0 && <p className="rp-hint">{t("plan.saveHint")}</p>
                 )}
                 {addError && <p className="rp-error">{tx.addError}</p>}
               </div>
