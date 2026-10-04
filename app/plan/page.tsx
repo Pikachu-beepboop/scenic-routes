@@ -13,7 +13,7 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  MapPin, Flag, Navigation, Clock, Search, Compass, ArrowRight, ArrowLeft, Plus,
+  MapPin, Flag, Navigation, Clock, ArrowRight, ArrowLeft, Check, X,
   ChevronDown, Globe,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -123,10 +123,21 @@ const TRIP_TEXT = {
     toBuilder: "Zum Trip Builder",
     restored: "Deine Auswahl von vorhin wurde wiederhergestellt.",
     detourRemembered: "Deine Einstellung wird gespeichert und beim nächsten Besuch übernommen.",
+    editingEyebrow: "Routenplaner · Trip bearbeiten",
+    selection: "Deine Auswahl",
+    selectionEmpty: "Noch nichts ausgewählt – tippe unten auf eine Route, um sie hinzuzufügen.",
+    removeRoute: "Entfernen",
+    liveAuto: "Route passt sich automatisch an",
+    liveUpdating: "Route wird berechnet …",
+    alongTheWay: "Entlang der Strecke",
     variantsLabel: "Streckenvariante",
     via: "über {road}",
     variantN: "Variante {n}",
-    variantsHint: "Du kannst auch direkt auf eine graue Linie in der Karte klicken. Die gewählte Variante bestimmt, welche Panoramarouten als passend gelten – beim Wechsel wird deine Auswahl zurückgesetzt.",
+    variantsHint: "Mit ausgewählten Routen fährt der Planer automatisch die beste Strecke über deine Auswahl. Entferne alle Routen, um wieder eine Variante zu wählen.",
+    withSelection: "inkl. Auswahl",
+    bestWithSelection: "Beste Route mit Auswahl",
+    recommended: "Empfohlen",
+    sameAsBest: "wie beste Route",
   },
   en: {
     banner: "You're editing “{title}” – new routes go to day {day}, deselected ones will be removed.",
@@ -145,10 +156,21 @@ const TRIP_TEXT = {
     toBuilder: "Open Trip Builder",
     restored: "Your previous selection has been restored.",
     detourRemembered: "Your setting is saved and applied on your next visit.",
+    editingEyebrow: "Route planner · editing trip",
+    selection: "Your selection",
+    selectionEmpty: "Nothing selected yet – tap a route below to add it.",
+    removeRoute: "Remove",
+    liveAuto: "Route updates automatically",
+    liveUpdating: "Calculating route …",
+    alongTheWay: "Along the way",
     variantsLabel: "Route option",
     via: "via {road}",
     variantN: "Option {n}",
-    variantsHint: "You can also click a grey line on the map. The selected option decides which scenic routes count as along the way – switching resets your selection.",
+    variantsHint: "With routes selected, the planner automatically takes the best way through your selection. Remove all routes to choose an option again.",
+    withSelection: "incl. selection",
+    bestWithSelection: "Best route with selection",
+    recommended: "Recommended",
+    sameAsBest: "same as best route",
   },
   ru: {
     banner: "Вы редактируете поездку «{title}» – новые маршруты попадут в день {day}, снятые будут удалены.",
@@ -167,10 +189,21 @@ const TRIP_TEXT = {
     toBuilder: "Открыть конструктор поездки",
     restored: "Ваш предыдущий выбор восстановлен.",
     detourRemembered: "Ваша настройка сохраняется и применяется при следующем визите.",
+    editingEyebrow: "Планировщик · редактирование поездки",
+    selection: "Ваш выбор",
+    selectionEmpty: "Пока ничего не выбрано – нажмите на маршрут ниже, чтобы добавить его.",
+    removeRoute: "Удалить",
+    liveAuto: "Маршрут обновляется автоматически",
+    liveUpdating: "Маршрут рассчитывается …",
+    alongTheWay: "По пути",
     variantsLabel: "Вариант маршрута",
     via: "через {road}",
     variantN: "Вариант {n}",
-    variantsHint: "Можно также нажать на серую линию на карте. Выбранный вариант определяет, какие живописные маршруты считаются подходящими – при смене выбор сбрасывается.",
+    variantsHint: "С выбранными маршрутами планировщик сам прокладывает лучший путь через ваш выбор. Удалите все маршруты, чтобы снова выбрать вариант.",
+    withSelection: "с выбором",
+    bestWithSelection: "Лучший маршрут с выбором",
+    recommended: "Рекомендуем",
+    sameAsBest: "как лучший маршрут",
   },
 } as const;
 
@@ -202,6 +235,27 @@ function formatDuration(totalSeconds: number): string {
   if (hours === 0) return `${minutes} min`;
   return `${hours} h ${String(minutes).padStart(2, "0")} min`;
 }
+
+/**
+ * NEU: Innenabstand für fitBounds — auf breiten Bildschirmen liegt links das
+ * Glas-Panel über der Karte, die Strecke soll daneben sichtbar sein.
+ */
+function mapPadding() {
+  if (typeof window !== "undefined" && window.innerWidth > 900) {
+    return { top: 120, right: 70, bottom: 90, left: 500 };
+  }
+  return { top: 70, right: 30, bottom: 50, left: 30 };
+}
+
+/** NEU: Routentitel in der aktuellen Sprache (für die Auswahl-Liste im Panel). */
+function localizedTitle(route: unknown, lang: string): string {
+  const record = (route ?? {}) as Record<string, unknown>;
+  const value = record[`title_${lang}`] || record.title_en || record.title_de || record.title;
+  return typeof value === "string" ? value : "";
+}
+
+/** Verzögerung, bevor nach einer Eingabe automatisch gerechnet wird. */
+const AUTO_CALC_DELAY_MS = 150;
 
 /**
  * Unterhalb dieser Mehrfahrzeit wird der Umweg nicht als Zahl ausgewiesen,
@@ -327,6 +381,7 @@ function PlaceField({
   value,
   enabled,
   onChange,
+  onCommit,
 }: {
   label: string;
   placeholder: string;
@@ -335,6 +390,11 @@ function PlaceField({
   /** Ohne Google-Maps-Zustimmung werden keine Places-Requests geschickt. */
   enabled: boolean;
   onChange: (next: string) => void;
+  /**
+   * NEU: Der Nutzer hat einen Ort festgelegt — Vorschlag angeklickt oder mit
+   * Enter bestätigt. Erst dann rechnet der Planner automatisch.
+   */
+  onCommit?: (value: string) => void;
 }) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -401,6 +461,17 @@ function PlaceField({
             lastTypedRef.current = e.target.value;
             onChange(e.target.value);
           }}
+          onKeyDown={(e) => {
+            // Enter übernimmt den ersten Vorschlag bzw. den getippten Text
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const chosen = (open && suggestions[0]?.text) || value.trim();
+            if (!chosen) return;
+            if (chosen !== value) onChange(chosen);
+            setSuggestions([]);
+            setOpen(false);
+            onCommit?.(chosen);
+          }}
           onFocus={() => setOpen(suggestions.length > 0)}
         />
       </div>
@@ -414,6 +485,7 @@ function PlaceField({
               className="rp-suggestion"
               onClick={() => {
                 onChange(suggestion.text);
+                onCommit?.(suggestion.text);
                 setSuggestions([]);
                 setOpen(false);
               }}
@@ -754,6 +826,22 @@ function PlanPageContent() {
   // Zählt die Berechnungs-Läufe. Ein neuer Lauf (neue Strecke oder andere
   // Variante) entwertet die noch laufenden Umweg-Messungen des vorherigen.
   const calcRunRef = useRef(0);
+  // NEU: zuletzt angefragte Start/Ziel-Kombination — verhindert doppelte
+  // automatische Berechnungen für dieselbe Eingabe.
+  const lastRequestedRef = useRef({ start: "", end: "" });
+  // NEU: Auswahl im Glas-Panel auf- und zugeklappt
+  const [selectionOpen, setSelectionOpen] = useState(false);
+  // NEU: Orte, die der Nutzer festgelegt hat (Vorschlag gewählt / Enter /
+  // aus Trip oder Entwurf übernommen). Automatisch gerechnet wird nur, wenn
+  // beide Felder genau diesen Wert enthalten.
+  const [committed, setCommitted] = useState({ start: "", end: "" });
+  // NEU: berechnete "beste Route mit Auswahl" je Auswahl — An- und Abwählen
+  // derselben Kombination kostet so keine neue Anfrage. Wird bei neuer
+  // Strecke geleert.
+  const routeCacheRef = useRef<Map<string, any>>(new Map());
+  // NEU: Routenleiste — Pfeile links/rechts
+  const railRef = useRef<HTMLDivElement>(null);
+  const [railEdges, setRailEdges] = useState({ left: false, right: false });
 
   // ---------------------------------------------------------------- Routen
   useEffect(() => {
@@ -817,6 +905,7 @@ function PlanPageContent() {
 
       if (trip.start_location) setStart(trip.start_location);
       if (trip.end_location) setEnd(trip.end_location);
+      setCommitted({ start: trip.start_location ?? "", end: trip.end_location ?? "" });
     })();
 
     return () => {
@@ -851,6 +940,8 @@ function PlanPageContent() {
         // Gewählte Strecke blau und über den grauen Alternativen (zIndex).
         rendererRef.current = new maps.DirectionsRenderer({
           map,
+          // Ausschnitt setzt showDirections selbst, mit Platz für das Panel
+          preserveViewport: true,
           polylineOptions: {
             strokeColor: ACTIVE_ROUTE_COLOR,
             strokeOpacity: 0.95,
@@ -862,7 +953,11 @@ function PlanPageContent() {
 
         // Wurde die Route berechnet, bevor der Consent-Gate die Karte
         // freigegeben hat, wird sie hier nachgezogen.
-        if (lastResultRef.current) rendererRef.current.setDirections(lastResultRef.current);
+        if (lastResultRef.current) {
+          rendererRef.current.setDirections(lastResultRef.current);
+          const bounds = lastResultRef.current?.routes?.[0]?.bounds;
+          if (bounds) map.fitBounds(bounds, mapPadding());
+        }
       })
       .catch((err) => {
         console.error("plan: Google Maps konnte nicht geladen werden", err);
@@ -877,6 +972,9 @@ function PlanPageContent() {
   const showDirections = useCallback((result: any) => {
     lastResultRef.current = result;
     rendererRef.current?.setDirections(result);
+    // NEU: Ausschnitt mit Platz für das Glas-Panel
+    const bounds = result?.routes?.[0]?.bounds;
+    if (bounds) mapRef.current?.fitBounds(bounds, mapPadding());
   }, []);
 
   // ------------------------------------------------------------- Berechnung
@@ -947,6 +1045,8 @@ function PlanPageContent() {
 
     const run = ++calcRunRef.current;
     const isCancelled = () => calcRunRef.current !== run;
+    lastRequestedRef.current = { start: origin, end: destination };
+    routeCacheRef.current.clear();
 
     setErrorKey("");
     setAddError(false);
@@ -957,7 +1057,7 @@ function PlanPageContent() {
     setRouteOptions([]);
     // Zusammen mit der geleerten Auswahl zurücksetzen, sonst hält der Effekt
     // unten die leere Auswahl für eine Änderung.
-    renderedSelectionRef.current = "";
+    renderedSelectionRef.current = "|best";
 
     try {
       // Grundstrecke mit Alternativen (und Verkehrslage, siehe googleMaps.ts)
@@ -1013,10 +1113,13 @@ function PlanPageContent() {
     setActiveRouteIndex(index);
     setErrorKey("");
     setAddError(false);
+    // GEÄNDERT: Auswahl beim Wechsel behalten — runMatching setzt sie für die
+    // neue Variante wieder (nur Routen, die dort ebenfalls gefunden werden).
+    restoreIdsRef.current = selectedIds;
     setCandidates([]);
     setSelectedIds([]);
     setScoringCount(0);
-    renderedSelectionRef.current = "";
+    renderedSelectionRef.current = "|best";
     setCalculating(true);
 
     try {
@@ -1057,6 +1160,7 @@ function PlanPageContent() {
     clearPlanDraft();
     setStart(draft.start);
     setEnd(draft.end);
+    setCommitted({ start: draft.start, end: draft.end });
     setDetourLimitPct(draft.detourLimitPct);
     setRestoreDraft(draft);
     // nur beim ersten Laden
@@ -1079,6 +1183,33 @@ function PlanPageContent() {
     void handleCalculate(routeIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restoreDraft, mapsConsent, routes, start, end]);
+
+  // NEU: Automatisch rechnen statt "Calculate Route"-Button — aber erst,
+  // wenn Start UND Ziel festgelegt sind (Vorschlag gewählt oder Enter) und die
+  // Felder noch genau diesen Wert enthalten. Reines Tippen löst nichts aus,
+  // und dieselbe Kombination wird nie doppelt berechnet.
+  useEffect(() => {
+    const origin = start.trim();
+    const destination = end.trim();
+    if (!mapsConsent || routes.length === 0) return;
+    if (!origin || !destination) return;
+    if (origin !== committed.start.trim() || destination !== committed.end.trim()) return;
+    if (
+      lastRequestedRef.current.start === origin &&
+      lastRequestedRef.current.end === destination
+    ) {
+      return;
+    }
+    // Entwurf/Trip-Modus rechnen selbst (mit Variante und Vorauswahl)
+    if (restoreDraft || (tripParam && !autoCalcDoneRef.current && !tripLoadFailed)) return;
+
+    const timer = setTimeout(() => {
+      setRestoredNotice(false);
+      void handleCalculate();
+    }, AUTO_CALC_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start, end, committed, mapsConsent, routes, restoreDraft, tripParam, tripLoadFailed]);
 
   // Im Trip-ergänzen-Modus einmalig automatisch rechnen, sobald Start/Ziel
   // übernommen, die Routen geladen und Google Maps freigegeben sind.
@@ -1132,25 +1263,38 @@ function PlanPageContent() {
     [candidates, selectedIds]
   );
 
-  // Auswahl geändert -> Strecke mit den gewählten Routen als Wegpunkte neu
-  // berechnen, Karte aktualisiert sich dadurch live.
+  /** NEU: Schlüssel der aktuellen Auswahl (für Gesamtwerte je Variante). */
+  const selectionKey = useMemo(
+    () => selectedCandidates.map((candidate) => candidate.route.id).join(","),
+    [selectedCandidates]
+  );
+
+  // Auswahl geändert -> Karte neu zeichnen. Mit Auswahl immer die beste Route
+  // über die gewählten Panoramarouten (Googles Weg), ohne Auswahl die
+  // gewählte Streckenvariante.
   useEffect(() => {
     if (!hasResult) return;
 
-    const selectionKey = selectedCandidates.map((candidate) => candidate.route.id).join(",");
-    if (renderedSelectionRef.current === selectionKey) return;
-    renderedSelectionRef.current = selectionKey;
+    const withSelection = selectedCandidates.length > 0;
+    const renderKey = `${selectionKey}|best`;
+    if (renderedSelectionRef.current === renderKey) return;
+    renderedSelectionRef.current = renderKey;
 
-    // NEU: Auswahl wieder leer -> gewählte Streckenvariante zeigen, ohne
-    // neue Anfrage. Vorher hätte hier eine frische Anfrage ohne Wegpunkte
-    // Googles Standardroute geladen und die gewählte Variante überschrieben.
-    if (selectedCandidates.length === 0) {
+    // Keine Auswahl -> gewählte Streckenvariante ohne neue Anfrage zeigen
+    if (!withSelection) {
       const base = baseResultRef.current;
       if (base) {
         const route = pickRoute(base, activeRouteIndexRef.current);
         setSummary(summarizeDirections(route));
         showDirections(route);
       }
+      return;
+    }
+
+    const cached = routeCacheRef.current.get(renderKey);
+    if (cached) {
+      setSummary(summarizeDirections(cached));
+      showDirections(cached);
       return;
     }
 
@@ -1165,6 +1309,7 @@ function PlanPageContent() {
           queryRef.current.end,
           waypoints
         );
+        routeCacheRef.current.set(renderKey, result);
         if (cancelled) return;
         setSummary(summarizeDirections(result));
         showDirections(result);
@@ -1177,7 +1322,9 @@ function PlanPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [selectedCandidates, hasResult, showDirections]);
+  }, [selectedCandidates, hasResult, showDirections, selectionKey]);
+
+
 
   // ------------------------------------ NEU: Alternativen auf der Karte
   /**
@@ -1239,7 +1386,7 @@ function PlanPageContent() {
     for (const route of allRoutes) {
       if (route?.bounds) bounds.union(route.bounds);
     }
-    if (!bounds.isEmpty()) map.fitBounds(bounds, 40);
+    if (!bounds.isEmpty()) map.fitBounds(bounds, mapPadding());
 
     return () => {
       for (const { line } of lines) {
@@ -1431,6 +1578,11 @@ function PlanPageContent() {
     });
   }, [selectedIds, detourLimitPct, planUrl]);
 
+  /** Variante anklicken (nur ohne Auswahl sichtbar). */
+  function selectVariant(index: number) {
+    if (index !== activeRouteIndexRef.current) void handleSelectRouteOption(index);
+  }
+
   /** Text der Umweg-Pille auf der Routenkarte. */
   const detourBadge = useCallback(
     (candidate: ScoredCandidate<PlannerRoute>): string => {
@@ -1449,6 +1601,28 @@ function PlanPageContent() {
 
   // Neue (noch nicht im Trip liegende) Auswahl — steuert den Button im
   // Trip-ergänzen-Modus.
+  // NEU: Pfeile der Routenleiste ein-/ausblenden, je nach Scrollposition
+  const updateRailEdges = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const left = rail.scrollLeft > 4;
+    const right = rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 4;
+    setRailEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  }, []);
+
+  useEffect(() => {
+    updateRailEdges();
+    window.addEventListener("resize", updateRailEdges);
+    return () => window.removeEventListener("resize", updateRailEdges);
+  }, [updateRailEdges, visibleCandidates]);
+
+  const scrollRail = useCallback((direction: -1 | 1) => {
+    const rail = railRef.current;
+    if (!rail) return;
+    // etwa zwei Drittel der sichtbaren Breite, damit eine Karte als Anker bleibt
+    rail.scrollBy({ left: direction * Math.max(320, rail.clientWidth * 0.66), behavior: "smooth" });
+  }, []);
+
   const tripChanges = useMemo(() => {
     const candidateIds = new Set(candidates.map((candidate) => candidate.route.id));
     // In Fahrtrichtung sortiert, wie beim Anlegen eines neuen Trips
@@ -1466,107 +1640,156 @@ function PlanPageContent() {
   // ergänzte Trip, sonst die Übersicht aller Trips (/trip ohne ID).
   const builderHref = targetTrip ? `/trip?id=${targetTrip.id}${fromSuffix}` : "/trip";
 
-  return (
-    <div className="pp">
-      <div className="pp-bg">
-        <img
-          src="/stelvio_pass.jpg"
-          alt={t("nav.scenicRoadAlt")}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = "/pacific_route_highway.jpg";
-          }}
-        />
-      </div>
+  // NEU: Statuszeile im Panel (ersetzt den "Calculate Route"-Button)
+  const liveState: "off" | "busy" | "live" = !mapsConsent
+    ? "off"
+    : calculating || scoringCount > 0
+      ? "busy"
+      : hasResult && summary
+        ? "live"
+        : "off";
+  const liveText = !mapsConsent
+    ? t("plan.consentHint")
+    : liveState === "busy"
+      ? tx.liveUpdating
+      : liveState === "live" && summary
+        ? `${tx.liveAuto} · ${formatDistance(summary.km, unit)} · ${formatDuration(summary.seconds)}`
+        : t("plan.map.empty");
 
+  // NEU: Mit Auswahl gibt es nur noch die beste Route über die Auswahl —
+  // ihre Werte sind die der gezeichneten Route (summary).
+  const withSelectionNow = selectedCandidates.length > 0;
+
+  // NEU: Planungsblock und Auswahl wechseln sich ab (nur mit Ergebnis)
+  const planCollapsed = hasResult && selectionOpen;
+  const activeOption = routeOptions.find((option) => option.index === activeRouteIndex) ?? null;
+
+  const changeSummary = [
+    tripChanges.toAdd.length > 0 &&
+      tx.changesAdd.replace("{n}", String(tripChanges.toAdd.length)),
+    tripChanges.toRemove.length > 0 &&
+      tx.changesRemove.replace("{n}", String(tripChanges.toRemove.length)),
+  ]
+    .filter(Boolean)
+    .join(" / ");
+
+  return (
+    <div className="pp rp-page">
       <PlannerNav activePath="/plan" />
 
-      <div className="pp-layout">
-        <div className="rp-wrap">
-          <header className="rp-hero">
-            <span className="rp-hero-icon">
-              <Compass size={20} strokeWidth={1.6} />
+      {/* ------------------------------------------------ Karte als Titelbild */}
+      <section className="rp-hero">
+        <div className="rp-hero-map">
+          <GoogleMapsGate height="100%" onConsentChange={handleConsentChange}>
+            <div ref={setMapEl} className="rp-map" />
+          </GoogleMapsGate>
+        </div>
+        <span className="rp-hero-fade" aria-hidden="true" />
+
+        {summary && (
+          <div className="rp-hero-stats">
+            <span>
+              <Navigation size={12} strokeWidth={2} />
+              {formatDistance(summary.km, unit)}
             </span>
-            <p className="rp-eyebrow">{t("plan.eyebrow")}</p>
-            <h1 className="rp-title">{t("plan.title")}</h1>
-            <p className="rp-sub">{t("plan.sub")}</p>
-          </header>
+            <span>
+              <Clock size={12} strokeWidth={2} />
+              {formatDuration(summary.seconds)}
+            </span>
+          </div>
+        )}
 
-          {/* -------------------------------------------------- Eingabe */}
-          <section className="rp-card">
-            <h2 className="rp-card-title">{t("plan.form.title")}</h2>
-
-            {/* Hinweis im Trip-ergänzen-Modus */}
-            {targetTrip && (
-              <div className="rp-trip-banner">
-                <p>
-                  {tx.banner
-                    .replace("{title}", targetTrip.title)
-                    .replace("{day}", String(targetTrip.dayNumber))}
-                </p>
-                <Link href={`/trip?id=${targetTrip.id}${fromSuffix}`} className="rp-trip-banner-link">
-                  <ArrowLeft size={12} strokeWidth={2.4} /> {tx.backToTrip}
-                </Link>
-              </div>
+        {/* ---------------------------------------------- Glas-Panel links */}
+        <aside className="rp-panel">
+          <div className="rp-panel-head">
+            <span className="rp-eyebrow">{targetTrip ? tx.editingEyebrow : t("plan.eyebrow")}</span>
+            <h1 className="rp-panel-title">{targetTrip ? targetTrip.title : t("plan.title")}</h1>
+            {targetTrip ? (
+              <Link href={`/trip?id=${targetTrip.id}${fromSuffix}`} className="rp-back-link">
+                <ArrowLeft size={12} strokeWidth={2.4} /> {tx.backToTrip}
+              </Link>
+            ) : (
+              !planCollapsed && <p className="rp-panel-sub">{t("plan.sub")}</p>
             )}
-            {tripLoadFailed && <p className="rp-error">{tx.tripLoadError}</p>}
-            {/* NEU: nach Rückkehr vom Login ohne Anmeldung */}
-            {restoredNotice && <p className="rp-restored">{tx.restored}</p>}
+          </div>
 
-            <div className="rp-form">
-              <PlaceField
-                label={t("plan.form.start")}
-                placeholder={t("plan.form.startPlaceholder")}
-                icon={<MapPin size={13} strokeWidth={2} />}
-                value={start}
-                enabled={mapsConsent}
-                onChange={setStart}
-              />
-              <PlaceField
-                label={t("plan.form.end")}
-                placeholder={t("plan.form.endPlaceholder")}
-                icon={<Flag size={13} strokeWidth={2} />}
-                value={end}
-                enabled={mapsConsent}
-                onChange={setEnd}
-              />
-              <button
-                className="rp-calc-btn"
-                {...NO_FORM_STATE_RESTORE}
-                onClick={() => {
-                  setRestoredNotice(false);
-                  void handleCalculate();
-                }}
-                disabled={calculating || !mapsConsent}
-              >
-                <Search size={13} strokeWidth={2.4} />
-                {calculating ? t("plan.form.calculating") : t("plan.form.calculate")}
-              </button>
-            </div>
+          {restoredNotice && <p className="rp-notice">{tx.restored}</p>}
+          {tripLoadFailed && <p className="rp-error">{tx.tripLoadError}</p>}
 
-            {!mapsConsent && <p className="rp-hint">{t("plan.consentHint")}</p>}
-            {errorKey && <p className="rp-error">{t(errorKey)}</p>}
-          </section>
-
-          {/* ---------------------------------------------------- Karte */}
-          <section className="rp-card">
-            <div className="rp-card-head">
-              <h2 className="rp-card-title">{t("plan.map.title")}</h2>
-              {summary && (
-                <div className="rp-summary">
-                  <span>
-                    <Navigation size={12} strokeWidth={2} />
-                    {t("plan.map.distance")}: {formatDistance(summary.km, unit)}
+          {/* NEU: Planungsblock — klappt zusammen, wenn "Deine Auswahl" offen
+              ist; dann bleibt eine kompakte Zusammenfassung zum Wiederöffnen */}
+          {planCollapsed && (
+            <button
+              type="button"
+              className="rp-plan-summary"
+              onClick={() => setSelectionOpen(false)}
+              aria-expanded={false}
+            >
+              <span className="rp-plan-summary-text">
+                <span className="rp-plan-summary-route">
+                  {queryRef.current.start || start} → {queryRef.current.end || end}
+                </span>
+                {activeOption && (
+                  <span className="rp-plan-summary-meta">
+                    {withSelectionNow
+                      ? tx.bestWithSelection
+                      : activeOption.summary
+                        ? tx.via.replace("{road}", activeOption.summary)
+                        : tx.variantN.replace("{n}", String(activeOption.index + 1))}
+                    {summary
+                      ? ` · ${formatDistance(summary.km, unit)} · ${formatDuration(summary.seconds)}`
+                      : ""}
                   </span>
-                  <span>
-                    <Clock size={12} strokeWidth={2} />
-                    {t("plan.map.duration")}: {formatDuration(summary.seconds)}
-                  </span>
-                </div>
-              )}
-            </div>
+                )}
+              </span>
+              <span className="rp-acc-chev" aria-hidden="true">
+                <ChevronDown size={14} strokeWidth={2.2} />
+              </span>
+            </button>
+          )}
 
-            {/* NEU: Streckenvarianten, nur wenn Google mehr als eine liefert */}
-            {routeOptions.length > 1 && (
+          <div className={`rp-plan ${planCollapsed ? "" : "is-open"}`}>
+          <div className="rp-plan-inner">
+          <PlaceField
+            label={t("plan.form.start")}
+            placeholder={t("plan.form.startPlaceholder")}
+            icon={<MapPin size={14} strokeWidth={2} />}
+            value={start}
+            enabled={mapsConsent}
+            onChange={setStart}
+            onCommit={(value) => setCommitted((prev) => ({ ...prev, start: value }))}
+          />
+          <PlaceField
+            label={t("plan.form.end")}
+            placeholder={t("plan.form.endPlaceholder")}
+            icon={<Flag size={14} strokeWidth={2} />}
+            value={end}
+            enabled={mapsConsent}
+            onChange={setEnd}
+            onCommit={(value) => setCommitted((prev) => ({ ...prev, end: value }))}
+          />
+
+          {withSelectionNow ? (
+            // NEU: Mit Auswahl nur die beste Route über die Auswahl
+            <div className="rp-variants">
+              <span className="rp-field-label">{tx.variantsLabel}</span>
+              <div className="rp-variant rp-variant-best is-active" role="status">
+                <span className="rp-variant-row">
+                  <span className="rp-variant-name">{tx.bestWithSelection}</span>
+                  <span className="rp-variant-tag">{tx.recommended}</span>
+                </span>
+                {summary && liveState !== "busy" ? (
+                  <span className="rp-variant-meta">
+                    {formatDuration(summary.seconds)} · {formatDistance(summary.km, unit)}
+                  </span>
+                ) : (
+                  <span className="rp-variant-meta rp-variant-loading">…</span>
+                )}
+              </div>
+              <p className="rp-note">{tx.variantsHint}</p>
+            </div>
+          ) : (
+            routeOptions.length > 1 && (
               <div className="rp-variants">
                 <span className="rp-field-label">{tx.variantsLabel}</span>
                 <div className="rp-variant-list">
@@ -1576,7 +1799,7 @@ function PlanPageContent() {
                       type="button"
                       className={`rp-variant ${option.index === activeRouteIndex ? "is-active" : ""}`}
                       aria-pressed={option.index === activeRouteIndex}
-                      onClick={() => handleSelectRouteOption(option.index)}
+                      onClick={() => selectVariant(option.index)}
                       onMouseEnter={() => highlightAlternative(option.index)}
                       onMouseLeave={() => highlightAlternative(null)}
                     >
@@ -1585,109 +1808,214 @@ function PlanPageContent() {
                           ? tx.via.replace("{road}", option.summary)
                           : tx.variantN.replace("{n}", String(option.index + 1))}
                       </span>
-                      <span className="rp-variant-meta">
-                        {formatDuration(option.seconds)} · {formatDistance(option.km, unit)}
-                      </span>
+                      <span className="rp-variant-meta">{formatDuration(option.seconds)}</span>
+                      <span className="rp-variant-meta">{formatDistance(option.km, unit)}</span>
                     </button>
                   ))}
                 </div>
-                <p className="rp-note">{tx.variantsHint}</p>
               </div>
-            )}
+            )
+          )}
 
-            {/* Die Höhe steckt im Rahmen, nicht in der Karte: so folgt auch
-                der Consent-Platzhalter des Gates den Media-Queries. */}
-            <div className="rp-map-frame">
-              <GoogleMapsGate height="100%" onConsentChange={handleConsentChange}>
-                <div ref={setMapEl} className="rp-map" />
-              </GoogleMapsGate>
+          {/* NEU: Status statt "Calculate Route" — die Route rechnet automatisch */}
+          <div className={`rp-live is-${liveState}`} role="status">
+            <span className="rp-live-dot" aria-hidden="true" />
+            <span>{liveText}</span>
+          </div>
+          {errorKey && <p className="rp-error">{t(errorKey)}</p>}
+          </div>
+          </div>
+
+          {hasResult && (
+            <>
+              <div className="rp-divider" />
+
+              {/* NEU: aufklappbare Auswahl — gewählte Routen erscheinen hier */}
+              <div className={`rp-acc ${selectionOpen ? "is-open" : ""}`}>
+                <button
+                  type="button"
+                  className="rp-acc-head"
+                  onClick={() => setSelectionOpen((open) => !open)}
+                  aria-expanded={selectionOpen}
+                >
+                  <span className="rp-acc-title">
+                    {tx.selection}
+                    <span className="rp-acc-count">{selectedCandidates.length}</span>
+                  </span>
+                  <span className="rp-acc-chev" aria-hidden="true">
+                    <ChevronDown size={14} strokeWidth={2.2} />
+                  </span>
+                </button>
+                <div className="rp-acc-body">
+                  <div className="rp-acc-inner">
+                    {selectedCandidates.length === 0 ? (
+                      <p className="rp-acc-empty">{tx.selectionEmpty}</p>
+                    ) : (
+                      <div className="rp-acc-list">
+                        {selectedCandidates.map((candidate) => {
+                          const name = localizedTitle(candidate.route, lang);
+                          return (
+                            <div key={candidate.route.id} className="rp-acc-item">
+                              <img
+                                src={candidate.route.image_url || "/iceland.jpg"}
+                                alt={name}
+                                onError={(e) => {
+                                  e.currentTarget.src = "/iceland.jpg";
+                                }}
+                              />
+                              <div className="rp-acc-text">
+                                <div className="rp-acc-name">{name}</div>
+                                <div className="rp-acc-meta">
+                                  {[
+                                    candidate.route.country,
+                                    candidate.route.distance_km
+                                      ? formatDistance(candidate.route.distance_km, unit)
+                                      : null,
+                                    candidate.route.duration,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="rp-acc-remove"
+                                onClick={() => toggleSelect(candidate.route.id)}
+                                aria-label={`${tx.removeRoute}: ${name}`}
+                              >
+                                <X size={13} strokeWidth={2.2} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Speichern — ausserhalb des Klappbereichs, immer sichtbar */}
+              <div className="rp-save">
+                {targetTrip
+                  ? hasTripChanges && <p className="rp-save-summary">{changeSummary}</p>
+                  : selectedIds.length === 0 && <p className="rp-hint">{t("plan.saveHint")}</p>}
+                {targetTrip ? (
+                  <button
+                    className="rp-save-btn"
+                    {...NO_FORM_STATE_RESTORE}
+                    onClick={handleApplyTripChanges}
+                    disabled={saving || !hasTripChanges}
+                  >
+                    <Check size={13} strokeWidth={2.6} />
+                    {saving ? tx.applying : tx.applyChanges}
+                  </button>
+                ) : (
+                  <button
+                    className="rp-save-btn"
+                    {...NO_FORM_STATE_RESTORE}
+                    onClick={handleSaveTrip}
+                    disabled={saving || selectedIds.length === 0}
+                  >
+                    {saving ? t("plan.saving") : t("plan.save")}
+                    <ArrowRight size={13} strokeWidth={2.4} />
+                  </button>
+                )}
+                {addError && <p className="rp-error">{tx.addError}</p>}
+              </div>
+            </>
+          )}
+        </aside>
+      </section>
+
+      {/* ------------------------------------------------ Routen entlang der Strecke */}
+      {hasResult && (
+        <section className="rp-results">
+          <div className="rp-results-head">
+            <div>
+              <span className="rp-eyebrow">
+                {tx.alongTheWay} ·{" "}
+                {t("plan.matches.count").replace("{n}", String(visibleCandidates.length))}
+              </span>
+              <h2 className="rp-results-title">{t("plan.matches.title")}</h2>
+              <p className="rp-results-sub">{t("plan.matches.subtitle")}</p>
             </div>
 
-            {!hasResult && <p className="rp-hint">{t("plan.map.empty")}</p>}
-          </section>
-
-          {/* -------------------------------------------- Passende Routen */}
-          {hasResult && (
-            <section className="rp-card">
-              <div className="rp-card-head">
-                <div>
-                  <h2 className="rp-card-title">{t("plan.matches.title")}</h2>
-                  <p className="rp-card-sub">{t("plan.matches.subtitle")}</p>
-                </div>
-                <div className="rp-counts">
-                  <span className="rp-count">
-                    {t("plan.matches.count").replace("{n}", String(visibleCandidates.length))}
-                  </span>
-                  {selectedIds.length > 0 && (
-                    <span className="rp-count rp-count-gold">
-                      {t("plan.matches.selected").replace("{n}", String(selectedIds.length))}
-                    </span>
-                  )}
-                </div>
+            {/* Der Regler filtert nur die bereits gemessenen Umwege */}
+            <div className="rp-detour">
+              <div className="rp-detour-head">
+                <label className="rp-field-label" htmlFor="rp-detour-slider">
+                  {t("plan.detour.label")}
+                </label>
+                <span className="rp-detour-value">+{detourLimitPct}%</span>
               </div>
+              <input
+                id="rp-detour-slider"
+                className="rp-detour-slider"
+                type="range"
+                min={MIN_DETOUR_LIMIT_PCT}
+                max={MAX_DETOUR_LIMIT_PCT}
+                step={1}
+                value={detourLimitPct}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  setDetourLimitPct(value);
+                  saveDetourPref(value);
+                }}
+                style={
+                  {
+                    "--rp-detour-fill": `${
+                      ((detourLimitPct - MIN_DETOUR_LIMIT_PCT) /
+                        (MAX_DETOUR_LIMIT_PCT - MIN_DETOUR_LIMIT_PCT)) *
+                      100
+                    }%`,
+                  } as CSSProperties
+                }
+              />
+              <p className="rp-note">{tx.detourRemembered}</p>
+            </div>
+          </div>
 
-              {/* Der Regler filtert ausschliesslich die oben bereits
-                  gemessenen Umwege — er löst keine Anfrage aus. */}
-              <div className="rp-detour">
-                <div className="rp-detour-head">
-                  <label className="rp-field-label" htmlFor="rp-detour-slider">
-                    {t("plan.detour.label")}
-                  </label>
-                  <span className="rp-detour-value">+{detourLimitPct}%</span>
-                </div>
-                {/* --rp-detour-fill faerbt den bereits zurueckgelegten Teil
-                    der Schiene ein; ::-webkit-slider-runnable-track kennt den
-                    Wert des Reglers nicht und kann das nicht selbst. */}
-                <input
-                  id="rp-detour-slider"
-                  className="rp-detour-slider"
-                  type="range"
-                  min={MIN_DETOUR_LIMIT_PCT}
-                  max={MAX_DETOUR_LIMIT_PCT}
-                  step={1}
-                  value={detourLimitPct}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    setDetourLimitPct(value);
-                    saveDetourPref(value);
-                  }}
-                  style={
-                    {
-                      "--rp-detour-fill": `${
-                        ((detourLimitPct - MIN_DETOUR_LIMIT_PCT) /
-                          (MAX_DETOUR_LIMIT_PCT - MIN_DETOUR_LIMIT_PCT)) *
-                        100
-                      }%`,
-                    } as CSSProperties
-                  }
-                />
-                <div className="rp-detour-scale">
-                  <span>+{MIN_DETOUR_LIMIT_PCT}%</span>
-                  <span>+{MAX_DETOUR_LIMIT_PCT}%</span>
-                </div>
-                <p className="rp-note">{t("plan.detour.hint")}</p>
-                <p className="rp-note">{tx.detourRemembered}</p>
-              </div>
-
-              {scoringCount > 0 ? (
-                <p className="rp-hint">
-                  {t("plan.matches.scoring").replace("{n}", String(scoringCount))}
-                </p>
-              ) : candidates.length === 0 ? (
-                <p className="rp-hint">{t("plan.matches.none")}</p>
-              ) : visibleCandidates.length === 0 ? (
-                <p className="rp-hint">
-                  {t("plan.matches.noneWithin").replace("{pct}", String(detourLimitPct))}
-                </p>
-              ) : (
-                <div className="rp-route-grid">
-                  {visibleCandidates.map((candidate) => {
-                    // Trip-Route: ausgewählt = bleibt drin, abgewählt = wird entfernt
-                    const inTrip = existingRouteIds.has(candidate.route.id);
-                    const selected = selectedIds.includes(candidate.route.id);
-                    return (
+          {scoringCount > 0 ? (
+            <p className="rp-hint">
+              {t("plan.matches.scoring").replace("{n}", String(scoringCount))}
+            </p>
+          ) : candidates.length === 0 ? (
+            <p className="rp-hint">{t("plan.matches.none")}</p>
+          ) : visibleCandidates.length === 0 ? (
+            <p className="rp-hint">
+              {t("plan.matches.noneWithin").replace("{pct}", String(detourLimitPct))}
+            </p>
+          ) : (
+            <div
+              className={`rp-rail-wrap ${railEdges.left ? "has-left" : ""} ${railEdges.right ? "has-right" : ""}`}
+            >
+              {/* NEU: Pfeile zum Blättern — nur sichtbar, wenn es weitergeht */}
+              <button
+                type="button"
+                className="rp-rail-arrow is-left"
+                onClick={() => scrollRail(-1)}
+                aria-label="Previous routes"
+                tabIndex={railEdges.left ? 0 : -1}
+              >
+                <ArrowLeft size={18} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                className="rp-rail-arrow is-right"
+                onClick={() => scrollRail(1)}
+                aria-label="Next routes"
+                tabIndex={railEdges.right ? 0 : -1}
+              >
+                <ArrowRight size={18} strokeWidth={2} />
+              </button>
+              <div className="rp-rail" ref={railRef} onScroll={updateRailEdges}>
+                {visibleCandidates.map((candidate) => {
+                  // Trip-Route: ausgewählt = bleibt drin, abgewählt = wird entfernt
+                  const inTrip = existingRouteIds.has(candidate.route.id);
+                  const selected = selectedIds.includes(candidate.route.id);
+                  return (
+                    <div key={candidate.route.id} className="rp-rail-item">
                       <RouteCard
-                        key={candidate.route.id}
                         route={candidate.route}
                         viewRouteLabel={t("explore.viewRoute")}
                         selectable
@@ -1708,192 +2036,226 @@ function PlanPageContent() {
                               candidate.detourRatio * 100 > detourLimitPct))
                         }
                       />
-                    );
-                  })}
-                </div>
-              )}
-
-              {routesWithoutCoordinates > 0 && (
-                <p className="rp-note">
-                  {t("plan.matches.skipped").replace("{n}", String(routesWithoutCoordinates))}
-                </p>
-              )}
-
-              <div className="rp-actions">
-                {targetTrip ? (
-                  <button
-                    className="rp-save-btn"
-                    {...NO_FORM_STATE_RESTORE}
-                    onClick={handleApplyTripChanges}
-                    disabled={saving || !hasTripChanges}
-                  >
-                    <Plus size={13} strokeWidth={2.4} />
-                    {saving ? tx.applying : tx.applyChanges}
-                  </button>
-                ) : (
-                  <button
-                    className="rp-save-btn"
-                    {...NO_FORM_STATE_RESTORE}
-                    onClick={handleSaveTrip}
-                    disabled={saving || selectedIds.length === 0}
-                  >
-                    {saving ? t("plan.saving") : t("plan.save")}
-                    <ArrowRight size={13} strokeWidth={2.4} />
-                  </button>
-                )}
-                {targetTrip ? (
-                  // Nur die Teile, die wirklich zutreffen, getrennt mit " / ".
-                  // Ohne Änderungen kein Text.
-                  hasTripChanges && (
-                    <p className="rp-hint">
-                      {[
-                        tripChanges.toAdd.length > 0 &&
-                          tx.changesAdd.replace("{n}", String(tripChanges.toAdd.length)),
-                        tripChanges.toRemove.length > 0 &&
-                          tx.changesRemove.replace("{n}", String(tripChanges.toRemove.length)),
-                      ]
-                        .filter(Boolean)
-                        .join(" / ")}
-                    </p>
-                  )
-                ) : (
-                  selectedIds.length === 0 && <p className="rp-hint">{t("plan.saveHint")}</p>
-                )}
-                {addError && <p className="rp-error">{tx.addError}</p>}
+                    </div>
+                  );
+                })}
               </div>
-            </section>
+            </div>
           )}
 
-          <div className="rp-bottom-links">
-            <Link href="/" className="rp-back">
-              {t("plan.back")}
-            </Link>
-            {/* In den Trip Builder — Übersicht aller Trips bzw. der gerade
-                ergänzte Trip. Nur eingeloggt, Trips gehören zum Konto. */}
-            {userId && (
-              <Link href={builderHref} className="rp-back rp-back-builder">
-                {tx.toBuilder}
-                <ArrowRight size={12} strokeWidth={2.4} />
-              </Link>
-            )}
-          </div>
-        </div>
+          {routesWithoutCoordinates > 0 && (
+            <p className="rp-note">
+              {t("plan.matches.skipped").replace("{n}", String(routesWithoutCoordinates))}
+            </p>
+          )}
+        </section>
+      )}
+
+      <div className="rp-bottom-links">
+        <Link href="/" className="rp-back">
+          {t("plan.back")}
+        </Link>
+        {userId && (
+          <Link href={builderHref} className="rp-back">
+            {tx.toBuilder}
+            <ArrowRight size={12} strokeWidth={2.4} />
+          </Link>
+        )}
       </div>
 
-      {/* NEU: Footer wie auf /my-trips (Abschnitt "Footer" oben in dieser Datei) */}
       <PageFooter />
 
       <style>{`
-        .rp-wrap { width:100%; max-width:1180px; display:flex; flex-direction:column; gap:22px; }
+        /* =========================================================
+           Route Planner — Variante C: Karte als Titelbild, Glas-Panel
+           links, Routen als horizontale Leiste. Farben aus profile.css
+           (--bg, --bg2, --bg3, --cream, --muted, --dim, --border, --gold),
+           ergänzt um Glas- und Goldtext-Töne je Theme.
+           ========================================================= */
+        .rp-page { --rp-ease:cubic-bezier(.22,1,.36,1); --rp-gold-text:#D8BC84; --rp-glass:rgba(16,14,11,0.62); --rp-glass-line:rgba(255,255,255,0.12); --rp-field:rgba(12,11,9,0.55); --rp-shadow:0 30px 80px rgba(0,0,0,0.45); min-height:100vh; background:var(--bg); }
+        .light .rp-page, .rp-page.light { --rp-gold-text:#8A6727; --rp-glass:rgba(255,255,255,0.68); --rp-glass-line:rgba(255,255,255,0.75); --rp-field:rgba(255,255,255,0.75); --rp-shadow:0 24px 60px rgba(70,52,20,0.14); }
 
-        .rp-hero { text-align:center; padding:4px 0 8px; }
-        .rp-hero-icon { display:inline-grid; place-items:center; width:52px; height:52px; margin-bottom:20px; border:1px solid color-mix(in srgb, var(--gold) 38%, transparent); border-radius:16px; background:color-mix(in srgb, var(--gold) 12%, transparent); color:var(--gold); }
-        .rp-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.34em; text-transform:uppercase; color:var(--gold); margin-bottom:14px; }
-        .rp-title { font-family:var(--serif); font-size:clamp(38px,5vw,60px); font-weight:300; line-height:0.98; letter-spacing:-0.04em; color:var(--cream); }
-        .rp-sub { margin:18px auto 0; max-width:620px; font-size:15px; font-weight:300; line-height:1.75; color:var(--muted); }
+        /* ---------- Titelbild mit Karte */
+        .rp-hero { position:relative; height:clamp(760px, 92vh, 960px); overflow:hidden; }
+        .rp-hero-map { position:absolute; inset:0; }
+        .rp-map { width:100%; height:100%; }
+        .rp-hero-fade { position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, color-mix(in srgb, var(--bg) 92%, transparent) 0%, transparent 14%), linear-gradient(to top, color-mix(in srgb, var(--bg) 70%, transparent) 0%, color-mix(in srgb, var(--bg) 22%, transparent) 40px, transparent 90px), linear-gradient(to right, color-mix(in srgb, var(--bg) 50%, transparent) 0%, transparent 40%); }
+        .rp-hero-stats { position:absolute; top:104px; right:clamp(20px,4vw,56px); z-index:3; display:flex; gap:18px; padding:11px 18px; border-radius:999px; background:var(--rp-glass); backdrop-filter:blur(20px) saturate(160%); -webkit-backdrop-filter:blur(20px) saturate(160%); border:1px solid var(--border); box-shadow:inset 0 1px 0 var(--rp-glass-line); }
+        .rp-hero-stats span { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600; color:var(--cream); font-variant-numeric:tabular-nums; }
+        .rp-hero-stats svg { color:var(--rp-gold-text); }
 
-        .rp-card { background:color-mix(in srgb, var(--bg2) 82%, transparent); border:1px solid var(--border); border-radius:28px; padding:28px; box-shadow:0 40px 100px rgba(0,0,0,0.45); display:flex; flex-direction:column; gap:20px; }
-        .light .rp-card { background:#FFFFFF; box-shadow:0 30px 80px rgba(58,44,16,0.12); }
-        .rp-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap; }
-        .rp-card-title { font-family:var(--serif); font-size:26px; font-weight:400; color:var(--cream); letter-spacing:-0.01em; }
-        .rp-card-sub { margin-top:6px; font-size:12px; font-weight:300; line-height:1.6; color:var(--dim); max-width:520px; }
+        /* ---------- Glas-Panel */
+        .rp-panel { position:absolute; top:96px; left:clamp(20px,4vw,56px); z-index:4; width:420px; max-height:calc(100% - 120px); overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding:24px; border-radius:26px; background:var(--rp-glass); backdrop-filter:blur(26px) saturate(170%); -webkit-backdrop-filter:blur(26px) saturate(170%); border:1px solid var(--border); box-shadow:var(--rp-shadow), inset 0 1px 0 var(--rp-glass-line); scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--gold) 45%, transparent) transparent; }
+        .rp-panel-head { display:flex; flex-direction:column; gap:8px; }
+        .rp-eyebrow { font-size:9.5px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:var(--rp-gold-text); }
+        .rp-panel-title { margin:0; font-family:var(--serif); font-size:38px; font-weight:400; line-height:1.02; letter-spacing:-.01em; color:var(--cream); }
+        .rp-panel-sub { margin:0; font-size:12.5px; line-height:1.65; color:var(--muted); }
+        .rp-back-link { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--rp-gold-text); transition:opacity .2s; }
+        .rp-back-link:hover { opacity:.75; }
+        .rp-notice { margin:0; padding:10px 14px; border-radius:12px; border:1px solid color-mix(in srgb, var(--gold) 35%, transparent); background:color-mix(in srgb, var(--gold) 10%, transparent); font-size:12px; color:var(--cream); }
+        .rp-divider { height:1px; background:var(--border); }
 
-        /* Hinweis im Trip-ergänzen-Modus */
-        .rp-trip-banner { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:14px 18px; border:1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius:14px; background:color-mix(in srgb, var(--gold) 10%, transparent); }
-        .rp-trip-banner p { font-size:12.5px; line-height:1.6; color:var(--cream); }
-        .rp-trip-banner-link { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); white-space:nowrap; transition:opacity .2s; }
-        .rp-trip-banner-link:hover { opacity:0.75; }
-        .rp-restored { padding:12px 16px; border:1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius:12px; background:color-mix(in srgb, var(--gold) 10%, transparent); font-size:12.5px; color:var(--cream); }
+        /* Planungsblock: klappt zusammen, wenn die Auswahl offen ist */
+        .rp-plan { display:grid; grid-template-rows:0fr; transition:grid-template-rows .55s var(--rp-ease), opacity .45s var(--rp-ease); opacity:0; margin-top:-16px; }
+        .rp-plan.is-open { grid-template-rows:1fr; opacity:1; margin-top:0; }
+        .rp-plan-inner { min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:16px; }
+        .rp-plan.is-open .rp-plan-inner { overflow:visible; }
+        button.rp-plan-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:12px 14px; border-radius:16px; border:1px solid var(--border); background:color-mix(in srgb, var(--bg3) 45%, transparent); color:var(--cream); font-family:inherit; text-align:left; cursor:pointer; animation:rpItemIn .45s var(--rp-ease); transition:border-color .3s; }
+        button.rp-plan-summary:hover { border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+        .rp-plan-summary-text { display:flex; flex-direction:column; gap:3px; min-width:0; }
+        .rp-plan-summary-route { font-family:var(--serif); font-size:19px; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .rp-plan-summary-meta { font-size:10.5px; color:var(--rp-gold-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-        .rp-form { display:grid; grid-template-columns:1fr 1fr auto; gap:14px; align-items:end; }
+        /* Felder */
         .rp-field { position:relative; display:flex; flex-direction:column; gap:8px; min-width:0; }
-        .rp-field-label { font-size:9px; font-weight:800; letter-spacing:0.24em; text-transform:uppercase; color:var(--dim); }
-        .rp-field-input { display:flex; align-items:center; gap:10px; padding:14px 16px; border:1px solid var(--border); border-radius:14px; background:color-mix(in srgb, var(--bg3) 70%, transparent); transition:border-color .2s; }
+        .rp-field-label { font-size:9px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; color:var(--dim); }
+        .rp-field-input { display:flex; align-items:center; gap:10px; height:50px; padding:0 16px; border:1px solid var(--border); border-radius:14px; background:var(--rp-field); transition:border-color .3s var(--rp-ease); }
+        .rp-field-input:hover { border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
         .rp-field-input:focus-within { border-color:var(--gold); }
-        .rp-field-icon { display:flex; color:var(--gold); flex-shrink:0; }
+        .rp-field-icon { display:flex; color:var(--rp-gold-text); flex-shrink:0; }
         .rp-field-input input { flex:1; min-width:0; background:none; border:none; outline:none; font:inherit; font-size:14px; color:var(--cream); }
         .rp-field-input input::placeholder { color:var(--dim); }
-
-        .rp-suggestions { position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:60; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:color-mix(in srgb, var(--bg) 98%, transparent); backdrop-filter:blur(22px); box-shadow:0 28px 70px rgba(0,0,0,0.45); }
+        /* Im Fluss statt absolut: das Panel scrollt in sich und würde eine
+           schwebende Liste abschneiden */
+        .rp-suggestions { position:relative; z-index:2; margin-top:2px; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:color-mix(in srgb, var(--bg) 92%, transparent); box-shadow:0 18px 40px rgba(0,0,0,0.30); animation:rpItemIn .3s var(--rp-ease); }
         button.rp-suggestion { display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px; text-align:left; font-size:12.5px; color:var(--muted); background:none; transition:background .15s, color .15s; }
         button.rp-suggestion:hover { background:color-mix(in srgb, var(--border) 60%, transparent); color:var(--cream); }
-        button.rp-suggestion svg { color:var(--gold); flex-shrink:0; }
+        button.rp-suggestion svg { color:var(--rp-gold-text); flex-shrink:0; }
 
-        button.rp-calc-btn { display:flex; align-items:center; justify-content:center; gap:9px; height:50px; padding:0 28px; border:1px solid var(--gold); border-radius:14px; background:var(--gold); color:#0c0b09; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:opacity .2s, transform .2s; }
-        button.rp-calc-btn:hover:not(:disabled) { transform:translateY(-1px); }
-        button.rp-calc-btn:disabled { opacity:0.55; cursor:not-allowed; }
+        /* Streckenvarianten */
+        .rp-variants { display:flex; flex-direction:column; gap:8px; }
+        .rp-variant-list { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:8px; }
+        button.rp-variant { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 12px; border:1px solid var(--border); border-radius:14px; background:color-mix(in srgb, var(--bg3) 50%, transparent); font-family:inherit; text-align:left; cursor:pointer; transition:border-color .35s var(--rp-ease), background .35s var(--rp-ease); }
+        button.rp-variant:hover { border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+        button.rp-variant.is-active { border-color:var(--gold); background:color-mix(in srgb, var(--gold) 14%, transparent); }
+        .rp-variant-name { font-size:11.5px; font-weight:600; color:var(--cream); }
+        .rp-variant-meta { font-size:10.5px; line-height:1.35; color:var(--dim); font-variant-numeric:tabular-nums; }
+        .rp-variant-best { grid-column:1 / -1; }
+        div.rp-variant { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:12px 14px; border:1px solid var(--gold); border-radius:14px; background:color-mix(in srgb, var(--gold) 14%, transparent); animation:rpItemIn .45s var(--rp-ease); }
+        div.rp-variant .rp-variant-meta { color:var(--rp-gold-text); font-size:11.5px; }
+        div.rp-variant .rp-variant-tag { border-color:color-mix(in srgb, var(--gold) 45%, transparent); color:var(--rp-gold-text); }
+        .rp-variant-row { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; }
+        .rp-variant-delta { font-size:13px; font-weight:700; color:var(--cream); font-variant-numeric:tabular-nums; }
+        button.rp-variant.is-active .rp-variant-delta { color:var(--rp-gold-text); }
+        .rp-variant-row .rp-variant-tag { margin-top:0; }
+        .rp-variant-tag { margin-top:4px; padding:2px 7px; border-radius:999px; border:1px solid var(--border); font-size:8.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+        button.rp-variant.is-active .rp-variant-tag { border-color:color-mix(in srgb, var(--gold) 45%, transparent); color:var(--rp-gold-text); }
+        .rp-variant-loading { animation:rpBlink 1.4s ease-in-out infinite; }
+        @keyframes rpBlink { 0%,100%{opacity:.35} 50%{opacity:1} }
+        button.rp-variant.is-active .rp-variant-meta { color:var(--rp-gold-text); }
 
-        .rp-error { padding:12px 16px; border:1px solid rgba(224,128,128,0.35); border-radius:12px; background:rgba(224,128,128,0.08); font-size:12.5px; color:#e08080; }
-        .rp-hint { font-size:12.5px; line-height:1.7; color:var(--dim); }
-        .rp-note { font-size:11px; line-height:1.6; color:var(--dim); font-style:italic; }
+        /* Statuszeile */
+        .rp-live { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:color-mix(in srgb, var(--bg3) 40%, transparent); font-size:11.5px; line-height:1.5; color:var(--muted); }
+        /* Statuspunkt mit "Sonar": zwei weiche Lichtringe, zeitversetzt.
+           Die Ringe werden in voller Grösse (34px) gezeichnet und von klein
+           auf gross gezoomt — so bleiben sie in jedem Bild scharf, statt einen
+           8px-Punkt hochzuskalieren (das rastete sichtbar). Der Punkt selbst
+           bewegt sich nicht; er hat nur einen ruhigen Lichthof. */
+        .rp-live-dot { position:relative; width:9px; height:9px; border-radius:50%; background:var(--dim); flex-shrink:0; }
+        .rp-live.is-live .rp-live-dot { --rp-dot:92,194,138; }
+        .rp-live.is-busy .rp-live-dot { --rp-dot:201,168,106; }
+        .rp-live.is-live .rp-live-dot, .rp-live.is-busy .rp-live-dot { background:rgb(var(--rp-dot)); box-shadow:0 0 0 3px rgba(var(--rp-dot),0.16), 0 0 14px rgba(var(--rp-dot),0.55); transition:background .6s ease, box-shadow .6s ease; }
+        .rp-live.is-live .rp-live-dot::before, .rp-live.is-live .rp-live-dot::after,
+        .rp-live.is-busy .rp-live-dot::before, .rp-live.is-busy .rp-live-dot::after {
+          content:""; position:absolute; left:50%; top:50%; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%;
+          background:radial-gradient(circle, rgba(var(--rp-dot),0.55) 0%, rgba(var(--rp-dot),0.22) 38%, rgba(var(--rp-dot),0) 70%);
+          opacity:0; transform:scale(.22); will-change:transform, opacity; pointer-events:none;
+          animation:rpSonar 3.4s cubic-bezier(.25,.1,.25,1) infinite;
+        }
+        .rp-live.is-live .rp-live-dot::after { animation-delay:1.7s; }
+        .rp-live.is-busy .rp-live-dot::before, .rp-live.is-busy .rp-live-dot::after { animation-duration:1.8s; }
+        .rp-live.is-busy .rp-live-dot::after { animation-delay:.9s; }
+        @keyframes rpSonar {
+          0%   { transform:scale(.22); opacity:0; }
+          12%  { opacity:1; }
+          100% { transform:scale(1); opacity:0; }
+        }
 
-        /* NEU: Streckenvarianten */
-        .rp-variants { display:flex; flex-direction:column; gap:10px; }
-        .rp-variant-list { display:flex; gap:10px; flex-wrap:wrap; }
-        button.rp-variant { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:12px 16px; border:1px solid var(--border); border-radius:14px; background:color-mix(in srgb, var(--bg3) 55%, transparent); font-family:inherit; text-align:left; cursor:pointer; transition:border-color .2s, background .2s; }
-        button.rp-variant:hover { border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
-        button.rp-variant.is-active { border-color:var(--gold); background:color-mix(in srgb, var(--gold) 12%, transparent); }
-        .rp-variant-name { font-size:12px; font-weight:700; letter-spacing:0.02em; color:var(--cream); }
-        .rp-variant-meta { font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; }
-        button.rp-variant.is-active .rp-variant-meta { color:var(--gold); }
+        /* Aufklappbare Auswahl */
+        .rp-acc { border-radius:18px; border:1px solid var(--border); background:color-mix(in srgb, var(--bg2) 45%, transparent); overflow:hidden; }
+        button.rp-acc-head { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:14px 16px; border:none; background:transparent; color:var(--cream); font-family:inherit; text-align:left; cursor:pointer; }
+        .rp-acc-title { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; transition:color .3s; }
+        button.rp-acc-head:hover .rp-acc-title { color:var(--rp-gold-text); }
+        .rp-acc-count { display:grid; place-items:center; min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:linear-gradient(135deg,#DDC08A,#C2A061); color:#1A150C; font-size:10.5px; font-weight:700; letter-spacing:0; }
+        .rp-acc-chev { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; border:1px solid var(--border); color:var(--muted); transition:transform .45s var(--rp-ease), border-color .3s, color .3s; }
+        .rp-acc.is-open .rp-acc-chev { transform:rotate(180deg); border-color:color-mix(in srgb, var(--gold) 55%, transparent); color:var(--rp-gold-text); }
+        .rp-acc-body { display:grid; grid-template-rows:0fr; transition:grid-template-rows .5s var(--rp-ease); }
+        .rp-acc.is-open .rp-acc-body { grid-template-rows:1fr; }
+        .rp-acc-inner { overflow:hidden; }
+        .rp-acc-empty { margin:0; padding:2px 16px 16px; font-size:12px; line-height:1.6; color:var(--dim); }
+        /* bis zu 4 Einträge vollständig sichtbar (je 64px + 8px Abstand), danach scrollt nur die Liste */
+        .rp-acc-list { display:flex; flex-direction:column; gap:8px; padding:0 12px 12px; max-height:calc(4 * 66px + 3 * 8px + 12px); overflow-y:auto; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--gold) 45%, transparent) transparent; }
+        .rp-acc-item { display:grid; grid-template-columns:48px minmax(0,1fr) auto; align-items:center; gap:12px; padding:8px; border-radius:14px; border:1px solid var(--border); background:color-mix(in srgb, var(--bg3) 55%, transparent); animation:rpItemIn .5s var(--rp-ease); }
+        @keyframes rpItemIn { from{opacity:0;transform:translateY(-6px) scale(.98)} to{opacity:1;transform:none} }
+        .rp-acc-item img { width:48px; height:48px; border-radius:11px; object-fit:cover; display:block; }
+        .rp-acc-text { min-width:0; }
+        .rp-acc-name { font-family:var(--serif); font-size:18px; line-height:1.1; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .rp-acc-meta { margin-top:3px; font-size:10.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        button.rp-acc-remove { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all .3s; }
+        button.rp-acc-remove:hover { color:#e08080; border-color:rgba(224,128,128,0.5); background:rgba(224,128,128,0.08); }
 
-        /* Karte: deutlich groesser als die fruehen 420px (Issue #28). Die
-           Hoehe haengt am Rahmen, damit Karte und Consent-Platzhalter
-           gemeinsam skalieren; 62vh mit harten Grenzen haelt sie auf flachen
-           Laptops im Bild und laesst sie auf grossen Schirmen wachsen. */
-        .rp-map-frame { border:1px solid var(--border); border-radius:20px; overflow:hidden; height:clamp(520px, 62vh, 720px); }
-        .rp-map { width:100%; height:100%; }
+        /* Speichern */
+        .rp-save { display:flex; flex-direction:column; gap:10px; }
+        .rp-save-summary { margin:0; font-size:12.5px; font-weight:600; color:var(--cream); }
+        button.rp-save-btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; width:100%; height:50px; padding:0 24px; border:none; border-radius:999px; background:linear-gradient(135deg,#DDC08A 0%,#C2A061 100%); color:#1A150C; font-family:inherit; font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; box-shadow:0 10px 26px rgba(194,160,97,0.30); transition:transform .3s var(--rp-ease), box-shadow .3s var(--rp-ease), opacity .3s; }
+        button.rp-save-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 14px 32px rgba(194,160,97,0.40); }
+        button.rp-save-btn:disabled { opacity:.42; box-shadow:none; cursor:not-allowed; }
 
-        .rp-detour { display:flex; flex-direction:column; gap:10px; padding:18px 20px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb, var(--bg3) 55%, transparent); }
+        .rp-error { margin:0; padding:11px 14px; border:1px solid rgba(224,128,128,0.35); border-radius:12px; background:rgba(224,128,128,0.08); font-size:12px; color:#e08080; }
+        .rp-hint { margin:0; font-size:12.5px; line-height:1.7; color:var(--dim); }
+        .rp-note { margin:0; font-size:11px; line-height:1.6; color:var(--dim); font-style:italic; }
+
+        /* ---------- Routen entlang der Strecke */
+        .rp-results { position:relative; z-index:2; margin:12px 0 0; padding:0 clamp(20px,4vw,56px); display:flex; flex-direction:column; gap:24px; }
+        .rp-results-head { display:grid; grid-template-columns:minmax(0,1fr) 420px; align-items:end; gap:32px; }
+        .rp-results-title { margin:8px 0 0; font-family:var(--serif); font-size:clamp(32px,3.4vw,44px); font-weight:400; line-height:1.02; color:var(--cream); }
+        .rp-results-sub { margin:8px 0 0; font-size:12.5px; line-height:1.6; color:var(--dim); }
+        .rp-detour { display:flex; flex-direction:column; gap:10px; padding-bottom:4px; }
         .rp-detour-head { display:flex; align-items:baseline; justify-content:space-between; gap:14px; }
-        .rp-detour-value { font-size:20px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; }
-        .rp-detour-scale { display:flex; justify-content:space-between; font-size:9px; font-weight:800; letter-spacing:0.18em; color:var(--dim); }
+        .rp-detour-value { font-size:20px; font-weight:600; color:var(--rp-gold-text); font-variant-numeric:tabular-nums; }
         input.rp-detour-slider { -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:999px; background:linear-gradient(to right, var(--gold) 0%, var(--gold) var(--rp-detour-fill,40%), color-mix(in srgb, var(--border) 90%, transparent) var(--rp-detour-fill,40%)); outline:none; cursor:pointer; }
-        input.rp-detour-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:var(--gold); border:2px solid var(--bg); box-shadow:0 2px 10px rgba(0,0,0,0.35); cursor:pointer; }
-        input.rp-detour-slider::-moz-range-thumb { width:18px; height:18px; border:2px solid var(--bg); border-radius:50%; background:var(--gold); cursor:pointer; }
+        input.rp-detour-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--gold); box-shadow:0 4px 12px rgba(0,0,0,0.25); cursor:pointer; }
+        input.rp-detour-slider::-moz-range-thumb { width:20px; height:20px; border:3px solid var(--gold); border-radius:50%; background:#fff; cursor:pointer; }
         input.rp-detour-slider:focus-visible { box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 35%, transparent); }
 
-        .rp-summary { display:flex; flex-wrap:wrap; gap:16px; }
-        .rp-summary span { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; letter-spacing:0.04em; color:var(--muted); }
-        .rp-summary svg { color:var(--gold); flex-shrink:0; }
+        .rp-rail-wrap { position:relative; margin:0 calc(-1 * clamp(20px,4vw,56px)); }
+        .rp-rail-wrap::before, .rp-rail-wrap::after { content:""; position:absolute; top:0; bottom:24px; z-index:2; width:90px; pointer-events:none; opacity:0; transition:opacity .4s var(--rp-ease); }
+        .rp-rail-wrap::before { left:0; background:linear-gradient(to left, transparent, var(--bg)); }
+        .rp-rail-wrap::after { right:0; background:linear-gradient(to right, transparent, var(--bg)); }
+        .rp-rail-wrap.has-left::before, .rp-rail-wrap.has-right::after { opacity:1; }
+        .rp-rail { display:grid; grid-auto-flow:column; grid-auto-columns:300px; gap:18px; overflow-x:auto; padding:6px clamp(20px,4vw,56px) 24px; scroll-snap-type:x proximity; scroll-padding:0 clamp(20px,4vw,56px); scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--gold) 40%, transparent) transparent; }
+        .rp-rail-item { scroll-snap-align:start; }
+        button.rp-rail-arrow { position:absolute; top:calc(50% - 12px); z-index:6; width:52px; height:52px; margin-top:-26px; display:grid; place-items:center; border-radius:50%; border:1px solid var(--border); background:var(--rp-glass); backdrop-filter:blur(20px) saturate(160%); -webkit-backdrop-filter:blur(20px) saturate(160%); color:var(--cream); box-shadow:var(--rp-shadow), inset 0 1px 0 var(--rp-glass-line); cursor:pointer; opacity:0; pointer-events:none; transform:scale(.9); transition:opacity .35s var(--rp-ease), transform .35s var(--rp-ease), border-color .3s, color .3s; }
+        button.rp-rail-arrow.is-left { left:clamp(12px,2.5vw,32px); }
+        button.rp-rail-arrow.is-right { right:clamp(12px,2.5vw,32px); }
+        .rp-rail-wrap.has-left button.rp-rail-arrow.is-left, .rp-rail-wrap.has-right button.rp-rail-arrow.is-right { opacity:1; pointer-events:auto; transform:scale(1); }
+        button.rp-rail-arrow:hover { border-color:var(--gold); color:var(--rp-gold-text); transform:scale(1.06); }
 
-        .rp-counts { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-        .rp-count { padding:7px 14px; border:1px solid var(--border); border-radius:999px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
-        .rp-count-gold { border-color:color-mix(in srgb, var(--gold) 45%, transparent); background:color-mix(in srgb, var(--gold) 12%, transparent); color:var(--gold); }
-
-        .rp-route-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-
-        .rp-actions { display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding-top:8px; border-top:1px solid var(--border); }
-        button.rp-save-btn { display:inline-flex; align-items:center; gap:10px; margin-top:16px; padding:15px 30px; border:1px solid var(--gold); border-radius:999px; background:var(--gold); color:#0c0b09; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:opacity .2s, transform .2s; }
-        button.rp-save-btn:hover:not(:disabled) { transform:translateY(-1px); }
-        button.rp-save-btn:disabled { opacity:0.45; cursor:not-allowed; }
-
-        .rp-back { align-self:center; display:inline-flex; align-items:center; gap:8px; padding:6px 0 10px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
-        .rp-back:hover { color:var(--gold); }
-        .rp-bottom-links { align-self:center; display:flex; align-items:center; justify-content:center; gap:32px; flex-wrap:wrap; }
+        .rp-bottom-links { display:flex; align-items:center; justify-content:center; gap:32px; flex-wrap:wrap; padding:36px 20px 48px; }
+        .rp-back { display:inline-flex; align-items:center; gap:8px; font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
+        .rp-back:hover { color:var(--rp-gold-text); }
 
         ${ROUTE_CARD_STYLES}
 
-        @media (max-width:1100px) {
-          .rp-route-grid { grid-template-columns:repeat(2,1fr); }
-          .rp-map-frame { height:clamp(460px, 58vh, 600px); }
+        /* ---------- Tablet & Handy: Panel unter die Karte */
+        @media (max-width:900px) {
+          .rp-hero { height:auto; overflow:visible; }
+          .rp-hero-map { position:relative; height:clamp(320px, 52vh, 460px); }
+          .rp-hero-fade { height:clamp(320px, 52vh, 460px); }
+          .rp-hero-stats { top:auto; bottom:auto; top:clamp(250px, calc(52vh - 70px), 390px); right:16px; }
+          .rp-panel { position:relative; top:auto; left:auto; width:auto; max-height:none; margin:-48px 16px 0; }
+          .rp-results { margin-top:28px; }
+          .rp-results-head { grid-template-columns:1fr; gap:20px; }
+          .rp-rail { grid-auto-columns:78vw; }
+          button.rp-rail-arrow { display:none; }
         }
-
-        @media (max-width:760px) {
-          .rp-card { padding:18px; border-radius:22px; box-shadow:0 24px 60px rgba(0,0,0,0.35); }
-          .rp-form { grid-template-columns:1fr; align-items:stretch; }
-          button.rp-calc-btn { width:100%; }
-          .rp-card-title { font-size:21px; }
-          .rp-map-frame { height:clamp(380px, 55vh, 480px); }
-          .rp-route-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
-          .rp-detour { padding:14px 16px; }
-          .rp-detour-value { font-size:17px; }
-          button.rp-save-btn { width:100%; justify-content:center; }
-          button.rp-variant { flex:1 1 140px; }
-        }
-
         @media (max-width:480px) {
-          .rp-route-grid { grid-template-columns:1fr; }
+          .rp-panel { padding:18px; border-radius:22px; }
+          .rp-panel-title { font-size:30px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rp-live-dot, .rp-live-dot::before, .rp-live-dot::after, .rp-acc-item { animation:none !important; }
+          .rp-acc-body, .rp-acc-chev { transition:none; }
         }
       `}</style>
     </div>

@@ -149,7 +149,12 @@ export async function fetchPlaceSuggestions(
   return [];
 }
 
-export type DirectionsWaypoint = { lat: number; lng: number };
+/**
+ * Wegpunkt einer Directions-Anfrage. `stopover: false` = reiner
+ * Durchfahrtspunkt (zwingt die Strecke durch einen Korridor, ohne Halt und
+ * ohne eigenen Abschnitt in der Antwort). Standard ist ein echter Halt.
+ */
+export type DirectionsWaypoint = { lat: number; lng: number; stopover?: boolean };
 
 /**
  * Berechnet eine Fahrstrecke von `origin` nach `destination`, optional über
@@ -186,7 +191,7 @@ export async function computeDirections(
     optimizeWaypoints: options.optimizeWaypoints ?? false,
     waypoints: waypoints.map((point) => ({
       location: new maps.LatLng(point.lat, point.lng),
-      stopover: true,
+      stopover: point.stopover ?? true,
     })),
   };
 
