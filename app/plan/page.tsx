@@ -130,6 +130,9 @@ const TRIP_TEXT = {
     liveAuto: "Route passt sich automatisch an",
     liveUpdating: "Route wird berechnet …",
     alongTheWay: "Entlang der Strecke",
+    routesBelow: "{n} Panoramarouten entlang der Strecke",
+    routeBelow: "1 Panoramaroute entlang der Strecke",
+    findingRoutes: "Suche Panoramarouten …",
     variantsLabel: "Streckenvariante",
     via: "über {road}",
     variantN: "Variante {n}",
@@ -163,6 +166,9 @@ const TRIP_TEXT = {
     liveAuto: "Route updates automatically",
     liveUpdating: "Calculating route …",
     alongTheWay: "Along the way",
+    routesBelow: "{n} scenic routes along the way",
+    routeBelow: "1 scenic route along the way",
+    findingRoutes: "Finding scenic routes …",
     variantsLabel: "Route option",
     via: "via {road}",
     variantN: "Option {n}",
@@ -196,6 +202,9 @@ const TRIP_TEXT = {
     liveAuto: "Маршрут обновляется автоматически",
     liveUpdating: "Маршрут рассчитывается …",
     alongTheWay: "По пути",
+    routesBelow: "Живописных маршрутов по пути: {n}",
+    routeBelow: "1 живописный маршрут по пути",
+    findingRoutes: "Ищем живописные маршруты …",
     variantsLabel: "Вариант маршрута",
     via: "через {road}",
     variantN: "Вариант {n}",
@@ -839,6 +848,9 @@ function PlanPageContent() {
   // derselben Kombination kostet so keine neue Anfrage. Wird bei neuer
   // Strecke geleert.
   const routeCacheRef = useRef<Map<string, any>>(new Map());
+  // NEU: Hinweis "nach unten scrollen" — verschwindet, sobald die Routen im Blick sind
+  const resultsRef = useRef<HTMLElement>(null);
+  const [resultsInView, setResultsInView] = useState(false);
   // NEU: Routenleiste — Pfeile links/rechts
   const railRef = useRef<HTMLDivElement>(null);
   const [railEdges, setRailEdges] = useState({ left: false, right: false });
@@ -1616,6 +1628,25 @@ function PlanPageContent() {
     return () => window.removeEventListener("resize", updateRailEdges);
   }, [updateRailEdges, visibleCandidates]);
 
+  // NEU: beobachtet, ob der Routenbereich sichtbar ist
+  useEffect(() => {
+    const section = resultsRef.current;
+    if (!hasResult || !section || typeof IntersectionObserver === "undefined") {
+      setResultsInView(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setResultsInView(entry.isIntersecting),
+      { threshold: 0.12 }
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [hasResult]);
+
+  const scrollToResults = useCallback(() => {
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   const scrollRail = useCallback((direction: -1 | 1) => {
     const rail = railRef.current;
     if (!rail) return;
@@ -1686,17 +1717,20 @@ function PlanPageContent() {
         </div>
         <span className="rp-hero-fade" aria-hidden="true" />
 
-        {summary && (
-          <div className="rp-hero-stats">
+        {/* NEU: Hinweis auf die Routen unterhalb der Karte */}
+        {hasResult && !resultsInView && (scoringCount > 0 || visibleCandidates.length > 0) && (
+          <button type="button" className="rp-scroll-hint" onClick={scrollToResults}>
             <span>
-              <Navigation size={12} strokeWidth={2} />
-              {formatDistance(summary.km, unit)}
+              {scoringCount > 0
+                ? tx.findingRoutes
+                : visibleCandidates.length === 1
+                  ? tx.routeBelow
+                  : tx.routesBelow.replace("{n}", String(visibleCandidates.length))}
             </span>
-            <span>
-              <Clock size={12} strokeWidth={2} />
-              {formatDuration(summary.seconds)}
+            <span className="rp-scroll-hint-icon" aria-hidden="true">
+              <ChevronDown size={16} strokeWidth={2.4} className="rp-chev" />
             </span>
-          </div>
+          </button>
         )}
 
         {/* ---------------------------------------------- Glas-Panel links */}
@@ -1929,7 +1963,7 @@ function PlanPageContent() {
 
       {/* ------------------------------------------------ Routen entlang der Strecke */}
       {hasResult && (
-        <section className="rp-results">
+        <section className="rp-results" ref={resultsRef}>
           <div className="rp-results-head">
             <div>
               <span className="rp-eyebrow">
@@ -2076,13 +2110,34 @@ function PlanPageContent() {
         .light .rp-page, .rp-page.light { --rp-gold-text:#8A6727; --rp-glass:rgba(255,255,255,0.68); --rp-glass-line:rgba(255,255,255,0.75); --rp-field:rgba(255,255,255,0.75); --rp-shadow:0 24px 60px rgba(70,52,20,0.14); }
 
         /* ---------- Titelbild mit Karte */
-        .rp-hero { position:relative; height:clamp(760px, 92vh, 960px); overflow:hidden; }
+        /* Karte füllt den ganzen Bildschirm; dvh berücksichtigt auf dem Handy
+           die ein- und ausfahrende Browserleiste. Mindesthöhe, damit das
+           Panel auf flachen Bildschirmen Platz hat. */
+        .rp-hero { position:relative; height:100vh; height:100dvh; min-height:760px; overflow:hidden; }
         .rp-hero-map { position:absolute; inset:0; }
         .rp-map { width:100%; height:100%; }
         .rp-hero-fade { position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, color-mix(in srgb, var(--bg) 92%, transparent) 0%, transparent 14%), linear-gradient(to top, color-mix(in srgb, var(--bg) 70%, transparent) 0%, color-mix(in srgb, var(--bg) 22%, transparent) 40px, transparent 90px), linear-gradient(to right, color-mix(in srgb, var(--bg) 50%, transparent) 0%, transparent 40%); }
         .rp-hero-stats { position:absolute; top:104px; right:clamp(20px,4vw,56px); z-index:3; display:flex; gap:18px; padding:11px 18px; border-radius:999px; background:var(--rp-glass); backdrop-filter:blur(20px) saturate(160%); -webkit-backdrop-filter:blur(20px) saturate(160%); border:1px solid var(--border); box-shadow:inset 0 1px 0 var(--rp-glass-line); }
         .rp-hero-stats span { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600; color:var(--cream); font-variant-numeric:tabular-nums; }
         .rp-hero-stats svg { color:var(--rp-gold-text); }
+
+        /* ---------- Hinweis "nach unten scrollen" */
+        button.rp-scroll-hint { position:absolute; left:50%; bottom:28px; z-index:4; display:inline-flex; align-items:center; gap:14px; padding:8px 8px 8px 20px; border-radius:999px; border:1px solid var(--border); background:var(--rp-glass); backdrop-filter:blur(20px) saturate(160%); -webkit-backdrop-filter:blur(20px) saturate(160%); box-shadow:var(--rp-shadow), inset 0 1px 0 var(--rp-glass-line); color:var(--cream); font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; white-space:nowrap; cursor:pointer; transform:translateX(-50%); animation:rpHintIn .7s var(--rp-ease) both; transition:border-color .3s, box-shadow .3s; }
+        button.rp-scroll-hint:hover { border-color:color-mix(in srgb, var(--gold) 60%, transparent); }
+        /* Goldener Kreis mit ruhendem Pfeil, der eine weiche Lichtwelle
+           aussendet. Die Welle wird nur vergrößert und ausgeblendet (keine
+           Verschiebung um wenige Pixel, die sichtbar rastet) — das läuft auf
+           der Grafikkarte und bleibt rund. Nach jeder Welle eine Ruhepause. */
+        .rp-scroll-hint-icon { position:relative; isolation:isolate; display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#DDC08A,#C2A061); color:#1A150C; box-shadow:0 6px 18px rgba(194,160,97,0.35); }
+        .rp-scroll-hint-icon::before { content:""; position:absolute; inset:0; z-index:-1; border-radius:50%; background:rgba(214,180,112,0.55); transform:scale(1); opacity:0; will-change:transform, opacity; animation:rpHalo 3s cubic-bezier(.22,1,.36,1) infinite; }
+        @keyframes rpHalo {
+          0%   { transform:scale(1);   opacity:.55; }
+          65%  { transform:scale(1.85); opacity:0; }
+          100% { transform:scale(1.85); opacity:0; }
+        }
+        .rp-chev { transition:transform .45s var(--rp-ease); }
+        button.rp-scroll-hint:hover .rp-chev { transform:translateY(2px); }
+        .rp-results { scroll-margin-top:96px; }
 
         /* ---------- Glas-Panel */
         .rp-panel { position:absolute; top:96px; left:clamp(20px,4vw,56px); z-index:4; width:420px; max-height:calc(100% - 120px); overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding:24px; border-radius:26px; background:var(--rp-glass); backdrop-filter:blur(26px) saturate(170%); -webkit-backdrop-filter:blur(26px) saturate(170%); border:1px solid var(--border); box-shadow:var(--rp-shadow), inset 0 1px 0 var(--rp-glass-line); scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--gold) 45%, transparent) transparent; }
@@ -2248,13 +2303,14 @@ function PlanPageContent() {
           .rp-results-head { grid-template-columns:1fr; gap:20px; }
           .rp-rail { grid-auto-columns:78vw; }
           button.rp-rail-arrow { display:none; }
+          button.rp-scroll-hint { display:none; }
         }
         @media (max-width:480px) {
           .rp-panel { padding:18px; border-radius:22px; }
           .rp-panel-title { font-size:30px; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .rp-live-dot, .rp-live-dot::before, .rp-live-dot::after, .rp-acc-item { animation:none !important; }
+          .rp-live-dot, .rp-live-dot::before, .rp-live-dot::after, .rp-acc-item, .rp-scroll-hint-icon::before { animation:none !important; }
           .rp-acc-body, .rp-acc-chev { transition:none; }
         }
       `}</style>
