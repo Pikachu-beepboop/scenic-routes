@@ -438,6 +438,13 @@ function YoutubeIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWi
 }
 
 
+/* Merkt sich, wann zuletzt Zurück/Vorwärts im Browser gedrückt wurde —
+   dann soll die Explore-Seite ihre alte Scroll-Position behalten statt nach oben zu fahren. */
+let lastHistoryNav = 0;
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => { lastHistoryNav = Date.now(); });
+}
+
 function ExplorePageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -501,6 +508,8 @@ function ExplorePageInner() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [slide, setSlide] = useState(0);
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  /** Platz (px) zwischen Suchleiste und Fensterunterkante — die Menüs werden darauf zugeschnitten, statt die Seite zu scrollen. */
+  const [popRoom, setPopRoom] = useState(520);
   const sortRef = useRef<HTMLDivElement | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
@@ -637,17 +646,6 @@ function ExplorePageInner() {
   }, [routes]);
 
   const currentMonth = new Date().getMonth();
-  const openThisMonth = useMemo(() => {
-    let known = 0;
-    let open = 0;
-    seasonById.forEach((months) => {
-      if (!months) return;
-      known++;
-      if (months[currentMonth]) open++;
-    });
-    return known > 0 ? open : null;
-  }, [seasonById, currentMonth]);
-
   /** Prüft alle Filter außer den ausgelassenen (für die Zähler in den Menüs). */
   const matches = useCallback(
     (r: Route, skip: { countries?: boolean; time?: boolean } = {}) => {
@@ -689,12 +687,20 @@ function ExplorePageInner() {
   // Live-Vorschläge beim Tippen
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (q.length < 2) return { routes: [] as Route[], regions: [] as [string, number][] };
+    if (q.length < 2) return { routes: [] as Route[], regions: [] as [string, number][], total: 0 };
+    const allRoutes = routes.filter((r) => `${localized(r, "title", lang)} ${r.title}`.toLowerCase().includes(q));
+    const allRegions = countryCounts.filter(([c]) => c.toLowerCase().includes(q));
+    // So viele Zeilen zeigen, wie unter die Suchleiste passen (Zeile ≈ 58px, Überschrift ≈ 30px, Fußzeile ≈ 64px)
+    const heads = (allRoutes.length ? 1 : 0) + (allRegions.length ? 1 : 0);
+    const slots = Math.max(1, Math.min(8, Math.floor((popRoom - 20 - 54 - heads * 32) / 58)));
+    const regionSlots = Math.min(allRegions.length, 2, allRoutes.length ? Math.max(1, slots - 2) : slots);
+    const routeSlots = Math.min(5, Math.max(allRoutes.length ? 1 : 0, slots - regionSlots));
     return {
-      routes: routes.filter((r) => `${localized(r, "title", lang)} ${r.title}`.toLowerCase().includes(q)).slice(0, 5),
-      regions: countryCounts.filter(([c]) => c.toLowerCase().includes(q)).slice(0, 3),
+      routes: allRoutes.slice(0, routeSlots),
+      regions: allRegions.slice(0, regionSlots),
+      total: allRoutes.length,
     };
-  }, [query, routes, countryCounts, lang]);
+  }, [query, routes, countryCounts, lang, popRoom]);
   const suggestionCount = suggestions.routes.length + suggestions.regions.length;
 
   // Titelbilder: euer bisheriges Waldbild plus die bestbewerteten Routen mit Foto
@@ -781,6 +787,31 @@ function ExplorePageInner() {
     };
   }, [openPanel]);
 
+  /* Offenes Menü im Hero: verfügbaren Platz bis zur Fensterunterkante messen (auch bei Scrollen/Größenänderung). */
+  useEffect(() => {
+    if (openPanel !== "where" && openPanel !== "length" && openPanel !== "suggest") return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const wrap = searchWrapRef.current;
+      if (!wrap) return;
+      const bar = wrap.firstElementChild as HTMLElement | null;
+      const bottom = (bar ?? wrap).getBoundingClientRect().bottom;
+      // Handy: Menü darf normal nach unten wachsen (dort scrollt man ohnehin mit dem Finger)
+      if (window.innerWidth <= 760) { setPopRoom(520); return; }
+      setPopRoom(Math.max(220, Math.round(window.innerHeight - bottom - 12 - 16)));
+    };
+    const queue = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    measure();
+    window.addEventListener("resize", queue);
+    window.addEventListener("scroll", queue, { passive: true });
+    return () => {
+      window.removeEventListener("resize", queue);
+      window.removeEventListener("scroll", queue);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [openPanel]);
+
   /* Filterleiste (Desktop): Höhe immer so begrenzen, dass ihr unteres Ende im Fenster bleibt.
      Sonst ragt sie unten aus dem Bild, solange sie noch nicht oben „klebt“, und die letzten Filter sind nicht erreichbar. */
   const sideRef = useRef<HTMLElement>(null);
@@ -805,6 +836,20 @@ function ExplorePageInner() {
   }, []);
 
   useEffect(() => { if (openPanel !== "where") setCountrySearch(""); }, [openPanel]);
+
+  /* Kommt man aus einem anderen Tab (z. B. Plan Trip, About), sanft nach oben fahren.
+     Nicht bei Zurück/Vorwärts und nicht bei Links mit #Anker. */
+  useEffect(() => {
+    const navEntry = performance.getEntriesByType?.("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const isHistory = Date.now() - lastHistoryNav < 1500 || (navEntry?.type === "back_forward" && performance.now() < 3000);
+    if (isHistory || window.location.hash) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (window.scrollY > 2) window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -1146,7 +1191,7 @@ function ExplorePageInner() {
         .xp-q:focus-within { background:rgba(255,255,255,0.10); box-shadow:inset 0 0 0 1px rgba(232,207,150,0.55); }
 
         /* ---------- Titelbereich */
-        .xp-hero { position:relative; min-height:max(720px, 100vh); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:110px clamp(20px,4vw,60px) 150px; color:#fff; z-index:20; }
+        .xp-hero { position:relative; min-height:max(720px, 100vh); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px clamp(20px,4vw,60px) 300px; color:#fff; z-index:20; }
         .xp-hero-bg { position:absolute; inset:0; overflow:hidden; background:#0B0A08; z-index:0; }
         .xp-slide { position:absolute; inset:0; opacity:0; transition:opacity 1.6s ease; }
         .xp-slide.on { opacity:1; }
@@ -1174,9 +1219,6 @@ function ExplorePageInner() {
         .xp-opt.set { border-color:rgba(232,207,150,0.75); }
         .xp-opt.set small { color:#E8CF96; }
         .xp-find { height:58px; padding:0 28px; flex-shrink:0; }
-        .xp-hint { margin-top:16px !important; font-size:13px; color:rgba(255,255,255,0.64); }
-        .xp-stats { display:flex; gap:30px; margin-top:22px; font-size:13.5px; color:rgba(255,255,255,0.72); }
-        .xp-stats b { color:#fff; font-weight:600; }
         .xp-now { position:absolute; left:clamp(20px,4vw,60px); bottom:110px; z-index:2; font-size:13px; color:rgba(255,255,255,0.75); transition:color .2s, opacity .3s; }
         .page a.xp-now { color:rgba(255,255,255,0.75); }
         .xp-now b { color:#fff; font-weight:600; }
@@ -1189,6 +1231,7 @@ function ExplorePageInner() {
         /* Menüs unter der Suchleiste */
         .xp-pop { position:absolute; top:calc(100% + 12px); z-index:60; border-radius:24px; background:rgba(20,18,14,0.94); border:1px solid rgba(255,255,255,0.14); backdrop-filter:blur(30px) saturate(160%); -webkit-backdrop-filter:blur(30px) saturate(160%); box-shadow:0 40px 90px rgba(0,0,0,0.55); color:#fff; animation:xpPop .3s var(--xp-ease); }
         @keyframes xpPop { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+        .xp-pop { max-height:var(--pop-room, none); overflow-y:auto; scrollbar-width:thin; }
         .xp-pop-suggest { left:0; width:min(600px,100%); padding:10px; }
         .xp-pl { padding:12px 14px 6px; font-size:12px; color:rgba(255,255,255,0.5); }
         button.xp-sr { display:grid; grid-template-columns:56px 1fr auto; align-items:center; gap:14px; width:100%; padding:8px 12px 8px 8px; border-radius:16px; background:none; color:#fff; text-align:left; }
@@ -1199,6 +1242,7 @@ function ExplorePageInner() {
         .xp-sr mark { background:none; color:#E8CF96; }
         .xp-sr small { display:block; margin-top:2px; font-size:12.5px; color:rgba(255,255,255,0.6); }
         .xp-sr em { font-style:normal; font-size:12px; color:#fff; }
+        .xp-pf-n { margin-left:10px; padding:2px 8px; border-radius:999px; background:rgba(232,207,150,0.14); color:#E8CF96; font-size:11.5px; }
         .xp-pop-empty { padding:14px; font-size:14px; color:rgba(255,255,255,0.7); }
         button.xp-pf { display:flex; align-items:center; justify-content:space-between; width:100%; margin-top:8px; padding:12px 14px 6px; border-top:1px solid rgba(255,255,255,0.1); background:none; font-size:13px; color:rgba(255,255,255,0.75); text-align:left; }
         .xp-pf:hover { color:#fff; }
@@ -1208,7 +1252,7 @@ function ExplorePageInner() {
         .xp-mini { display:flex; align-items:center; gap:10px; height:44px; padding:0 14px; border-radius:14px; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.55); }
         .xp-mini input { flex:1; min-width:0; border:none; outline:none; background:none; font-size:14px; color:#fff; }
         .xp-mini input::placeholder { color:rgba(255,255,255,0.55); }
-        .xp-pop-list { max-height:280px; overflow-y:auto; margin-top:8px; scrollbar-width:thin; }
+        .xp-pop-list { position:relative; max-height:clamp(96px, calc(var(--pop-room, 420px) - 146px), 300px); overflow-y:auto; margin-top:8px; scrollbar-width:thin; }
         .xp-pop .xp-check { color:rgba(255,255,255,0.82); }
         .xp-pop .xp-check:hover { background:rgba(255,255,255,0.06); }
         .xp-pop .xp-check i { border-color:rgba(255,255,255,0.35); }
@@ -1253,6 +1297,10 @@ function ExplorePageInner() {
         .xp-pop .xp-quick button { border-color:rgba(255,255,255,0.22) !important; color:rgba(255,255,255,0.8); }
         .xp-pop .xp-quick button:hover { color:#fff; border-color:#E8CF96 !important; }
         .xp-pop .xp-quick button.on { background:#fff; border-color:#fff !important; color:#1A150C; }
+        .xp-sw.tight .xp-time-hint { display:none; }
+        .xp-sw.tight .xp-bars { height:34px; }
+        .xp-sw.tight .xp-time-head { margin-bottom:8px; }
+        .xp-sw.tight .xp-pop-length { padding:14px 16px; }
         .xp-time-hint { margin-top:12px !important; font-size:12px; color:rgba(255,255,255,0.5); }
         @media (pointer:coarse) {
           .xp-range, .xp-range input { height:40px; }
@@ -1371,6 +1419,13 @@ function ExplorePageInner() {
         .xp-list .route-grid { grid-template-columns:repeat(3,1fr); }
 
         /* ---------- Tablet & Handy */
+        /* Niedrige Desktop-Fenster: Titel kompakter, damit unter der Suchleiste Platz für die Menüs bleibt */
+        @media (min-width:761px) and (max-height:900px) {
+          .xp-hero { min-height:100vh; padding-top:88px; padding-bottom:clamp(220px, 40vh, 300px); }
+          .xp-h1 { font-size:min(clamp(56px,8vw,116px), 11vh); }
+          .xp-sub { margin-top:16px !important; font-size:15px; line-height:1.6; }
+          .xp-sw { margin-top:30px !important; }
+        }
         @media (max-width:1100px) {
           .xp-row { grid-template-columns:240px minmax(0,1fr); }
           .xp-row-facts { grid-column:1 / -1; border-left:none; border-top:1px solid var(--border); padding:16px 4px 0; }
@@ -1393,6 +1448,7 @@ function ExplorePageInner() {
           .xp-tools { flex-wrap:wrap; }
         }
         @media (max-width:760px) {
+          .xp-pop { max-height:none; overflow:visible; }
           .xp-hero { min-height:auto; padding:120px 20px 96px; }
           .xp-search { flex-wrap:wrap; border-radius:26px; gap:8px; }
           .xp-q { flex:1 1 100%; background:rgba(255,255,255,0.08); }
@@ -1400,8 +1456,6 @@ function ExplorePageInner() {
           .xp-opt > span > span { max-width:100%; }
           .xp-find { flex:1 1 100%; height:52px; }
           .xp-pop-where, .xp-pop-length, .xp-pop-suggest { left:0; right:0; width:auto; }
-          .xp-hint { display:none; }
-          .xp-stats { gap:18px; font-size:12.5px; flex-wrap:wrap; justify-content:center; }
           .xp-now, .xp-dots { bottom:40px; }
           .xp-now { max-width:60%; }
           .xp-row { grid-template-columns:1fr; gap:16px; padding:12px; }
@@ -1834,7 +1888,7 @@ function ExplorePageInner() {
             <h1 className="xp-h1">{tx.title1}<br />{tx.title2}</h1>
             <p className="xp-sub">{tx.sub}</p>
 
-            <div className="xp-sw" ref={searchWrapRef}>
+            <div className={`xp-sw ${popRoom < 330 ? "tight" : ""}`} ref={searchWrapRef} style={{ "--pop-room": `${popRoom}px` } as React.CSSProperties}>
               <div className={`xp-search ${query ? "typing" : ""}`}>
                 <label className="xp-q">
                   <Search size={19} strokeWidth={2} />
@@ -1923,7 +1977,7 @@ function ExplorePageInner() {
                             onClick={() => pickSuggestion(i)}
                           >
                             <span className="xp-sr-ic"><MapPin size={16} strokeWidth={1.8} /></span>
-                            <span><b>{highlight(c)}</b><small>{fill(tx.sugRoutesCount, { n })}</small></span>
+                            <span><b>{highlight(c)}</b><small>{n === 1 ? tx.oneRoute : fill(tx.sugRoutesCount, { n })}</small></span>
                             <em>{activeSuggestion === i ? "Enter" : ""}</em>
                           </button>
                         );
@@ -1931,7 +1985,7 @@ function ExplorePageInner() {
                     </>
                   )}
                   <button type="button" className="xp-pf" onClick={runSearch}>
-                    <span>{fill(tx.sugAll, { q: query.trim() })}</span>
+                    <span>{fill(tx.sugAll, { q: query.trim() })}{suggestions.total > suggestions.routes.length && <small className="xp-pf-n">{fill(tx.sugRoutesCount, { n: suggestions.total })}</small>}</span>
                     <kbd>Enter</kbd>
                   </button>
                 </div>
@@ -1975,14 +2029,6 @@ function ExplorePageInner() {
               )}
             </div>
 
-            <p className="xp-hint">{tx.hint}</p>
-            {!loading && routes.length > 0 && (
-              <div className="xp-stats">
-                <span><b>{routes.length}</b> {tx.statRoutes}</span>
-                <span><b>{countryCounts.length}</b> {tx.statCountries}</span>
-                {openThisMonth !== null && <span><b>{openThisMonth}</b> {tx.statOpen}</span>}
-              </div>
-            )}
           </div>
 
           {slides[slide]?.route && (
