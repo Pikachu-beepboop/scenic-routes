@@ -5,7 +5,7 @@
 // NEU (Entwurf B): Ein geöffneter Trip erscheint als Vollbild-Karte mit Glas-Panel
 // rechts — Tage als Tabs, Routen nummeriert in der Farbe ihres Tages, Fahrstrecke
 // über alle Stopps (eine Directions-Anfrage) und Link in Google Maps. Die
-// Übersicht aller Trips (/trip ohne ?id=) bleibt wie bisher.
+// /trip ohne ?id= leitet zu /my-trips weiter (die alte Übersicht ist entfernt).
 //
 // Bewusst unter dem statischen Segment /trip mit ?id=<uuid> statt als
 // dynamische Route /trip/[id]: dynamische Segmente sind auf Cloudflare Pages
@@ -23,7 +23,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Navigation,
-  CalendarDays, Route as RouteIcon, ArrowLeft, Compass, ChevronRight, Globe, Pencil, Info,
+  Route as RouteIcon, ArrowLeft, Compass, Globe, Pencil, Info,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -42,12 +42,10 @@ import {
   deleteTripDay,
   deleteTripStop,
   fetchTrip,
-  fetchTrips,
   persistDayNumbers,
   persistStopOrder,
   touchTrip,
   updateTripTitle,
-  type Trip,
   type TripRoute,
 } from "../../lib/trips";
 
@@ -55,58 +53,13 @@ import "../profile/profile.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// NEU: Texte für die "Routen ergänzen"-Links. Lokal statt in
+// Texte für die "Routen ergänzen"-Links. Lokal statt in
 // lib/translations, gleiches Muster wie GoogleMapsGate — kann später in die
 // zentrale Übersetzungsdatei wandern.
 const ADD_TEXT = {
-  de: {
-    findRoutes: "Passende Routen finden",
-    addRoutes: "Routen hinzufügen",
-    newTrip: "Neuen Trip planen",
-    allTrips: "Alle Trips",
-    backToAll: "Zurück zu allen Trips",
-    overviewTitle: "Deine Trips",
-    overviewSub: "Alles, was du im Route Planner gebaut hast. Öffne einen Trip, um Tage und Routen zu bearbeiten.",
-    overviewEmpty: "Du hast noch keinen Trip geplant.",
-    overviewEmptyText: "Gib im Route Planner Start und Ziel ein, wähle Panoramarouten entlang der Strecke und speichere sie als Trip.",
-    overviewError: "Deine Trips konnten nicht geladen werden.",
-    retry: "Erneut versuchen",
-    noRoutes: "Noch keine Routen",
-    updated: "Bearbeitet am {date}",
-    more: "+{n} weitere",
-  },
-  en: {
-    findRoutes: "Find routes for this trip",
-    addRoutes: "Add routes",
-    newTrip: "Plan a new trip",
-    allTrips: "All trips",
-    backToAll: "Back to all trips",
-    overviewTitle: "Your trips",
-    overviewSub: "Everything you've built in the Route Planner. Open a trip to edit its days and routes.",
-    overviewEmpty: "You haven't planned a trip yet.",
-    overviewEmptyText: "Enter a start and destination in the Route Planner, pick scenic routes along the way and save them as a trip.",
-    overviewError: "Your trips couldn't be loaded.",
-    retry: "Try again",
-    noRoutes: "No routes yet",
-    updated: "Edited {date}",
-    more: "+{n} more",
-  },
-  ru: {
-    findRoutes: "Найти маршруты для поездки",
-    addRoutes: "Добавить маршруты",
-    newTrip: "Спланировать новую поездку",
-    allTrips: "Все поездки",
-    backToAll: "Назад ко всем поездкам",
-    overviewTitle: "Ваши поездки",
-    overviewSub: "Всё, что вы создали в планировщике маршрутов. Откройте поездку, чтобы изменить дни и маршруты.",
-    overviewEmpty: "Вы ещё не спланировали ни одной поездки.",
-    overviewEmptyText: "Укажите старт и цель в планировщике, выберите живописные маршруты по пути и сохраните их как поездку.",
-    overviewError: "Не удалось загрузить ваши поездки.",
-    retry: "Повторить",
-    noRoutes: "Пока нет маршрутов",
-    updated: "Изменено {date}",
-    more: "+{n} ещё",
-  },
+  de: { findRoutes: "Passende Routen finden", addRoutes: "Routen hinzufügen" },
+  en: { findRoutes: "Find routes for this trip", addRoutes: "Add routes" },
+  ru: { findRoutes: "Найти маршруты для поездки", addRoutes: "Добавить маршруты" },
 } as const;
 
 type AddLang = keyof typeof ADD_TEXT;
@@ -512,9 +465,6 @@ function TripBuilder() {
   // NEU: Herkunft — "builder" = aus der Übersicht /trip gekommen. Bestimmt,
   // welcher Rückweg unten angeboten wird, und wird durch /plan durchgereicht.
   const fromBuilder = searchParams.get("from") === "builder";
-  // NEU: "mytrips" = über My Trips -> Trip -> "All trips" in die Übersicht
-  // gekommen. Nur dann bietet die Übersicht "Back to my trips" an.
-  const fromMyTrips = searchParams.get("from") === "mytrips";
   const router = useRouter();
 
   const { t, lang } = useLanguage();
@@ -546,11 +496,6 @@ function TripBuilder() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
-  // NEU: Übersicht aller Trips (/trip ohne ?id=)
-  const [overviewTrips, setOverviewTrips] = useState<Trip[]>([]);
-  const [overviewError, setOverviewError] = useState(false);
-  const [overviewReload, setOverviewReload] = useState(0);
-
   // ----------------------------------------------------------------- Laden
   useEffect(() => {
     if (authLoading) return;
@@ -561,23 +506,13 @@ function TripBuilder() {
     }
     let cancelled = false;
 
-    // NEU: Ohne ?id= zeigt /trip die Übersicht aller Trips (vorher:
-    // "nicht gefunden"). Gleiche Abfrage wie /my-trips, neueste zuerst.
+    // Die Liste aller Trips gibt es nur unter My Trips — /trip ohne ?id= leitet dorthin weiter
     if (!tripId) {
-      setLoading(true);
-      (async () => {
-        const data = await fetchTrips(user.id);
-        if (cancelled) return;
-        setOverviewTrips(data ?? []);
-        setOverviewError(data === null);
-        setLoading(false);
-      })();
-      return () => {
-        cancelled = true;
-      };
+      router.replace("/my-trips");
+      return;
     }
 
-    // Beim Wechsel aus der Übersicht (oder von einem anderen Trip) keinen
+    // Beim Wechsel von einem anderen Trip keinen
     // alten Stand kurz aufblitzen lassen.
     setLoading(true);
     setNotFound(false);
@@ -613,7 +548,7 @@ function TripBuilder() {
     return () => {
       cancelled = true;
     };
-  }, [tripId, user, authLoading, overviewReload]);
+  }, [tripId, user, authLoading]);
 
   useEffect(() => {
     const interval = setInterval(() => tick((value) => value + 1), 30_000);
@@ -1136,7 +1071,7 @@ function TripBuilder() {
   if (tripView) {
     return (
       <div className="pp tv-page">
-        <PlannerNav activePath="/plan" />
+        <PlannerNav activePath="/my-trips" />
 
         <section className="tv">
           <div className="tv-map">
@@ -1161,8 +1096,8 @@ function TripBuilder() {
           <aside className="tv-panel">
             <div className="tv-head">
               <div className="tv-head-top">
-                <Link href={fromBuilder ? "/trip" : "/my-trips"} className="tv-crumb">
-                  <ArrowLeft size={14} strokeWidth={2} /> {fromBuilder ? tv.allTrips : tv.myTrips}
+                <Link href="/my-trips" className="tv-crumb">
+                  <ArrowLeft size={14} strokeWidth={2} /> {tv.myTrips}
                 </Link>
                 <span className={`tv-saved ${saveState === "error" ? "is-error" : ""}`}>{saveLabel()}</span>
               </div>
@@ -1331,7 +1266,7 @@ function TripBuilder() {
               )}
               <div className="tv-row">
                 <Link href="/plan" className="tv-line"><Compass size={14} strokeWidth={2} /> {tv.newTrip}</Link>
-                <Link href={fromBuilder ? "/trip" : "/trip?from=mytrips"} className="tv-line"><RouteIcon size={14} strokeWidth={2} /> {tv.allTrips}</Link>
+                <Link href="/my-trips" className="tv-line"><RouteIcon size={14} strokeWidth={2} /> {tv.allTrips}</Link>
                 <button type="button" className="tv-line danger" onClick={() => setConfirmDelete(true)}><Trash2 size={14} strokeWidth={2} /> {tv.delete}</button>
               </div>
             </div>
@@ -1473,6 +1408,7 @@ function TripBuilder() {
     );
   }
 
+  // Alles außer der Kartenansicht: Laden, nicht eingeloggt, Trip nicht gefunden
   return (
     <div className="pp">
       <div className="pp-bg">
@@ -1485,11 +1421,11 @@ function TripBuilder() {
         />
       </div>
 
-      <PlannerNav activePath="/plan" />
+      <PlannerNav activePath="/my-trips" />
 
       <div className="pp-layout">
         <div className="tb-wrap">
-          {authLoading || loading ? (
+          {authLoading || loading || (user && !tripId) ? (
             <div className="tb-card tb-state">
               <div className="tb-spinner" />
               <p>{t("trip.loading")}</p>
@@ -1504,129 +1440,7 @@ function TripBuilder() {
                 {t("nav.login")}
               </Link>
             </div>
-          ) : !tripId ? (
-            // ------------------------------------------------ NEU: Übersicht
-            <>
-              <header className="tb-card tb-header">
-                <p className="tb-eyebrow">{t("trip.eyebrow")}</p>
-                <h1 className="tb-overview-title">{tx.overviewTitle}</h1>
-                <p className="tb-overview-sub">{tx.overviewSub}</p>
-              </header>
-
-              {overviewError ? (
-                <div className="tb-card tb-state">
-                  <h2 className="tb-state-title">{tx.overviewError}</h2>
-                  <button
-                    className="tb-add-day"
-                    onClick={() => setOverviewReload((value) => value + 1)}
-                  >
-                    {tx.retry}
-                  </button>
-                </div>
-              ) : overviewTrips.length === 0 ? (
-                <div className="tb-card tb-state">
-                  <span className="tb-state-icon">
-                    <Compass size={22} strokeWidth={1.6} />
-                  </span>
-                  <h2 className="tb-state-title">{tx.overviewEmpty}</h2>
-                  <p>{tx.overviewEmptyText}</p>
-                  <Link href="/plan" className="tb-primary-link">
-                    {tx.newTrip}
-                  </Link>
-                </div>
-              ) : (
-                <div className="tb-card tb-overview-list">
-                  {overviewTrips.map((trip) => {
-                    const stops = trip.trip_days.flatMap((day) => day.trip_stops);
-                    const preview =
-                      stops.map((stop) => stop.routes?.image_url).find(Boolean) ||
-                      "/amalfi_coast_road.jpg";
-                    const countries = [
-                      ...new Set(stops.map((stop) => stop.routes?.country).filter(Boolean)),
-                    ];
-                    const titles = stops
-                      .map((stop) => localizedTitle(stop.routes, lang))
-                      .filter(Boolean);
-                    const shown = titles.slice(0, 4);
-                    const updated = trip.updated_at
-                      ? new Date(trip.updated_at).toLocaleDateString(lang, {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "";
-
-                    return (
-                      <Link
-                        key={trip.id}
-                        href={`/trip?id=${trip.id}&from=builder`}
-                        className="tb-overview-item"
-                      >
-                        <span className="tb-overview-thumb">
-                          <img
-                            src={preview}
-                            alt={trip.title}
-                            onError={(e) => {
-                              e.currentTarget.src = "/amalfi_coast_road.jpg";
-                            }}
-                          />
-                        </span>
-
-                        <span className="tb-overview-info">
-                          {countries.length > 0 && (
-                            <span className="tb-stop-country">{countries.join(" · ")}</span>
-                          )}
-                          <span className="tb-overview-name">{trip.title}</span>
-                          <span className="tb-overview-meta">
-                            <span>
-                              <CalendarDays size={11} strokeWidth={2} />
-                              {trip.trip_days.length} {t("trip.stats.days")}
-                            </span>
-                            <span>
-                              <RouteIcon size={11} strokeWidth={2} />
-                              {stops.length} {t("trip.stats.routes")}
-                            </span>
-                            {updated && <span>{tx.updated.replace("{date}", updated)}</span>}
-                          </span>
-                          <span className="tb-overview-routes">
-                            {shown.length === 0 ? (
-                              <span className="tb-overview-chip is-empty">{tx.noRoutes}</span>
-                            ) : (
-                              shown.map((name, index) => (
-                                <span key={`${name}-${index}`} className="tb-overview-chip">
-                                  {name}
-                                </span>
-                              ))
-                            )}
-                            {titles.length > shown.length && (
-                              <span className="tb-overview-chip is-more">
-                                {tx.more.replace("{n}", String(titles.length - shown.length))}
-                              </span>
-                            )}
-                          </span>
-                        </span>
-
-                        <span className="tb-overview-open" aria-hidden="true">
-                          <ChevronRight size={18} strokeWidth={2} />
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="tb-footer-actions">
-                <Link href="/plan" className="tb-add-day tb-add-day-link">
-                  <Plus size={14} strokeWidth={2.4} /> {tx.newTrip}
-                </Link>
-                {fromMyTrips && (
-                  <Link href="/my-trips" className="tb-secondary-link">
-                    <ArrowLeft size={13} strokeWidth={2} /> {t("trip.backToTrips")}
-                  </Link>
-                )}
-              </div>
-            </>
-          ) : notFound ? (
+          ) : (
             <div className="tb-card tb-state">
               <span className="tb-state-icon">
                 <Compass size={22} strokeWidth={1.6} />
@@ -1636,341 +1450,24 @@ function TripBuilder() {
                 {t("trip.backToTrips")}
               </Link>
             </div>
-          ) : (
-            <>
-              <header className="tb-card tb-header">
-                <div className="tb-header-top">
-                  <p className="tb-eyebrow">{t("trip.eyebrow")}</p>
-                  <div className="tb-header-actions">
-                    <span className={`tb-saved ${saveState === "error" ? "is-error" : ""}`}>
-                      {saveLabel()}
-                    </span>
-                    <button
-                      className="tb-delete-trip"
-                      onClick={() => setConfirmDelete(true)}
-                      title={t("trip.delete")}
-                    >
-                      <Trash2 size={13} strokeWidth={2} /> {t("trip.delete")}
-                    </button>
-                  </div>
-                </div>
-
-                <input
-                  className="tb-title-input"
-                  value={title}
-                  placeholder={t("trip.titlePlaceholder")}
-                  onChange={(e) => {
-                    titleTouched.current = true;
-                    setTitle(e.target.value);
-                  }}
-                />
-
-                <div className="tb-stats">
-                  <span>
-                    <CalendarDays size={13} strokeWidth={2} />
-                    {days.length} {t("trip.stats.days")}
-                  </span>
-                  <span>
-                    <RouteIcon size={13} strokeWidth={2} />
-                    {totalStops} {t("trip.stats.routes")}
-                  </span>
-                </div>
-              </header>
-
-              {days.map((day, dayIndex) => (
-                <section
-                  key={day.id}
-                  className="tb-card tb-day"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDrop(day.id, day.stops.length)}
-                >
-                  <div className="tb-day-head">
-                    <h2 className="tb-day-title">
-                      {t("trip.day")} {day.dayNumber}
-                    </h2>
-                    <div className="tb-day-head-actions">
-                      {/* NEU: Routen gezielt für diesen Tag ergänzen */}
-                      {day.stops.length > 0 && (
-                        <Link href={planHref(day.id)} className="tb-day-add" draggable={false}>
-                          <Plus size={12} strokeWidth={2.4} /> {tx.addRoutes}
-                        </Link>
-                      )}
-                      {days.length > 1 && (
-                        <button
-                          className="tb-icon-btn tb-icon-danger"
-                          onClick={() => handleRemoveDay(day.id)}
-                          title={t("trip.removeDay")}
-                          aria-label={t("trip.removeDay")}
-                        >
-                          <Trash2 size={14} strokeWidth={2} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {day.stops.length === 0 ? (
-                    <div className="tb-day-empty">
-                      <p>{t("trip.emptyDay")}</p>
-                      {/* NEU: direkt passende Routen für diese Strecke suchen */}
-                      <Link href={planHref(day.id)} className="tb-find-routes" draggable={false}>
-                        <Compass size={13} strokeWidth={2} /> {tx.findRoutes}
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="tb-stops">
-                      {day.stops.map((stop, stopIndex) => (
-                        <div
-                          key={stop.id}
-                          className={`tb-stop ${
-                            dropTarget?.dayId === day.id && dropTarget.index === stopIndex
-                              ? "is-drop-target"
-                              : ""
-                          }`}
-                          draggable
-                          onDragStart={() => {
-                            dragged.current = { dayId: day.id, stopId: stop.id };
-                          }}
-                          onDragEnd={() => {
-                            dragged.current = null;
-                            setDropTarget(null);
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setDropTarget({ dayId: day.id, index: stopIndex });
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDrop(day.id, stopIndex);
-                          }}
-                        >
-                          <span className="tb-stop-handle" aria-hidden="true">
-                            <GripVertical size={14} strokeWidth={2} />
-                          </span>
-
-                          <Link
-                            href={`/routedetail/${stop.routeId}`}
-                            prefetch={false}
-                            className="tb-stop-thumb"
-                          >
-                            <img
-                              src={stop.route?.image_url || "/amalfi_coast_road.jpg"}
-                              alt={localizedTitle(stop.route, lang)}
-                              onError={(e) => {
-                                e.currentTarget.src = "/amalfi_coast_road.jpg";
-                              }}
-                            />
-                          </Link>
-
-                          <div className="tb-stop-info">
-                            <p className="tb-stop-country">{stop.route?.country}</p>
-                            <Link href={`/routedetail/${stop.routeId}`} prefetch={false}>
-                              <h3 className="tb-stop-title">{localizedTitle(stop.route, lang)}</h3>
-                            </Link>
-                            <p className="tb-stop-meta">
-                              <Navigation size={11} strokeWidth={2} />
-                              {formatDistance(
-                                stop.route?.distance_km as number | null | undefined,
-                                unit
-                              )}
-                            </p>
-                          </div>
-
-                          {/* Pfeile zusaetzlich zum Ziehen — auf Touch-Geraeten
-                              ist HTML5-Drag unzuverlaessig. */}
-                          <div className="tb-stop-actions">
-                            <button
-                              className="tb-icon-btn"
-                              onClick={() => shiftStop(dayIndex, stopIndex, -1)}
-                              disabled={dayIndex === 0 && stopIndex === 0}
-                              title={t("trip.moveUp")}
-                              aria-label={t("trip.moveUp")}
-                            >
-                              <ChevronUp size={14} strokeWidth={2.2} />
-                            </button>
-                            <button
-                              className="tb-icon-btn"
-                              onClick={() => shiftStop(dayIndex, stopIndex, 1)}
-                              disabled={
-                                dayIndex === days.length - 1 &&
-                                stopIndex === day.stops.length - 1
-                              }
-                              title={t("trip.moveDown")}
-                              aria-label={t("trip.moveDown")}
-                            >
-                              <ChevronDown size={14} strokeWidth={2.2} />
-                            </button>
-                            <button
-                              className="tb-icon-btn tb-icon-danger"
-                              onClick={() => handleRemoveStop(day.id, stop.id)}
-                              title={t("trip.removeStop")}
-                              aria-label={t("trip.removeStop")}
-                            >
-                              <Trash2 size={13} strokeWidth={2} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              ))}
-
-              <div className="tb-footer-actions">
-                <button className="tb-add-day" onClick={handleAddDay}>
-                  <Plus size={14} strokeWidth={2.4} /> {t("trip.addDay")}
-                </button>
-                {/* Startet einen komplett neuen Trip im leeren Planner. Das
-                    Ergänzen dieses Trips läuft über "Routen hinzufügen" am Tag. */}
-                <Link href="/plan" className="tb-secondary-link">
-                  <Compass size={13} strokeWidth={2} /> {tx.newTrip}
-                </Link>
-                {/* NEU: Rückweg je nach Herkunft — aus der Übersicht nur
-                    "Zurück zu allen Trips", sonst wie bisher */}
-                {fromBuilder ? (
-                  <Link href="/trip" className="tb-secondary-link">
-                    <ArrowLeft size={13} strokeWidth={2} /> {tx.backToAll}
-                  </Link>
-                ) : (
-                  <>
-                    <Link href="/trip?from=mytrips" className="tb-secondary-link">
-                      <RouteIcon size={13} strokeWidth={2} /> {tx.allTrips}
-                    </Link>
-                    <Link href="/my-trips" className="tb-secondary-link">
-                      <ArrowLeft size={13} strokeWidth={2} /> {t("trip.backToTrips")}
-                    </Link>
-                  </>
-                )}
-              </div>
-            </>
           )}
         </div>
       </div>
 
-      {/* NEU: Footer wie auf /my-trips (Abschnitt "Footer" oben in dieser Datei) */}
       <PageFooter />
-
-      <ConfirmDialog
-        open={confirmDelete}
-        title={t("trip.deleteConfirmTitle")}
-        text={t("trip.deleteConfirmText").replace("{title}", title.trim() || t("trip.titlePlaceholder"))}
-        confirmLabel={t("trip.deleteConfirm")}
-        cancelLabel={t("trip.deleteCancel")}
-        busyLabel={t("trip.deleting")}
-        busy={deleting}
-        error={deleteError ? t("trip.deleteError") : undefined}
-        onConfirm={handleDeleteTrip}
-        onCancel={closeDeleteDialog}
-      />
 
       <style>{`
         .tb-wrap { width:100%; max-width:920px; display:flex; flex-direction:column; gap:18px; }
-
         .tb-card { background:color-mix(in srgb, var(--bg2) 82%, transparent); border:1px solid var(--border); border-radius:26px; padding:24px; box-shadow:0 40px 100px rgba(0,0,0,0.45); }
         .light .tb-card { background:#FFFFFF; box-shadow:0 30px 80px rgba(58,44,16,0.12); }
-
         .tb-state { display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; padding:52px 26px; }
         .tb-state-icon { display:grid; place-items:center; width:52px; height:52px; border:1px solid color-mix(in srgb, var(--gold) 38%, transparent); border-radius:16px; background:color-mix(in srgb, var(--gold) 12%, transparent); color:var(--gold); }
         .tb-state-title { font-family:var(--serif); font-size:28px; font-weight:300; color:var(--cream); }
         .tb-state p { font-size:13px; color:var(--dim); }
         .tb-spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:tbSpin .7s linear infinite; }
         @keyframes tbSpin { to { transform:rotate(360deg); } }
-
-        .tb-header-top { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
-        .tb-eyebrow { font-size:9px; font-weight:800; letter-spacing:0.3em; text-transform:uppercase; color:var(--gold); }
-        .tb-saved { font-size:10px; font-weight:600; letter-spacing:0.06em; color:var(--dim); }
-        .tb-saved.is-error { color:#e08080; }
-        .tb-header-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-        button.tb-delete-trip { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:none; color:var(--muted); font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; transition:all .18s; }
-        button.tb-delete-trip:hover { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
-
-        .tb-title-input { width:100%; margin:14px 0 16px; padding:10px 0; border:none; border-bottom:1px solid var(--border); background:none; outline:none; font-family:var(--serif); font-size:clamp(26px,4vw,38px); font-weight:300; letter-spacing:-0.02em; color:var(--cream); transition:border-color .2s; }
-        .tb-title-input:focus { border-bottom-color:var(--gold); }
-        .tb-title-input::placeholder { color:var(--dim); }
-
-        .tb-stats { display:flex; gap:18px; flex-wrap:wrap; }
-        .tb-stats span { display:inline-flex; align-items:center; gap:7px; font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); }
-        .tb-stats svg { color:var(--gold); flex-shrink:0; }
-
-        .tb-day-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding-bottom:14px; border-bottom:1px solid var(--border); margin-bottom:6px; }
-        .tb-day-title { font-family:var(--serif); font-size:24px; font-weight:400; color:var(--cream); }
-        .tb-day-head-actions { display:flex; align-items:center; gap:12px; }
-        .tb-day-add { display:inline-flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); white-space:nowrap; transition:opacity .2s; }
-        .tb-day-add:hover { opacity:0.75; }
-
-        .tb-day-empty { display:flex; flex-direction:column; align-items:center; gap:14px; padding:24px; margin-top:10px; border:1px dashed var(--border); border-radius:16px; text-align:center; }
-        .tb-day-empty p { font-size:12.5px; color:var(--dim); }
-        .tb-find-routes { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border:1px solid var(--gold); border-radius:999px; background:var(--gold); color:#0c0b09; font-size:9px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:transform .2s; }
-        .tb-find-routes:hover { transform:translateY(-1px); }
-
-        .tb-stops { display:flex; flex-direction:column; }
-        .tb-stop { display:grid; grid-template-columns:auto 84px 1fr auto; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); background:transparent; transition:background .15s, box-shadow .15s; }
-        .tb-stop:last-child { border-bottom:none; }
-        .tb-stop.is-drop-target { box-shadow:inset 0 2px 0 var(--gold); }
-        .tb-stop-handle { display:flex; align-items:center; color:var(--dim); cursor:grab; }
-        .tb-stop-thumb { width:84px; height:62px; border-radius:12px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); flex-shrink:0; }
-        .tb-stop-thumb img { width:100%; height:100%; object-fit:cover; }
-        .tb-stop-info { min-width:0; }
-        .tb-stop-country { font-size:8px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:4px; }
-        .tb-stop-title { font-family:var(--serif); font-size:19px; font-weight:400; color:var(--cream); line-height:1.15; margin-bottom:5px; }
-        .tb-stop-meta { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; color:var(--dim); font-weight:500; }
-        .tb-stop-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-
-        button.tb-icon-btn { width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:50%; color:var(--muted); background:none; transition:all .18s; }
-        button.tb-icon-btn:hover:not(:disabled) { color:var(--gold); border-color:color-mix(in srgb, var(--gold) 45%, transparent); }
-        button.tb-icon-btn:disabled { opacity:0.3; cursor:not-allowed; }
-        button.tb-icon-danger:hover:not(:disabled) { color:#e08080; border-color:rgba(224,128,128,0.45); background:rgba(224,128,128,0.08); }
-
-        /* NEU: Übersicht aller Trips */
-        .tb-overview-title { margin:14px 0 10px; font-family:var(--serif); font-size:clamp(30px,4.4vw,44px); font-weight:300; letter-spacing:-0.02em; color:var(--cream); }
-        .tb-overview-sub { margin-bottom:16px; max-width:560px; font-size:13px; line-height:1.7; color:var(--dim); }
-        .tb-overview-list { display:flex; flex-direction:column; padding-top:10px; padding-bottom:10px; }
-        .tb-overview-item { display:grid; grid-template-columns:120px 1fr auto; align-items:center; gap:18px; padding:16px 0; border-bottom:1px solid var(--border); color:inherit; text-decoration:none; transition:background .15s; }
-        .tb-overview-item:last-child { border-bottom:none; }
-        .tb-overview-thumb { display:block; width:120px; height:86px; border-radius:14px; overflow:hidden; background:var(--bg3); border:1px solid var(--border); }
-        .tb-overview-thumb img { width:100%; height:100%; object-fit:cover; transition:transform .6s ease; }
-        .tb-overview-item:hover .tb-overview-thumb img { transform:scale(1.06); }
-        .tb-overview-info { display:flex; flex-direction:column; gap:6px; min-width:0; }
-        .tb-overview-name { font-family:var(--serif); font-size:22px; font-weight:400; line-height:1.15; color:var(--cream); transition:color .2s; }
-        .tb-overview-item:hover .tb-overview-name { color:var(--gold); }
-        .tb-overview-meta { display:flex; flex-wrap:wrap; gap:14px; font-size:10.5px; font-weight:500; color:var(--dim); }
-        .tb-overview-meta > span { display:inline-flex; align-items:center; gap:5px; }
-        .tb-overview-meta svg { color:var(--gold); }
-        .tb-overview-routes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-        .tb-overview-chip { padding:4px 10px; border:1px solid var(--border); border-radius:999px; font-size:10px; font-weight:600; color:var(--muted); white-space:nowrap; }
-        .tb-overview-chip.is-more { color:var(--gold); border-color:color-mix(in srgb, var(--gold) 40%, transparent); }
-        .tb-overview-chip.is-empty { font-style:italic; color:var(--dim); }
-        .tb-overview-open { display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; border:1px solid color-mix(in srgb, var(--gold) 45%, transparent); color:var(--gold); transition:all .2s; }
-        .tb-overview-item:hover .tb-overview-open { background:var(--gold); color:var(--bg); transform:translateX(2px); }
-        .tb-add-day-link { display:inline-flex; align-items:center; gap:9px; padding:14px 26px; border:1px dashed color-mix(in srgb, var(--gold) 45%, transparent); border-radius:999px; background:color-mix(in srgb, var(--gold) 8%, transparent); color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:background .2s; }
-        .tb-add-day-link:hover { background:color-mix(in srgb, var(--gold) 16%, transparent); }
-
-        .tb-footer-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-        button.tb-add-day { display:inline-flex; align-items:center; gap:9px; padding:14px 26px; border:1px dashed color-mix(in srgb, var(--gold) 45%, transparent); border-radius:999px; background:color-mix(in srgb, var(--gold) 8%, transparent); color:var(--gold); font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; transition:background .2s; }
-        button.tb-add-day:hover { background:color-mix(in srgb, var(--gold) 16%, transparent); }
-        .tb-secondary-link { display:inline-flex; align-items:center; gap:8px; font-size:10px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); transition:color .2s; }
-        .tb-secondary-link:hover { color:var(--gold); }
         .tb-primary-link { display:inline-flex; align-items:center; gap:9px; padding:14px 28px; border:1px solid var(--gold); border-radius:999px; background:var(--gold); color:#0c0b09; font-size:10px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase; }
-
-        @media (max-width:760px) {
-          .tb-card { padding:18px; border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,0.35); }
-          .tb-day-title { font-size:20px; }
-          /* Tages-Bloecke stapeln ohnehin untereinander; die Stopp-Zeile wird
-             kompakter und der Griff verschwindet zugunsten der Pfeile. */
-          .tb-stop { grid-template-columns:64px 1fr auto; gap:11px; }
-          .tb-stop-handle { display:none; }
-          .tb-stop-thumb { width:64px; height:52px; }
-          .tb-stop-title { font-size:15px; }
-          .tb-stop-actions { flex-direction:column; gap:5px; }
-          .tb-footer-actions { flex-direction:column; align-items:stretch; }
-          .tb-overview-item { grid-template-columns:72px 1fr auto; gap:12px; }
-          .tb-overview-thumb { width:72px; height:58px; }
-          .tb-overview-name { font-size:17px; }
-          .tb-overview-open { width:32px; height:32px; }
-          .tb-add-day-link { justify-content:center; }
-          button.tb-add-day { justify-content:center; }
-          .tb-secondary-link { justify-content:center; }
-        }
+        @media (max-width:760px) { .tb-card { padding:18px; border-radius:20px; } }
       `}</style>
     </div>
   );
