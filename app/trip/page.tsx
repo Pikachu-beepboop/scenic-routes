@@ -23,7 +23,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Navigation,
-  CalendarDays, Route as RouteIcon, ArrowLeft, Compass, ChevronRight, Globe, Pencil,
+  CalendarDays, Route as RouteIcon, ArrowLeft, Compass, ChevronRight, Globe, Pencil, Info,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -31,7 +31,7 @@ import PlannerNav from "../components/PlannerNav";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import ConfirmDialog from "../components/ConfirmDialog";
 import GoogleMapsGate from "../components/GoogleMapsGate";
-import { computeDirections, loadGoogleMaps } from "../../lib/googleMaps";
+import { computeDirections, loadGoogleMaps, overviewPathToLngLat } from "../../lib/googleMaps";
 import { useLanguage } from "../LanguageContext";
 import { useUnit } from "../UnitContext";
 import { useAuth } from "../../lib/useAuth";
@@ -129,6 +129,7 @@ const TV_TEXT = {
     delete: "Löschen",
     editTitle: "Titel bearbeiten",
     mapLoading: "Strecke wird berechnet …",
+    details: "Routendetails",
   },
   en: {
     allDays: "All days",
@@ -146,6 +147,7 @@ const TV_TEXT = {
     delete: "Delete",
     editTitle: "Edit title",
     mapLoading: "Working out the drive …",
+    details: "Route details",
   },
   ru: {
     allDays: "Все дни",
@@ -163,6 +165,7 @@ const TV_TEXT = {
     delete: "Удалить",
     editTitle: "Изменить название",
     mapLoading: "Рассчитываем маршрут …",
+    details: "Подробнее о маршруте",
   },
 } as const;
 
@@ -825,7 +828,10 @@ function TripBuilder() {
   const mapRef = useRef<any>(null);
   const mapsApiRef = useRef<any>(null);
   const rendererRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const markersRef = useRef<{ stopId: string; marker: any }[]>([]);
+  // NEU: Start/Ziel-Markierungen und Linie der ausgewählten Route
+  const selectionRef = useRef<any[]>([]);
+  const segmentCache = useRef<Map<string, [number, number][]>>(new Map());
   const [activeDay, setActiveDay] = useState<string>("all");
   const [activeStop, setActiveStop] = useState<string | null>(null);
   const [driveStats, setDriveStats] = useState<{ seconds: number; perDay: Record<string, { km: number; seconds: number }> } | null>(null);
@@ -858,6 +864,8 @@ function TripBuilder() {
           preserveViewport: true,
           polylineOptions: { strokeColor: "#1A73E8", strokeOpacity: 0.85, strokeWeight: 5 },
         });
+        // Klick auf eine freie Stelle der Karte hebt die Auswahl auf (Ziehen/Zoomen nicht)
+        map.addListener("click", () => setActiveStop(null));
         setMapReady(true);
       })
       .catch((err) => console.error("trip: Google Maps konnte nicht geladen werden", err));
@@ -894,7 +902,7 @@ function TripBuilder() {
     const map = mapRef.current;
     if (!mapReady || !maps || !map) return;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current.forEach(({ marker }) => marker.setMap(null));
     markersRef.current = [];
     const bounds = new maps.LatLngBounds();
     let any = false;
@@ -902,17 +910,17 @@ function TripBuilder() {
     for (const item of placed) {
       if (!item.points) continue;
       const dimmed = activeDay !== "all" && item.dayId !== activeDay;
-      const isActive = item.stopId === activeStop;
       const marker = new maps.Marker({
         position: item.points.mid,
         map,
         title: item.title,
-        zIndex: isActive ? 30 : dimmed ? 5 : 20,
+        visible: item.stopId !== activeStop,
+        zIndex: dimmed ? 5 : 20,
         opacity: dimmed ? 0.45 : 1,
         label: { text: item.label, color: "#1A150C", fontSize: "11px", fontWeight: "700" },
         icon: {
           path: maps.SymbolPath.CIRCLE,
-          scale: isActive ? 17 : 14,
+          scale: 14,
           fillColor: dayColor(item.dayIndex),
           fillOpacity: 1,
           strokeColor: "#FFFFFF",
@@ -923,7 +931,7 @@ function TripBuilder() {
         setActiveStop(item.stopId);
         document.getElementById(`tv-stop-${item.stopId}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
-      markersRef.current.push(marker);
+      markersRef.current.push({ stopId: item.stopId, marker });
       if (!dimmed) {
         bounds.extend(item.points.start);
         bounds.extend(item.points.end);
@@ -934,21 +942,114 @@ function TripBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placed, mapReady, activeDay]);
 
-  // Aktiven Stopp nur hervorheben (ohne den Ausschnitt neu zu setzen)
+  /* NEU: Ausgewählte Route auf der Karte zeigen — ihre Nummer verschwindet, stattdessen
+     erscheinen Start (A) und Ziel (B) und die Strecke dazwischen in der Farbe des Tages.
+     Bleibt beim Zoomen und Verschieben stehen, bis eine andere Route gewählt oder auf eine
+     freie Stelle der Karte geklickt wird. */
   useEffect(() => {
     const maps = mapsApiRef.current;
-    if (!maps) return;
-    markersRef.current.forEach((marker, i) => {
-      const item = placed.filter((p) => p.points)[i];
-      if (!item) return;
-      const isActive = item.stopId === activeStop;
-      marker.setZIndex(isActive ? 30 : 20);
-      const icon = marker.getIcon();
-      marker.setIcon({ ...icon, scale: isActive ? 17 : 14 });
-    });
-    const target = placed.find((p) => p.stopId === activeStop)?.points;
-    if (target) mapRef.current?.panTo(target.mid);
-  }, [activeStop, placed]);
+    const map = mapRef.current;
+    if (!mapReady || !maps || !map) return;
+
+    markersRef.current.forEach(({ stopId, marker }) => marker.setVisible(stopId !== activeStop));
+    selectionRef.current.forEach((overlay) => overlay.setMap(null));
+    selectionRef.current = [];
+
+    const item = placed.find((p) => p.stopId === activeStop);
+    if (!item?.points) return;
+    const color = dayColor(item.dayIndex);
+    const pin = (position: LatLng, text: string, fill: string, labelColor: string, title: string) =>
+      new maps.Marker({
+        position,
+        map,
+        title,
+        zIndex: 40,
+        label: { text, color: labelColor, fontSize: "12px", fontWeight: "700" },
+        icon: {
+          path: "M12 0C5.4 0 0 5.4 0 12c0 8.6 12 24 12 24s12-15.4 12-24C24 5.4 18.6 0 12 0z",
+          fillColor: fill,
+          fillOpacity: 1,
+          strokeColor: "#FFFFFF",
+          strokeWeight: 2.5,
+          scale: 1.25,
+          anchor: new maps.Point(12, 36),
+          labelOrigin: new maps.Point(12, 12),
+        },
+      });
+    const startPin = pin(item.points.start, "A", color, "#1A150C", `${item.title} (Start)`);
+    const endPin = pin(item.points.end, "B", "#1F1A13", "#FFFFFF", `${item.title} (Ende)`);
+    startPin.addListener("click", () => setActiveStop(null));
+    endPin.addListener("click", () => setActiveStop(null));
+    selectionRef.current.push(startPin, endPin);
+
+    // Ausschnitt einmal auf die gewählte Route setzen — danach darf frei gezoomt werden
+    const bounds = new maps.LatLngBounds();
+    bounds.extend(item.points.start);
+    bounds.extend(item.points.end);
+    const sameSpot = item.points.start.lat === item.points.end.lat && item.points.start.lng === item.points.end.lng;
+    if (sameSpot) {
+      map.panTo(item.points.start);
+      if ((map.getZoom() ?? 0) < 11) map.setZoom(11);
+    } else {
+      map.fitBounds(bounds, fitPadding());
+    }
+
+    // Strecke der Route (eine Anfrage pro Route, danach aus dem Zwischenspeicher)
+    let cancelled = false;
+    const draw = (path: [number, number][]) => {
+      if (cancelled || path.length < 2) return;
+      const line = new maps.Polyline({
+        map,
+        path: path.map(([lng, lat]) => ({ lat, lng })),
+        strokeColor: color,
+        strokeOpacity: 1,
+        strokeWeight: 7,
+        zIndex: 35,
+      });
+      const casing = new maps.Polyline({
+        map,
+        path: path.map(([lng, lat]) => ({ lat, lng })),
+        strokeColor: "#FFFFFF",
+        strokeOpacity: 0.9,
+        strokeWeight: 11,
+        zIndex: 34,
+      });
+      selectionRef.current.push(casing, line);
+    };
+    const cached = segmentCache.current.get(item.stopId);
+    if (cached) draw(cached);
+    else if (!sameSpot && mapsConsent) {
+      computeDirections(pointText(item.points.start), pointText(item.points.end))
+        .then((result) => {
+          const path = overviewPathToLngLat(result);
+          segmentCache.current.set(item.stopId, path);
+          draw(path);
+        })
+        .catch((err) => console.warn("trip: Strecke der Route konnte nicht berechnet werden", err));
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStop, placed, mapReady]);
+
+  // Klick auf eine Route in der Liste: auf der Karte zeigen (auf dem Handy dafür zur Karte hochscrollen)
+  // Nochmal auf die schon gewählte Route klicken = Auswahl aufheben (zurück zur Nummer)
+  const selectFromList = (stopId: string) => {
+    if (activeStop === stopId) {
+      setActiveStop(null);
+      return;
+    }
+    setActiveStop(stopId);
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      mapEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // Ausgewählte Route wurde gelöscht -> Auswahl aufheben
+  useEffect(() => {
+    if (activeStop && !placed.some((p) => p.stopId === activeStop)) setActiveStop(null);
+  }, [placed, activeStop]);
 
   // Fahrstrecke über alle Stopps (eine Directions-Anfrage, nach Änderungen kurz verzögert)
   const routeKey = placed.map((p) => `${p.dayId}:${p.stopId}`).join("|") + `|${startLocation}|${endLocation}`;
@@ -1110,7 +1211,7 @@ function TripBuilder() {
               </button>
             </div>
 
-            <div className="tv-list">
+            <div className="tv-list" onClick={(e) => { if (e.target === e.currentTarget) setActiveStop(null); }}>
               {visibleDays.map((day) => {
                 const dayIndex = days.findIndex((d) => d.id === day.id);
                 const stats = driveStats?.perDay[day.id];
@@ -1161,7 +1262,16 @@ function TripBuilder() {
                               id={`tv-stop-${stop.id}`}
                               className={`tv-stop ${activeStop === stop.id ? "on" : ""} ${dropTarget?.dayId === day.id && dropTarget.index === stopIndex ? "is-drop" : ""}`}
                               draggable
-                              onClick={() => setActiveStop(stop.id)}
+                              role="button"
+                              tabIndex={0}
+                              aria-pressed={activeStop === stop.id}
+                              onClick={() => selectFromList(stop.id)}
+                              onKeyDown={(e) => {
+                                if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                                  e.preventDefault();
+                                  selectFromList(stop.id);
+                                }
+                              }}
                               onDragStart={() => { dragged.current = { dayId: day.id, stopId: stop.id }; }}
                               onDragEnd={() => { dragged.current = null; setDropTarget(null); }}
                               onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayId: day.id, index: stopIndex }); }}
@@ -1169,18 +1279,23 @@ function TripBuilder() {
                             >
                               <span className="tv-grip" aria-hidden="true"><GripVertical size={15} strokeWidth={2} /></span>
                               <span className="tv-num" style={{ background: dayColor(dayIndex) }}>{dayIndex + 1}.{stopIndex + 1}</span>
-                              <Link href={detailHref} prefetch={false} className="tv-thumb" draggable={false}>
+                              <span className="tv-thumb">
                                 <img
                                   src={stop.route?.image_url || "/amalfi_coast_road.jpg"}
                                   alt={name}
+                                  draggable={false}
                                   onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }}
                                 />
-                              </Link>
+                              </span>
                               <div className="tv-info">
-                                <Link href={detailHref} prefetch={false} draggable={false}><b>{name}</b></Link>
+                                <b>{name}</b>
                                 <small>{[stop.route?.country, formatDistance(stop.route?.distance_km as number | null | undefined, unit)].filter(Boolean).join(", ")}</small>
                               </div>
                               <div className="tv-actions">
+                                {/* Zur Detailseite — die Karte selbst wählt die Route nur auf der Karte aus */}
+                                <Link href={detailHref} prefetch={false} draggable={false} className="tv-ic tv-ic-link" onClick={(e: { stopPropagation: () => void }) => e.stopPropagation()} title={tv.details} aria-label={tv.details}>
+                                  <Info size={15} strokeWidth={1.9} />
+                                </Link>
                                 {/* Pfeile zusätzlich zum Ziehen — auf Touch-Geräten ist Ziehen unzuverlässig */}
                                 <span className="tv-move">
                                   <button type="button" className="tv-ic" onClick={(e) => { e.stopPropagation(); shiftStop(dayIndex, stopIndex, -1); }} disabled={dayIndex === 0 && stopIndex === 0} title={t("trip.moveUp")} aria-label={t("trip.moveUp")}>
@@ -1296,11 +1411,14 @@ function TripBuilder() {
           .tv-stop.is-drop { box-shadow:inset 0 3px 0 var(--gold); }
           .tv-grip { color:var(--dim); cursor:grab; display:flex; }
           .tv-num { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; font-size:11px; font-weight:700; color:#1A150C; }
-          .tv-page a.tv-thumb { display:block; width:76px; height:58px; border-radius:12px; overflow:hidden; background:var(--bg3); }
+          .tv-thumb { display:block; width:76px; height:58px; border-radius:12px; overflow:hidden; background:var(--bg3); }
           .tv-thumb img { width:100%; height:100%; object-fit:cover; }
           .tv-info { min-width:0; }
           .tv-info b { display:block; font-family:var(--serif); font-size:20px; font-weight:400; line-height:1.12; color:var(--cream); overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-          .tv-page .tv-info a:hover b { color:var(--tv-gold-text); }
+          .tv-stop:hover .tv-info b, .tv-stop.on .tv-info b { color:var(--tv-gold-text); }
+          .tv-stop:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+          .tv-page a.tv-ic-link { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; border:1px solid var(--border); color:var(--muted); transition:all .18s; }
+          .tv-page a.tv-ic-link:hover { color:var(--tv-gold-text); border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
           .tv-info small { display:block; margin-top:4px; font-size:12px; color:var(--dim); }
           .tv-actions { display:flex; align-items:center; gap:6px; }
           .tv-move { display:flex; gap:6px; opacity:0; transition:opacity .2s; }
@@ -1342,7 +1460,7 @@ function TripBuilder() {
             .tv-list { padding:6px 12px 14px; }
             .tv-stop { grid-template-columns:30px 60px minmax(0,1fr) auto; gap:10px; padding:10px; }
             .tv-grip { display:none; }
-            .tv-page a.tv-thumb { width:60px; height:50px; }
+            .tv-thumb { width:60px; height:50px; }
             .tv-info b { font-size:17px; }
             .tv-actions { flex-direction:column; gap:4px; }
             .tv-move { flex-direction:row; }
