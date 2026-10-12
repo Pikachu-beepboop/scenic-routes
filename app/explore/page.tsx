@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { supabase, supabasePublic, withTimeout, safeQuery } from "../../lib/supabase";
@@ -114,7 +114,8 @@ function driveMinutes(route: Route): number | null {
 }
 
 /** Schrittweite und Obergrenze des Fahrzeit-Reglers (Minuten). */
-const TIME_STEP = 30;
+const TIME_STEP = 30; // Balkenbreite und Mindestabstand der Griffe
+const TIME_FINE = 5; // Reglerschritt — feiner, damit der Griff gleitet statt springt
 const TIME_CAP = 480; // ab 8 Std. zählt alles zur letzten Stufe "8 Std.+"
 
 type SortKey = "popular" | "name" | "short" | "long";
@@ -483,12 +484,15 @@ function ExplorePageInner() {
 
   // Filter in der Adresse halten, damit Zurück/Teilen den Stand behält
   const isFirstRender = useRef(true);
+  // Regler sofort bewegen, Liste und URL leicht verzögert nachziehen — so ruckelt das Ziehen nicht
+  const timeFilter = useDeferredValue(timeSel);
+
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     const params = new URLSearchParams();
     if (appliedQuery) params.set("q", appliedQuery);
     if (countriesSel.length > 0) params.set("countries", countriesSel.join(","));
-    if (timeSel) params.set("time", `${timeSel[0]}-${timeSel[1]}`);
+    if (timeFilter) params.set("time", `${timeFilter[0]}-${timeFilter[1]}`);
     if (monthsSel.length > 0) params.set("months", monthsSel.join(","));
     if (typesSel.length > 0) params.set("types", typesSel.join(","));
     if (sort !== "popular") params.set("sort", sort);
@@ -496,7 +500,7 @@ function ExplorePageInner() {
     const query = params.toString();
     router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedQuery, countriesSel, timeSel, monthsSel, typesSel, sort, view]);
+  }, [appliedQuery, countriesSel, timeFilter, monthsSel, typesSel, sort, view]);
 
   // ---------------------------------------------------------------- Such-UI-State
   const [query, setQuery] = useState(searchParams.get("q") || "");
@@ -650,10 +654,10 @@ function ExplorePageInner() {
   const matches = useCallback(
     (r: Route, skip: { countries?: boolean; time?: boolean } = {}) => {
       if (!skip.countries && countriesSel.length > 0 && !countriesSel.includes(r.country)) return false;
-      if (!skip.time && timeSel) {
+      if (!skip.time && timeFilter) {
         const m = minutesById.get(r.id);
         // Obergrenze am Reglerende = offen ("8 Std.+")
-        if (m == null || m < timeSel[0] || (timeSel[1] < timeMax && m > timeSel[1])) return false;
+        if (m == null || m < timeFilter[0] || (timeFilter[1] < timeMax && m > timeFilter[1])) return false;
       }
       if (typesSel.length > 0 && !(typeof r.type === "string" && typesSel.includes(r.type))) return false;
       if (monthsSel.length > 0) {
@@ -667,7 +671,7 @@ function ExplorePageInner() {
       }
       return true;
     },
-    [countriesSel, timeSel, timeMax, minutesById, typesSel, monthsSel, appliedQuery, seasonById, lang]
+    [countriesSel, timeFilter, timeMax, minutesById, typesSel, monthsSel, appliedQuery, seasonById, lang]
   );
 
   const filtered = useMemo(() => {
@@ -682,7 +686,7 @@ function ExplorePageInner() {
   }, [routes, matches, sort, lang]);
 
   const pageSize = view === "grid" ? GRID_PAGE_SIZE : PAGE_SIZE;
-  useEffect(() => { setVisibleCount(pageSize); }, [countriesSel, timeSel, typesSel, monthsSel, appliedQuery, sort, pageSize]);
+  useEffect(() => { setVisibleCount(pageSize); }, [countriesSel, timeFilter, typesSel, monthsSel, appliedQuery, sort, pageSize]);
 
   // Live-Vorschläge beim Tippen
   const suggestions = useMemo(() => {
@@ -909,6 +913,7 @@ function ExplorePageInner() {
     setTimeSel(a <= 0 && b >= timeMax ? null : [a, b]);
   };
 
+
   // Balken über dem Regler: Anzahl Routen je 30 Min. (mit allen anderen Filtern)
   const timeBars = useMemo(() => {
     const bars = new Array(timeMax / TIME_STEP).fill(0);
@@ -954,13 +959,13 @@ function ExplorePageInner() {
         style={{ "--lo": `${(timeRange[0] / timeMax) * 100}%`, "--hi": `${(timeRange[1] / timeMax) * 100}%` } as React.CSSProperties}
       >
         <input
-          type="range" min={0} max={timeMax} step={TIME_STEP} value={timeRange[0]}
+          type="range" min={0} max={timeMax} step={TIME_FINE} value={timeRange[0]}
           aria-label={`${tx.driveTimeTitle}: min`}
           aria-valuetext={fmtMin(timeRange[0])}
           onChange={(e) => setTimeRange(Math.min(Number(e.target.value), timeRange[1] - TIME_STEP), timeRange[1])}
         />
         <input
-          type="range" min={0} max={timeMax} step={TIME_STEP} value={timeRange[1]}
+          type="range" min={0} max={timeMax} step={TIME_FINE} value={timeRange[1]}
           aria-label={`${tx.driveTimeTitle}: max`}
           aria-valuetext={timeRange[1] >= timeMax ? `${fmtMin(timeMax)}+` : fmtMin(timeRange[1])}
           onChange={(e) => setTimeRange(timeRange[0], Math.max(Number(e.target.value), timeRange[0] + TIME_STEP))}
@@ -1346,7 +1351,7 @@ function ExplorePageInner() {
         .xp-view button.on { background:var(--raise2); color:var(--cream); }
 
         .xp-main { display:grid; grid-template-columns:280px minmax(0,1fr); gap:48px; }
-        .xp-side { padding:28px 14px 24px 0; margin-right:-14px; display:flex; flex-direction:column; align-self:start; position:sticky; top:84px; max-height:var(--side-max, calc(100vh - 100px)); overflow-y:auto; overscroll-behavior:contain; -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%); mask-image:linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%); scrollbar-width:thin; scrollbar-gutter:stable; scrollbar-color:color-mix(in srgb, var(--gold) 40%, transparent) transparent; }
+        .xp-side { padding:28px 14px 24px 14px; margin:0 -14px 0 -14px; display:flex; flex-direction:column; align-self:start; position:sticky; top:84px; max-height:var(--side-max, calc(100vh - 100px)); overflow-y:auto; overscroll-behavior:contain; -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%); mask-image:linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 22px), transparent 100%); scrollbar-width:thin; scrollbar-gutter:stable; scrollbar-color:color-mix(in srgb, var(--gold) 40%, transparent) transparent; }
         .xp-side-top, .xp-side-backdrop { display:none; }
         .xp-group { padding:20px 0; border-bottom:1px solid var(--border); }
         .xp-group:first-of-type { padding-top:0; }

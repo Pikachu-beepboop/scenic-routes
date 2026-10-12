@@ -2,6 +2,11 @@
 
 // Trip Builder.
 //
+// NEU (Entwurf B): Ein geöffneter Trip erscheint als Vollbild-Karte mit Glas-Panel
+// rechts — Tage als Tabs, Routen nummeriert in der Farbe ihres Tages, Fahrstrecke
+// über alle Stopps (eine Directions-Anfrage) und Link in Google Maps. Die
+// Übersicht aller Trips (/trip ohne ?id=) bleibt wie bisher.
+//
 // Bewusst unter dem statischen Segment /trip mit ?id=<uuid> statt als
 // dynamische Route /trip/[id]: dynamische Segmente sind auf Cloudflare Pages
 // nicht vorgerendert und erzeugen die in ROUTING.md beschriebenen
@@ -18,13 +23,15 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical, Navigation,
-  CalendarDays, Route as RouteIcon, ArrowLeft, Compass, ChevronRight, Globe,
+  CalendarDays, Route as RouteIcon, ArrowLeft, Compass, ChevronRight, Globe, Pencil,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import PlannerNav from "../components/PlannerNav";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import ConfirmDialog from "../components/ConfirmDialog";
+import GoogleMapsGate from "../components/GoogleMapsGate";
+import { computeDirections, loadGoogleMaps } from "../../lib/googleMaps";
 import { useLanguage } from "../LanguageContext";
 import { useUnit } from "../UnitContext";
 import { useAuth } from "../../lib/useAuth";
@@ -45,6 +52,8 @@ import {
 } from "../../lib/trips";
 
 import "../profile/profile.css";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // NEU: Texte für die "Routen ergänzen"-Links. Lokal statt in
 // lib/translations, gleiches Muster wie GoogleMapsGate — kann später in die
@@ -101,6 +110,104 @@ const ADD_TEXT = {
 } as const;
 
 type AddLang = keyof typeof ADD_TEXT;
+
+// NEU: Texte der Kartenansicht (Trip B: Karte + Glas-Panel)
+const TV_TEXT = {
+  de: {
+    allDays: "Alle Tage",
+    addDayShort: "Tag",
+    scenicKm: "{d} Panoramastrecke",
+    driving: "{t} Fahrzeit",
+    dayStats: "{d}, {t}",
+    openTrip: "Ganze Reise in Google Maps öffnen",
+    openDay: "Tag {n} in Google Maps öffnen",
+    noCoords: "Für diese Routen fehlen noch Koordinaten",
+    yourDrive: "Deine Fahrt: {start} nach {end}",
+    myTrips: "My Trips",
+    allTrips: "Alle Trips",
+    newTrip: "Neuer Trip",
+    delete: "Löschen",
+    editTitle: "Titel bearbeiten",
+    mapLoading: "Strecke wird berechnet …",
+  },
+  en: {
+    allDays: "All days",
+    addDayShort: "Day",
+    scenicKm: "{d} scenic",
+    driving: "{t} driving",
+    dayStats: "{d}, {t}",
+    openTrip: "Open the whole trip in Google Maps",
+    openDay: "Open day {n} in Google Maps",
+    noCoords: "These routes don't have coordinates yet",
+    yourDrive: "Your drive: {start} to {end}",
+    myTrips: "My trips",
+    allTrips: "All trips",
+    newTrip: "New trip",
+    delete: "Delete",
+    editTitle: "Edit title",
+    mapLoading: "Working out the drive …",
+  },
+  ru: {
+    allDays: "Все дни",
+    addDayShort: "День",
+    scenicKm: "{d} живописных дорог",
+    driving: "{t} в пути",
+    dayStats: "{d}, {t}",
+    openTrip: "Открыть всю поездку в Google Maps",
+    openDay: "Открыть день {n} в Google Maps",
+    noCoords: "Для этих маршрутов ещё нет координат",
+    yourDrive: "Ваш маршрут: {start} — {end}",
+    myTrips: "Мои поездки",
+    allTrips: "Все поездки",
+    newTrip: "Новая поездка",
+    delete: "Удалить",
+    editTitle: "Изменить название",
+    mapLoading: "Рассчитываем маршрут …",
+  },
+} as const;
+
+/** Farbe je Tag — Karte, Tabs und Nummern nutzen dieselbe. */
+const DAY_COLORS = ["#C9A86A", "#7FA7B5", "#8FB07A", "#C98A7A", "#9C8FC4", "#D0A15B"];
+const dayColor = (index: number) => DAY_COLORS[index % DAY_COLORS.length];
+
+type LatLng = { lat: number; lng: number };
+
+function toNum(value: unknown): number | null {
+  const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Start- und Endpunkt einer Route (falls in der Datenbank gepflegt). */
+function routePoints(route: TripRoute | null): { start: LatLng; end: LatLng; mid: LatLng } | null {
+  if (!route) return null;
+  const r = route as unknown as Record<string, unknown>;
+  const sLat = toNum(r.start_lat), sLng = toNum(r.start_lng), eLat = toNum(r.end_lat), eLng = toNum(r.end_lng);
+  if (sLat === null || sLng === null) return null;
+  const start = { lat: sLat, lng: sLng };
+  const end = eLat !== null && eLng !== null ? { lat: eLat, lng: eLng } : start;
+  return { start, end, mid: { lat: (start.lat + end.lat) / 2, lng: (start.lng + end.lng) / 2 } };
+}
+
+function fmtDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.round((totalSeconds % 3600) / 60);
+  if (hours === 0) return `${minutes} min`;
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+}
+
+const pointText = (p: LatLng) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+
+/** Google-Maps-Link (Navigation) — höchstens 9 Zwischenziele, mehr nimmt die App nicht an. */
+function mapsDirUrl(origin: string, destination: string, waypoints: LatLng[]): string {
+  let points = waypoints;
+  if (points.length > 9) {
+    const step = points.length / 9;
+    points = Array.from({ length: 9 }, (_, i) => points[Math.floor(i * step)]);
+  }
+  const params = new URLSearchParams({ api: "1", origin, destination, travelmode: "driving" });
+  if (points.length) params.set("waypoints", points.map(pointText).join("|"));
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
 
 type BuilderStop = {
   id: string;
@@ -414,6 +521,9 @@ function TripBuilder() {
 
   const [days, setDays] = useState<BuilderDay[]>([]);
   const [title, setTitle] = useState("");
+  // NEU: Start und Ziel des Trips (für Fahrstrecke und Google-Maps-Link)
+  const [startLocation, setStartLocation] = useState("");
+  const [endLocation, setEndLocation] = useState("");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -480,6 +590,8 @@ function TripBuilder() {
       }
 
       setTitle(trip.title);
+      setStartLocation(trip.start_location ?? "");
+      setEndLocation(trip.end_location ?? "");
       setDays(
         trip.trip_days.map((day) => ({
           id: day.id,
@@ -700,6 +812,548 @@ function TripBuilder() {
     `/plan?trip=${encodeURIComponent(tripId)}` +
     (dayId ? `&day=${encodeURIComponent(dayId)}` : "") +
     (fromBuilder ? "&from=builder" : "");
+
+
+  // ===================================================================
+  // NEU: Kartenansicht (Trip B) — Karte, Markierungen, Fahrstrecke
+  // ===================================================================
+  const tv = TV_TEXT[(lang as AddLang) in TV_TEXT ? (lang as AddLang) : "de"];
+  const [mapsConsent, setMapsConsent] = useState(false);
+  const handleConsentChange = useCallback((granted: boolean) => setMapsConsent(granted), []);
+  const [mapEl, setMapEl] = useState<HTMLDivElement | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<any>(null);
+  const mapsApiRef = useRef<any>(null);
+  const rendererRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const [activeDay, setActiveDay] = useState<string>("all");
+  const [activeStop, setActiveStop] = useState<string | null>(null);
+  const [driveStats, setDriveStats] = useState<{ seconds: number; perDay: Record<string, { km: number; seconds: number }> } | null>(null);
+  const [routing, setRouting] = useState(false);
+
+  // Gewählter Tag existiert nicht mehr (gelöscht) -> zurück auf "Alle Tage"
+  useEffect(() => {
+    if (activeDay !== "all" && !days.some((day) => day.id === activeDay)) setActiveDay("all");
+  }, [days, activeDay]);
+
+  // Karte einmal anlegen, sobald der Container da ist (nach der Cookie-Zustimmung)
+  useEffect(() => {
+    if (!mapEl || mapRef.current) return;
+    let cancelled = false;
+    loadGoogleMaps()
+      .then((maps) => {
+        if (cancelled) return;
+        const map = new maps.Map(mapEl, {
+          center: { lat: 47.2, lng: 10.5 },
+          zoom: 5,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+        mapRef.current = map;
+        mapsApiRef.current = maps;
+        rendererRef.current = new maps.DirectionsRenderer({
+          map,
+          suppressMarkers: true,
+          preserveViewport: true,
+          polylineOptions: { strokeColor: "#1A73E8", strokeOpacity: 0.85, strokeWeight: 5 },
+        });
+        setMapReady(true);
+      })
+      .catch((err) => console.error("trip: Google Maps konnte nicht geladen werden", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [mapEl]);
+
+  /** Alle Stopps mit Tag, Nummer und Koordinaten — Grundlage für Karte und Links. */
+  const placed = useMemo(
+    () =>
+      days.flatMap((day, dayIndex) =>
+        day.stops.map((stop, stopIndex) => ({
+          dayId: day.id,
+          dayIndex,
+          stopId: stop.id,
+          label: `${dayIndex + 1}.${stopIndex + 1}`,
+          title: localizedTitle(stop.route, lang),
+          points: routePoints(stop.route),
+        }))
+      ),
+    [days, lang]
+  );
+
+  // Platz für das Panel rechts (Desktop) bzw. ohne Panel (Handy)
+  const fitPadding = () =>
+    typeof window !== "undefined" && window.innerWidth > 900
+      ? { top: 110, right: 600, bottom: 90, left: 60 }
+      : { top: 80, right: 30, bottom: 40, left: 30 };
+
+  // Markierungen je Stopp (Farbe = Tag) und Kartenausschnitt
+  useEffect(() => {
+    const maps = mapsApiRef.current;
+    const map = mapRef.current;
+    if (!mapReady || !maps || !map) return;
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    const bounds = new maps.LatLngBounds();
+    let any = false;
+
+    for (const item of placed) {
+      if (!item.points) continue;
+      const dimmed = activeDay !== "all" && item.dayId !== activeDay;
+      const isActive = item.stopId === activeStop;
+      const marker = new maps.Marker({
+        position: item.points.mid,
+        map,
+        title: item.title,
+        zIndex: isActive ? 30 : dimmed ? 5 : 20,
+        opacity: dimmed ? 0.45 : 1,
+        label: { text: item.label, color: "#1A150C", fontSize: "11px", fontWeight: "700" },
+        icon: {
+          path: maps.SymbolPath.CIRCLE,
+          scale: isActive ? 17 : 14,
+          fillColor: dayColor(item.dayIndex),
+          fillOpacity: 1,
+          strokeColor: "#FFFFFF",
+          strokeWeight: 3,
+        },
+      });
+      marker.addListener("click", () => {
+        setActiveStop(item.stopId);
+        document.getElementById(`tv-stop-${item.stopId}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      markersRef.current.push(marker);
+      if (!dimmed) {
+        bounds.extend(item.points.start);
+        bounds.extend(item.points.end);
+        any = true;
+      }
+    }
+    if (any) map.fitBounds(bounds, fitPadding());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placed, mapReady, activeDay]);
+
+  // Aktiven Stopp nur hervorheben (ohne den Ausschnitt neu zu setzen)
+  useEffect(() => {
+    const maps = mapsApiRef.current;
+    if (!maps) return;
+    markersRef.current.forEach((marker, i) => {
+      const item = placed.filter((p) => p.points)[i];
+      if (!item) return;
+      const isActive = item.stopId === activeStop;
+      marker.setZIndex(isActive ? 30 : 20);
+      const icon = marker.getIcon();
+      marker.setIcon({ ...icon, scale: isActive ? 17 : 14 });
+    });
+    const target = placed.find((p) => p.stopId === activeStop)?.points;
+    if (target) mapRef.current?.panTo(target.mid);
+  }, [activeStop, placed]);
+
+  // Fahrstrecke über alle Stopps (eine Directions-Anfrage, nach Änderungen kurz verzögert)
+  const routeKey = placed.map((p) => `${p.dayId}:${p.stopId}`).join("|") + `|${startLocation}|${endLocation}`;
+  useEffect(() => {
+    if (!mapReady || !mapsConsent) return;
+    const withPoints = placed.filter((p) => p.points);
+    if (withPoints.length === 0) {
+      rendererRef.current?.setDirections({ routes: [] });
+      setDriveStats(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      // Start und Ende jeder Route als Wegpunkt; bei sehr vielen Routen nur die Mitte (Google erlaubt 25)
+      const useMid = withPoints.length * 2 > 23;
+      const waypoints: { lat: number; lng: number; dayId: string }[] = withPoints.flatMap((p) =>
+        useMid ? [{ ...p.points!.mid, dayId: p.dayId }] : [{ ...p.points!.start, dayId: p.dayId }, { ...p.points!.end, dayId: p.dayId }]
+      ).slice(0, 23);
+      const origin = startLocation || pointText(waypoints[0]);
+      const destination = endLocation || pointText(waypoints[waypoints.length - 1]);
+      setRouting(true);
+      try {
+        const result = await computeDirections(origin, destination, waypoints.map(({ lat, lng }) => ({ lat, lng })));
+        if (cancelled) return;
+        rendererRef.current?.setDirections(result);
+        const legs: any[] = result?.routes?.[0]?.legs ?? [];
+        const perDay: Record<string, { km: number; seconds: number }> = {};
+        let seconds = 0;
+        legs.forEach((leg, i) => {
+          // Abschnitt i endet am Wegpunkt i — gehört zu dessen Tag (der letzte zum letzten Tag)
+          const dayId = (waypoints[i] ?? waypoints[waypoints.length - 1]).dayId;
+          const entry = (perDay[dayId] ??= { km: 0, seconds: 0 });
+          entry.km += (leg?.distance?.value ?? 0) / 1000;
+          entry.seconds += leg?.duration?.value ?? 0;
+          seconds += leg?.duration?.value ?? 0;
+        });
+        setDriveStats({ seconds, perDay });
+      } catch (err) {
+        console.warn("trip: Fahrstrecke konnte nicht berechnet werden", err);
+        if (!cancelled) setDriveStats(null);
+      } finally {
+        if (!cancelled) setRouting(false);
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKey, mapReady, mapsConsent]);
+
+  const scenicKm = (stops: BuilderStop[]) =>
+    stops.reduce((sum, stop) => sum + (toNum(stop.route?.distance_km) ?? 0), 0);
+  const totalScenicKm = days.reduce((sum, day) => sum + scenicKm(day.stops), 0);
+
+  // Google-Maps-Link für die ganze Reise oder den gewählten Tag
+  const mapsLink = (() => {
+    const scopeIndex = activeDay === "all" ? -1 : days.findIndex((day) => day.id === activeDay);
+    const scoped = placed.filter((p) => p.points && (scopeIndex === -1 || p.dayIndex === scopeIndex));
+    if (scoped.length === 0) return "";
+    const pts = scoped.flatMap((p) => [p.points!.start, p.points!.end]);
+    if (scopeIndex === -1) {
+      return mapsDirUrl(startLocation || pointText(pts[0]), endLocation || pointText(pts[pts.length - 1]), pts);
+    }
+    const before = placed.filter((p) => p.points && p.dayIndex < scopeIndex);
+    const origin = scopeIndex === 0 ? startLocation || pointText(pts[0]) : before.length ? pointText(before[before.length - 1].points!.end) : pointText(pts[0]);
+    const isLast = scopeIndex === days.length - 1;
+    const destination = isLast && endLocation ? endLocation : pointText(pts[pts.length - 1]);
+    return mapsDirUrl(origin, destination, isLast && endLocation ? pts : pts.slice(0, -1));
+  })();
+
+  const visibleDays = activeDay === "all" ? days : days.filter((day) => day.id === activeDay);
+  const tripView = Boolean(user && tripId && !authLoading && !loading && !notFound);
+
+  // Titel darf umbrechen: Höhe des Textfelds wächst mit dem Inhalt
+  const titleAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  useEffect(() => {
+    const el = titleAreaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [title, tripView]);
+
+  if (tripView) {
+    return (
+      <div className="pp tv-page">
+        <PlannerNav activePath="/plan" />
+
+        <section className="tv">
+          <div className="tv-map">
+            <GoogleMapsGate height="100%" onConsentChange={handleConsentChange}>
+              <div ref={setMapEl} className="tv-map-el" />
+            </GoogleMapsGate>
+          </div>
+          <span className="tv-fade" aria-hidden="true" />
+
+          {/* Legende unten links — Klick wählt den Tag */}
+          <div className="tv-legend">
+            {days.map((day, i) => (
+              <button key={day.id} type="button" className={activeDay === day.id ? "on" : ""} onClick={() => setActiveDay(activeDay === day.id ? "all" : day.id)}>
+                <i style={{ background: dayColor(i) }} /> {t("trip.day")} {day.dayNumber}
+              </button>
+            ))}
+            {startLocation && endLocation && (
+              <span className="tv-legend-drive">{tv.yourDrive.replace("{start}", startLocation.split(",")[0]).replace("{end}", endLocation.split(",")[0])}</span>
+            )}
+          </div>
+
+          <aside className="tv-panel">
+            <div className="tv-head">
+              <div className="tv-head-top">
+                <Link href={fromBuilder ? "/trip" : "/my-trips"} className="tv-crumb">
+                  <ArrowLeft size={14} strokeWidth={2} /> {fromBuilder ? tv.allTrips : tv.myTrips}
+                </Link>
+                <span className={`tv-saved ${saveState === "error" ? "is-error" : ""}`}>{saveLabel()}</span>
+              </div>
+              <label className="tv-title-wrap">
+                <textarea
+                  ref={titleAreaRef}
+                  className="tv-title"
+                  rows={1}
+                  value={title}
+                  placeholder={t("trip.titlePlaceholder")}
+                  aria-label={tv.editTitle}
+                  onKeyDown={(e) => {
+                    // Titel bleibt einzeilig gespeichert — Enter beendet nur die Eingabe
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  onChange={(e) => {
+                    titleTouched.current = true;
+                    setTitle(e.target.value.replace(/\n/g, " "));
+                  }}
+                />
+                <Pencil size={15} strokeWidth={1.8} className="tv-title-pen" aria-hidden="true" />
+              </label>
+              <div className="tv-meta">
+                <span><b>{days.length}</b> {t("trip.stats.days")}</span>
+                <span><b>{totalStops}</b> {t("trip.stats.routes")}</span>
+                {totalScenicKm > 0 && <span>{tv.scenicKm.replace("{d}", formatDistance(totalScenicKm, unit))}</span>}
+                {driveStats && <span>{tv.driving.replace("{t}", fmtDuration(driveStats.seconds))}</span>}
+                {routing && !driveStats && <span className="tv-dim">{tv.mapLoading}</span>}
+              </div>
+            </div>
+
+            <div className="tv-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={activeDay === "all"} className={activeDay === "all" ? "on" : ""} onClick={() => setActiveDay("all")}>
+                {tv.allDays}
+              </button>
+              {days.map((day, i) => (
+                <button key={day.id} type="button" role="tab" aria-selected={activeDay === day.id} className={activeDay === day.id ? "on" : ""} onClick={() => setActiveDay(day.id)}>
+                  <i style={{ background: dayColor(i) }} /> {t("trip.day")} {day.dayNumber}
+                </button>
+              ))}
+              <button type="button" className="tv-tab-add" onClick={handleAddDay}>
+                <Plus size={14} strokeWidth={2.2} /> {tv.addDayShort}
+              </button>
+            </div>
+
+            <div className="tv-list">
+              {visibleDays.map((day) => {
+                const dayIndex = days.findIndex((d) => d.id === day.id);
+                const stats = driveStats?.perDay[day.id];
+                const km = scenicKm(day.stops);
+                return (
+                  <section
+                    key={day.id}
+                    className="tv-day"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(day.id, day.stops.length)}
+                  >
+                    <div className="tv-day-head">
+                      <div>
+                        <h2>{t("trip.day")} {day.dayNumber}</h2>
+                        <small>
+                          {[km > 0 ? tv.scenicKm.replace("{d}", formatDistance(km, unit)) : "", stats ? tv.driving.replace("{t}", fmtDuration(stats.seconds)) : ""].filter(Boolean).join(", ")}
+                        </small>
+                      </div>
+                      <div className="tv-day-actions">
+                        {day.stops.length > 0 && (
+                          <Link href={planHref(day.id)} className="tv-chip" draggable={false}>
+                            <Plus size={13} strokeWidth={2.2} /> {tx.addRoutes}
+                          </Link>
+                        )}
+                        {days.length > 1 && (
+                          <button type="button" className="tv-ic danger" onClick={() => handleRemoveDay(day.id)} title={t("trip.removeDay")} aria-label={t("trip.removeDay")}>
+                            <Trash2 size={14} strokeWidth={1.9} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {day.stops.length === 0 ? (
+                      <div className="tv-empty">
+                        <p>{t("trip.emptyDay")}</p>
+                        <Link href={planHref(day.id)} className="tv-btn tv-btn-sm" draggable={false}>
+                          <Compass size={14} strokeWidth={2} /> {tx.findRoutes}
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="tv-stops">
+                        {day.stops.map((stop, stopIndex) => {
+                          const name = localizedTitle(stop.route, lang);
+                          const detailHref = `/routedetail/${stop.routeId}?from=${encodeURIComponent(`/trip?id=${tripId}${fromBuilder ? "&from=builder" : ""}`)}`;
+                          return (
+                            <div
+                              key={stop.id}
+                              id={`tv-stop-${stop.id}`}
+                              className={`tv-stop ${activeStop === stop.id ? "on" : ""} ${dropTarget?.dayId === day.id && dropTarget.index === stopIndex ? "is-drop" : ""}`}
+                              draggable
+                              onClick={() => setActiveStop(stop.id)}
+                              onDragStart={() => { dragged.current = { dayId: day.id, stopId: stop.id }; }}
+                              onDragEnd={() => { dragged.current = null; setDropTarget(null); }}
+                              onDragOver={(e) => { e.preventDefault(); setDropTarget({ dayId: day.id, index: stopIndex }); }}
+                              onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleDrop(day.id, stopIndex); }}
+                            >
+                              <span className="tv-grip" aria-hidden="true"><GripVertical size={15} strokeWidth={2} /></span>
+                              <span className="tv-num" style={{ background: dayColor(dayIndex) }}>{dayIndex + 1}.{stopIndex + 1}</span>
+                              <Link href={detailHref} prefetch={false} className="tv-thumb" draggable={false}>
+                                <img
+                                  src={stop.route?.image_url || "/amalfi_coast_road.jpg"}
+                                  alt={name}
+                                  onError={(e) => { e.currentTarget.src = "/amalfi_coast_road.jpg"; }}
+                                />
+                              </Link>
+                              <div className="tv-info">
+                                <Link href={detailHref} prefetch={false} draggable={false}><b>{name}</b></Link>
+                                <small>{[stop.route?.country, formatDistance(stop.route?.distance_km as number | null | undefined, unit)].filter(Boolean).join(", ")}</small>
+                              </div>
+                              <div className="tv-actions">
+                                {/* Pfeile zusätzlich zum Ziehen — auf Touch-Geräten ist Ziehen unzuverlässig */}
+                                <span className="tv-move">
+                                  <button type="button" className="tv-ic" onClick={(e) => { e.stopPropagation(); shiftStop(dayIndex, stopIndex, -1); }} disabled={dayIndex === 0 && stopIndex === 0} title={t("trip.moveUp")} aria-label={t("trip.moveUp")}>
+                                    <ChevronUp size={15} strokeWidth={2.1} />
+                                  </button>
+                                  <button type="button" className="tv-ic" onClick={(e) => { e.stopPropagation(); shiftStop(dayIndex, stopIndex, 1); }} disabled={dayIndex === days.length - 1 && stopIndex === day.stops.length - 1} title={t("trip.moveDown")} aria-label={t("trip.moveDown")}>
+                                    <ChevronDown size={15} strokeWidth={2.1} />
+                                  </button>
+                                </span>
+                                <button type="button" className="tv-ic danger" onClick={(e) => { e.stopPropagation(); handleRemoveStop(day.id, stop.id); }} title={t("trip.removeStop")} aria-label={t("trip.removeStop")}>
+                                  <Trash2 size={14} strokeWidth={1.9} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+
+            </div>
+
+            <div className="tv-foot">
+              {mapsLink ? (
+                <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="tv-btn">
+                  <Navigation size={16} strokeWidth={2} />
+                  {activeDay === "all" ? tv.openTrip : tv.openDay.replace("{n}", String(days.find((d) => d.id === activeDay)?.dayNumber ?? ""))}
+                </a>
+              ) : (
+                totalStops > 0 && <p className="tv-dim tv-nocoords">{tv.noCoords}</p>
+              )}
+              <div className="tv-row">
+                <Link href="/plan" className="tv-line"><Compass size={14} strokeWidth={2} /> {tv.newTrip}</Link>
+                <Link href={fromBuilder ? "/trip" : "/trip?from=mytrips"} className="tv-line"><RouteIcon size={14} strokeWidth={2} /> {tv.allTrips}</Link>
+                <button type="button" className="tv-line danger" onClick={() => setConfirmDelete(true)}><Trash2 size={14} strokeWidth={2} /> {tv.delete}</button>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <PageFooter />
+
+        <ConfirmDialog
+          open={confirmDelete}
+          title={t("trip.deleteConfirmTitle")}
+          text={t("trip.deleteConfirmText").replace("{title}", title.trim() || t("trip.titlePlaceholder"))}
+          confirmLabel={t("trip.deleteConfirm")}
+          cancelLabel={t("trip.deleteCancel")}
+          busyLabel={t("trip.deleting")}
+          busy={deleting}
+          error={deleteError ? t("trip.deleteError") : undefined}
+          onConfirm={handleDeleteTrip}
+          onCancel={closeDeleteDialog}
+        />
+
+        <style>{`
+          /* Klarglas: sehr durchsichtiges Panel mit starker Unschärfe, Routen als Glasplättchen */
+          .tv-page { --tv-ease:cubic-bezier(.22,1,.36,1); --tv-gold-text:#D8BC84; --tv-glass:rgba(12,11,9,0.52); --tv-glass-edge:rgba(255,255,255,0.16); --tv-glass-line:rgba(255,255,255,0.35); --tv-divider:rgba(255,255,255,0.18); --tv-card:rgba(255,255,255,0.10); --tv-card-edge:rgba(255,255,255,0.22); --tv-text-2:rgba(241,233,216,0.78); --tv-text-3:rgba(241,233,216,0.6); --tv-shadow:0 30px 80px rgba(0,0,0,0.35); min-height:100vh; background:var(--bg); }
+          .light .tv-page, .tv-page.light { --tv-gold-text:#86652A; --tv-glass:linear-gradient(150deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.28) 100%); --tv-glass-edge:rgba(255,255,255,0.7); --tv-glass-line:rgba(255,255,255,0.9); --tv-divider:rgba(43,38,32,0.12); --tv-card:rgba(255,255,255,0.34); --tv-card-edge:rgba(255,255,255,0.75); --tv-text-2:rgba(30,26,20,0.78); --tv-text-3:rgba(30,26,20,0.6); --tv-shadow:0 30px 80px rgba(0,0,0,0.35); }
+
+          .tv { position:relative; height:100vh; height:100dvh; min-height:760px; overflow:hidden; }
+          .tv-map { position:absolute; inset:0; }
+          .tv-map-el { width:100%; height:100%; }
+          .tv-fade { position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to bottom, color-mix(in srgb, var(--bg) 92%, transparent) 0%, transparent 14%), linear-gradient(to top, color-mix(in srgb, var(--bg) 60%, transparent) 0%, transparent 90px); }
+
+          .tv-legend { position:absolute; left:clamp(20px,3vw,40px); bottom:28px; z-index:3; display:flex; flex-wrap:wrap; gap:8px; max-width:calc(100% - 640px); }
+          .tv-legend button, .tv-legend-drive { display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px; border-radius:999px; border:1px solid var(--border); background:var(--tv-glass); backdrop-filter:blur(18px) saturate(150%); -webkit-backdrop-filter:blur(18px) saturate(150%); font-family:inherit; font-size:12.5px; color:var(--cream); cursor:pointer; transition:border-color .2s; }
+          .tv-legend button.on, .tv-legend button:hover { border-color:var(--gold); }
+          .tv-legend-drive { cursor:default; color:var(--muted); }
+          .tv-legend i, .tv-tabs i { display:inline-block; width:9px; height:9px; border-radius:50%; flex:none; }
+
+          .tv-panel { --muted:var(--tv-text-2); --dim:var(--tv-text-3); position:absolute; z-index:4; top:96px; right:clamp(20px,3vw,40px); bottom:28px; width:540px; display:flex; flex-direction:column; border-radius:28px; border:1px solid var(--tv-glass-edge); background:var(--tv-glass); backdrop-filter:blur(24px) saturate(130%) brightness(1.04); -webkit-backdrop-filter:blur(24px) saturate(130%) brightness(1.04); box-shadow:var(--tv-shadow), inset 0 1px 0 var(--tv-glass-line); overflow:hidden; }
+          .light .tv-panel, .tv-page.light .tv-panel { box-shadow:0 30px 70px rgba(40,30,10,0.18), inset 0 1px 0 rgba(255,255,255,0.95), inset 1px 0 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.35); }
+          .light .tv-stop, .tv-page.light .tv-stop { box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 18px rgba(40,30,10,0.06); }
+          .tv-head { padding:26px 28px 18px; }
+          .tv-head-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+          .tv-page a.tv-crumb { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--muted); transition:color .2s; }
+          .tv-page a.tv-crumb:hover { color:var(--cream); }
+          .tv-saved { font-size:11.5px; color:var(--dim); }
+          .tv-saved.is-error { color:#e08080; }
+          .tv-title-wrap { position:relative; display:block; margin-top:12px; }
+          .tv-title { display:block; width:100%; padding:2px 30px 6px 0; border:none; border-bottom:1px solid transparent; background:none; outline:none; resize:none; overflow:hidden; font-family:var(--serif); font-size:clamp(32px,2.9vw,42px); font-weight:300; line-height:1.08; letter-spacing:-.015em; color:var(--cream); transition:border-color .2s; }
+          .tv-title:hover { border-bottom-color:var(--border); }
+          .tv-title:focus { border-bottom-color:var(--gold); }
+          .tv-title-pen { position:absolute; right:2px; top:14px; color:var(--dim); pointer-events:none; opacity:0; transition:opacity .2s; }
+          .tv-title-wrap:hover .tv-title-pen, .tv-title:focus + .tv-title-pen { opacity:1; }
+          .tv-meta { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:12px; font-size:13px; color:var(--muted); }
+          .tv-meta b { color:var(--cream); font-weight:600; }
+          .tv-dim { color:var(--dim); }
+
+          .tv-tabs { display:flex; gap:6px; padding:0 28px 16px; border-bottom:1px solid var(--tv-divider); overflow-x:auto; scrollbar-width:none; }
+          .tv-tabs::-webkit-scrollbar { display:none; }
+          .tv-page .tv-tabs button { flex:none; display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 15px; border-radius:999px; border:1px solid var(--border); background:transparent; font-family:inherit; font-size:12.5px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .2s; }
+          .tv-page .tv-tabs button:hover { color:var(--cream); border-color:color-mix(in srgb, var(--gold) 55%, transparent); }
+          .tv-page .tv-tabs button.on { background:var(--cream); border-color:var(--cream); color:var(--bg); }
+          .tv-page .tv-tabs button.tv-tab-add { border-style:dashed; color:var(--tv-gold-text); }
+
+          .tv-list { flex:1; min-height:0; overflow-y:auto; padding:8px 20px 18px; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--gold) 40%, transparent) transparent; }
+          .tv-day { padding-top:14px; }
+          .tv-day-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 8px 10px; }
+          .tv-day-head h2 { margin:0; font-family:var(--serif); font-size:27px; font-weight:400; line-height:1; color:var(--cream); }
+          .tv-day-head small { display:block; margin-top:5px; font-size:12px; color:var(--dim); }
+          .tv-day-actions { display:flex; align-items:center; gap:8px; }
+          .tv-page a.tv-chip { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 13px; border-radius:999px; border:1px solid var(--border); font-size:12px; font-weight:500; color:var(--tv-gold-text); white-space:nowrap; transition:border-color .2s; }
+          .tv-page a.tv-chip:hover { border-color:var(--gold); }
+
+          .tv-stops { display:flex; flex-direction:column; gap:8px; }
+          .tv-stop { display:grid; grid-template-columns:16px 34px 76px minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 12px 10px 8px; border-radius:18px; border:1px solid var(--tv-card-edge); background:var(--tv-card); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:border-color .2s, box-shadow .2s; }
+          .tv-stop:hover { border-color:color-mix(in srgb, var(--gold) 35%, transparent); }
+          .tv-stop.on { border-color:color-mix(in srgb, var(--gold) 60%, transparent); box-shadow:0 0 0 4px color-mix(in srgb, var(--gold) 13%, transparent); }
+          .tv-stop.is-drop { box-shadow:inset 0 3px 0 var(--gold); }
+          .tv-grip { color:var(--dim); cursor:grab; display:flex; }
+          .tv-num { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; font-size:11px; font-weight:700; color:#1A150C; }
+          .tv-page a.tv-thumb { display:block; width:76px; height:58px; border-radius:12px; overflow:hidden; background:var(--bg3); }
+          .tv-thumb img { width:100%; height:100%; object-fit:cover; }
+          .tv-info { min-width:0; }
+          .tv-info b { display:block; font-family:var(--serif); font-size:20px; font-weight:400; line-height:1.12; color:var(--cream); overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+          .tv-page .tv-info a:hover b { color:var(--tv-gold-text); }
+          .tv-info small { display:block; margin-top:4px; font-size:12px; color:var(--dim); }
+          .tv-actions { display:flex; align-items:center; gap:6px; }
+          .tv-move { display:flex; gap:6px; opacity:0; transition:opacity .2s; }
+          .tv-stop:hover .tv-move, .tv-stop:focus-within .tv-move, .tv-stop.on .tv-move { opacity:1; }
+          @media (hover:none) { .tv-move { opacity:1; } }
+          .tv-page button.tv-ic { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all .18s; }
+          .tv-page button.tv-ic:hover:not(:disabled) { color:var(--tv-gold-text); border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+          .tv-page button.tv-ic:disabled { opacity:.3; cursor:not-allowed; }
+          .tv-page button.tv-ic.danger:hover:not(:disabled) { color:#e08080; border-color:rgba(224,128,128,.45); background:rgba(224,128,128,.08); }
+
+          .tv-empty { display:flex; flex-direction:column; align-items:center; gap:14px; padding:26px 20px; border:1.5px dashed var(--border); border-radius:18px; text-align:center; }
+          .tv-empty p { margin:0; font-size:13px; color:var(--dim); }
+
+          .tv-foot { padding:16px 20px 20px; border-top:1px solid var(--tv-divider); display:flex; flex-direction:column; gap:10px; }
+          /* Hauptknopf kontrastreich: cremefarben im Dunkeln, fast schwarz im Hellen */
+          .tv-page a.tv-btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; height:52px; padding:0 22px; border-radius:999px; background:var(--cream); color:var(--bg); font-size:14px; font-weight:600; box-shadow:0 12px 30px rgba(0,0,0,0.25); transition:transform .3s var(--tv-ease), box-shadow .3s, filter .3s; }
+          .tv-page a.tv-btn svg { color:var(--bg); }
+          .tv-page a.tv-btn:hover { transform:translateY(-1px); filter:brightness(1.05); box-shadow:0 16px 36px rgba(0,0,0,0.3); }
+          .tv-page a.tv-btn-sm { height:42px; font-size:13px; }
+          .tv-nocoords { margin:0; text-align:center; font-size:12.5px; }
+          .tv-row { display:flex; gap:8px; }
+          .tv-page .tv-line { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; height:42px; padding:0 10px; border-radius:999px; border:1px solid var(--border); background:transparent; font-family:inherit; font-size:12.5px; font-weight:500; color:var(--muted); white-space:nowrap; cursor:pointer; transition:all .2s; }
+          .tv-page .tv-line:hover { color:var(--cream); border-color:color-mix(in srgb, var(--gold) 50%, transparent); }
+          .tv-page button.tv-line.danger:hover { color:#e08080; border-color:rgba(224,128,128,.45); }
+
+          @media (max-width:1180px) { .tv-panel { width:470px; } .tv-legend { max-width:calc(100% - 560px); } }
+          @media (max-width:900px) {
+            .tv { height:auto; min-height:0; overflow:visible; }
+            .tv-map { position:relative; height:clamp(300px, 48vh, 440px); }
+            .tv-fade { height:clamp(300px, 48vh, 440px); }
+            .tv-legend { top:clamp(250px, calc(48vh - 52px), 390px); bottom:auto; max-width:calc(100% - 40px); flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+            .tv-legend-drive { display:none !important; }
+            .tv-panel { position:relative; top:auto; right:auto; bottom:auto; width:auto; margin:16px 14px 40px; border-radius:24px; }
+            .tv-list { overflow:visible; }
+          }
+          @media (max-width:560px) {
+            .tv-head { padding:22px 20px 14px; }
+            .tv-tabs { padding:0 20px 14px; }
+            .tv-list { padding:6px 12px 14px; }
+            .tv-stop { grid-template-columns:30px 60px minmax(0,1fr) auto; gap:10px; padding:10px; }
+            .tv-grip { display:none; }
+            .tv-page a.tv-thumb { width:60px; height:50px; }
+            .tv-info b { font-size:17px; }
+            .tv-actions { flex-direction:column; gap:4px; }
+            .tv-move { flex-direction:row; }
+            .tv-day-head { flex-wrap:wrap; }
+            .tv-row { flex-wrap:wrap; }
+            .tv-page .tv-line { flex:1 1 40%; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="pp">

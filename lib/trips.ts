@@ -20,6 +20,11 @@ export type TripRoute = {
   distance_km: string | number | null;
   duration: string | null;
   image_url: string | null;
+  /** NEU: Start-/Endpunkt der Route — für die Karte im Trip Builder. */
+  start_lat?: number | string | null;
+  start_lng?: number | string | null;
+  end_lat?: number | string | null;
+  end_lng?: number | string | null;
 };
 
 export type TripStop = {
@@ -51,7 +56,7 @@ const TRIP_SELECT = `
     id, day_number, label,
     trip_stops (
       id, position, route_id,
-      routes ( id, title, title_en, title_de, title_ru, country, distance_km, duration, image_url )
+      routes ( id, title, title_en, title_de, title_ru, country, distance_km, duration, image_url, start_lat, start_lng, end_lat, end_lng )
     )
   )
 `;
