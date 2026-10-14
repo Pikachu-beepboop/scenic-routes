@@ -80,6 +80,13 @@ const FOOTER_COLUMNS = [
 // NEU (Mobile): wie viele Route-Einträge initial + pro "Load more"-Klick angezeigt werden
 const MOBILE_PAGE_SIZE = 4;
 
+// NEU: Beschriftung der ersten Box (gespeicherte Routen + geplante Trips)
+const STATS_TEXT = {
+  en: { collection: "Trips" },
+  de: { collection: "Touren" },
+  ru: { collection: "Поездки" },
+} as const;
+
 /** Stopps, Vorschaubild und Länder eines Trips — für Hero-Panel und Trip-Grid. */
 function tripSummary(trip: Trip) {
   const stops = trip.trip_days.flatMap((day) => day.trip_stops);
@@ -111,6 +118,7 @@ export default function MyTripsPage() {
   const [mounted, setMounted] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const { t, lang, setLang } = useLanguage();
+  const statsText = STATS_TEXT[(lang in STATS_TEXT ? lang : "en") as keyof typeof STATS_TEXT];
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
@@ -130,9 +138,13 @@ export default function MyTripsPage() {
   const savedListRef = useRef<HTMLDivElement>(null);
   const [savedThumb, setSavedThumb] = useState({ top: 0, height: 0, visible: false });
 
-  const savedCountriesCount = new Set(
-    savedRoutes.map((route: any) => route.country).filter(Boolean)
-  ).size;
+  // GEÄNDERT: Die Boxen links zählen die ganze Sammlung — gespeicherte Routen
+  // plus geplante Trips — und alle Länder aus beidem (jedes Land nur einmal).
+  const collectionCount = savedRoutes.length + trips.length;
+  const collectionCountriesCount = new Set([
+    ...savedRoutes.map((route: any) => route.country),
+    ...trips.flatMap((trip) => tripSummary(trip).countries),
+  ].filter(Boolean)).size;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -851,14 +863,14 @@ export default function MyTripsPage() {
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Bookmark size={19} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
-                    <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
-                    <span className="collection-stat-label">{t("mytrips.stats.saved")}</span>
+                    <span className="collection-stat-number">{user ? collectionCount : 0}</span>
+                    <span className="collection-stat-label">{statsText.collection}</span>
                   </div>
                 </div>
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Globe2 size={19} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
-                    <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
+                    <span className="collection-stat-number">{user ? collectionCountriesCount : 0}</span>
                     <span className="collection-stat-label">{t("mytrips.stats.countries")}</span>
                   </div>
                 </div>
@@ -870,14 +882,14 @@ export default function MyTripsPage() {
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Bookmark size={17} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
-                    <span className="collection-stat-number">{user ? savedRoutes.length : 0}</span>
-                    <span className="collection-stat-label">{t("mytrips.stats.saved")}</span>
+                    <span className="collection-stat-number">{user ? collectionCount : 0}</span>
+                    <span className="collection-stat-label">{statsText.collection}</span>
                   </div>
                 </div>
                 <div className="collection-stat">
                   <div className="collection-stat-icon"><Globe2 size={17} strokeWidth={1.8} /></div>
                   <div className="collection-stat-main">
-                    <span className="collection-stat-number">{user ? savedCountriesCount : 0}</span>
+                    <span className="collection-stat-number">{user ? collectionCountriesCount : 0}</span>
                     <span className="collection-stat-label">{t("mytrips.stats.countries")}</span>
                   </div>
                 </div>
