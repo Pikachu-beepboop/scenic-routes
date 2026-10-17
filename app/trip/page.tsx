@@ -153,6 +153,52 @@ function fmtDuration(totalSeconds: number): string {
 
 const pointText = (p: LatLng) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
 
+/* NEU: Nummern auf die gefahrene Linie setzen. Google liefert Punkte als LatLng-Objekte
+   (lat()/lng()) — hier in einfache {lat,lng} umwandeln und rechnen. */
+function toLatLng(p: any): LatLng {
+  return { lat: typeof p.lat === "function" ? p.lat() : p.lat, lng: typeof p.lng === "function" ? p.lng() : p.lng };
+}
+function approxDist(a: LatLng, b: LatLng): number {
+  const dx = (a.lng - b.lng) * Math.cos(((a.lat + b.lat) / 2) * (Math.PI / 180));
+  return Math.hypot(dx, a.lat - b.lat);
+}
+/** Punkt in der Mitte eines Linienzugs (nach Länge, nicht nach Anzahl der Punkte). */
+function pathMidpoint(path: LatLng[]): LatLng | null {
+  if (path.length === 0) return null;
+  if (path.length === 1) return path[0];
+  let total = 0;
+  for (let i = 1; i < path.length; i++) total += approxDist(path[i - 1], path[i]);
+  let half = total / 2;
+  for (let i = 1; i < path.length; i++) {
+    const seg = approxDist(path[i - 1], path[i]);
+    if (seg >= half && seg > 0) {
+      const t = half / seg;
+      return { lat: path[i - 1].lat + (path[i].lat - path[i - 1].lat) * t, lng: path[i - 1].lng + (path[i].lng - path[i - 1].lng) * t };
+    }
+    half -= seg;
+  }
+  return path[path.length - 1];
+}
+/** Nächster Punkt eines Linienzugs zu einem Ziel. */
+function nearestOnPath(path: LatLng[], target: LatLng): LatLng | null {
+  let best: LatLng | null = null;
+  let bestD = Infinity;
+  for (const p of path) {
+    const d = approxDist(p, target);
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return best;
+}
+/** Alle Punkte eines Abschnitts (leg) der Directions-Antwort, in Fahrtrichtung. */
+function legPath(leg: any): LatLng[] {
+  const out: LatLng[] = [];
+  for (const step of leg?.steps ?? []) for (const p of step?.path ?? step?.lat_lngs ?? []) out.push(toLatLng(p));
+  return out;
+}
+
 /** Google-Maps-Link (Navigation) — höchstens 9 Zwischenziele, mehr nimmt die App nicht an. */
 function mapsDirUrl(origin: string, destination: string, waypoints: LatLng[]): string {
   let points = waypoints;
@@ -764,6 +810,14 @@ function TripBuilder() {
   const mapsApiRef = useRef<any>(null);
   const rendererRef = useRef<any>(null);
   const markersRef = useRef<{ stopId: string; marker: any }[]>([]);
+  // NEU: Position jeder Nummer auf der tatsächlich gefahrenen Linie (aus der Directions-Antwort)
+  const onRoadRef = useRef<Record<string, LatLng>>({});
+  const [onRoadVersion, setOnRoadVersion] = useState(0);
+  // Nummern erst zeigen, wenn ihre Position auf der Linie bekannt ist (kein Springen beim Laden).
+  // routeDoneRef = Strecke berechnet (oder nicht berechenbar) -> ab dann alle Nummern zeigen.
+  const routeDoneRef = useRef(false);
+  const firstRouteRun = useRef(true);
+  const markerShown = (stopId: string) => stopId !== activeStop && (routeDoneRef.current || Boolean(onRoadRef.current[stopId]));
   // NEU: Start/Ziel-Markierungen und Linie der ausgewählten Route
   const selectionRef = useRef<any[]>([]);
   const segmentCache = useRef<Map<string, [number, number][]>>(new Map());
@@ -846,10 +900,10 @@ function TripBuilder() {
       if (!item.points) continue;
       const dimmed = activeDay !== "all" && item.dayId !== activeDay;
       const marker = new maps.Marker({
-        position: item.points.mid,
+        position: onRoadRef.current[item.stopId] ?? item.points.mid,
         map,
         title: item.title,
-        visible: item.stopId !== activeStop,
+        visible: markerShown(item.stopId),
         zIndex: dimmed ? 5 : 20,
         opacity: dimmed ? 0.45 : 1,
         label: { text: item.label, color: "#1A150C", fontSize: "11px", fontWeight: "700" },
@@ -877,6 +931,16 @@ function TripBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placed, mapReady, activeDay]);
 
+  // NEU: Sobald die Strecke berechnet ist, die Nummern auf die Linie schieben (ohne Neuaufbau/Zoom)
+  useEffect(() => {
+    markersRef.current.forEach(({ stopId, marker }) => {
+      const p = onRoadRef.current[stopId];
+      if (p) marker.setPosition(p);
+      marker.setVisible(markerShown(stopId));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRoadVersion]);
+
   /* NEU: Ausgewählte Route auf der Karte zeigen — ihre Nummer verschwindet, stattdessen
      erscheinen Start (A) und Ziel (B) und die Strecke dazwischen in der Farbe des Tages.
      Bleibt beim Zoomen und Verschieben stehen, bis eine andere Route gewählt oder auf eine
@@ -886,7 +950,7 @@ function TripBuilder() {
     const map = mapRef.current;
     if (!mapReady || !maps || !map) return;
 
-    markersRef.current.forEach(({ stopId, marker }) => marker.setVisible(stopId !== activeStop));
+    markersRef.current.forEach(({ stopId, marker }) => marker.setVisible(markerShown(stopId)));
     selectionRef.current.forEach((overlay) => overlay.setMap(null));
     selectionRef.current = [];
 
@@ -989,20 +1053,51 @@ function TripBuilder() {
   // Fahrstrecke über alle Stopps (eine Directions-Anfrage, nach Änderungen kurz verzögert)
   const routeKey = placed.map((p) => `${p.dayId}:${p.stopId}`).join("|") + `|${startLocation}|${endLocation}`;
   useEffect(() => {
-    if (!mapReady || !mapsConsent) return;
+    if (!mapReady) return;
+    if (!mapsConsent) {
+      // Ohne Google-Strecke: Nummern an der bisherigen Stelle zeigen
+      routeDoneRef.current = true;
+      setOnRoadVersion((v) => v + 1);
+      return;
+    }
     const withPoints = placed.filter((p) => p.points);
     if (withPoints.length === 0) {
       rendererRef.current?.setDirections({ routes: [] });
       setDriveStats(null);
       return;
     }
+    // Schon einmal berechnet (gleicher Trip, gleiche Reihenfolge)? Dann Positionen sofort aus dem
+    // Zwischenspeicher nehmen — die Nummern stehen direkt richtig, die Anfrage läuft trotzdem.
+    const cacheKey = `trip-onroad:${routeKey}`;
+    routeDoneRef.current = false;
+    try {
+      const cached = window.localStorage.getItem(cacheKey);
+      if (cached) {
+        onRoadRef.current = { ...onRoadRef.current, ...(JSON.parse(cached) as Record<string, LatLng>) };
+        routeDoneRef.current = withPoints.every((p) => onRoadRef.current[p.stopId]);
+      }
+    } catch {
+      /* Speicher nicht verfügbar — egal */
+    }
+    setOnRoadVersion((v) => v + 1);
     let cancelled = false;
+    // Beim ersten Laden sofort rechnen, bei späteren Änderungen kurz warten (Mehrfach-Klicks)
+    const delay = firstRouteRun.current ? 0 : 600;
+    firstRouteRun.current = false;
     const timer = setTimeout(async () => {
       // Start und Ende jeder Route als Wegpunkt; bei sehr vielen Routen nur die Mitte (Google erlaubt 25)
       const useMid = withPoints.length * 2 > 23;
-      const waypoints: { lat: number; lng: number; dayId: string }[] = withPoints.flatMap((p) =>
-        useMid ? [{ ...p.points!.mid, dayId: p.dayId }] : [{ ...p.points!.start, dayId: p.dayId }, { ...p.points!.end, dayId: p.dayId }]
-      ).slice(0, 23);
+      type Waypoint = { lat: number; lng: number; dayId: string; stopId: string; role: "start" | "end" | "mid" };
+      const waypoints: Waypoint[] = withPoints
+        .flatMap((p): Waypoint[] =>
+          useMid
+            ? [{ ...p.points!.mid, dayId: p.dayId, stopId: p.stopId, role: "mid" }]
+            : [
+                { ...p.points!.start, dayId: p.dayId, stopId: p.stopId, role: "start" },
+                { ...p.points!.end, dayId: p.dayId, stopId: p.stopId, role: "end" },
+              ]
+        )
+        .slice(0, 23);
       const origin = startLocation || pointText(waypoints[0]);
       const destination = endLocation || pointText(waypoints[waypoints.length - 1]);
       setRouting(true);
@@ -1022,13 +1117,38 @@ function TripBuilder() {
           seconds += leg?.duration?.value ?? 0;
         });
         setDriveStats({ seconds, perDay });
+
+        // NEU: Nummer jeder Route auf die gefahrene Linie setzen. Ihr eigener Abschnitt ist der
+        // Abschnitt, der an ihrem Endpunkt ankommt (von ihrem Start- zum Endpunkt). Ist der zu
+        // kurz (Start = Ende) oder fehlt er, nehmen wir den Punkt der Gesamtlinie, der der Mitte
+        // am nächsten liegt. So steht die Zahl immer auf der Linie — auch auf einer Umleitung.
+        const overview: LatLng[] = (result?.routes?.[0]?.overview_path ?? []).map(toLatLng);
+        const next: Record<string, LatLng> = {};
+        for (const p of withPoints) {
+          let pos: LatLng | null = null;
+          const endIdx = waypoints.findIndex((w) => w.stopId === p.stopId && w.role === "end");
+          const leg = endIdx >= 0 ? legs[endIdx] : null;
+          if (leg && (leg?.distance?.value ?? 0) > 300) pos = pathMidpoint(legPath(leg));
+          if (!pos && overview.length) pos = nearestOnPath(overview, p.points!.mid);
+          if (pos) next[p.stopId] = pos;
+        }
+        onRoadRef.current = next;
+        try {
+          window.localStorage.setItem(cacheKey, JSON.stringify(next));
+        } catch {
+          /* Speicher voll oder gesperrt — egal */
+        }
       } catch (err) {
         console.warn("trip: Fahrstrecke konnte nicht berechnet werden", err);
         if (!cancelled) setDriveStats(null);
       } finally {
-        if (!cancelled) setRouting(false);
+        if (!cancelled) {
+          setRouting(false);
+          routeDoneRef.current = true;
+          setOnRoadVersion((v) => v + 1);
+        }
       }
-    }, 600);
+    }, delay);
     return () => {
       cancelled = true;
       clearTimeout(timer);

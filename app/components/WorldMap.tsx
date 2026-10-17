@@ -370,14 +370,29 @@ export default function WorldMap() {
     const sideChange = nextSide !== cardSide;
     setPhase("out");
     setCardHidden(sideChange);
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    // Während ausgeblendet wird, das neue Foto schon vorladen — so "ploppt" es nicht auf,
+    // sondern blendet weich über das alte (spätestens nach 1,2 s geht es trotzdem weiter).
+    const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    const preload = (src?: string | null) =>
+      new Promise<void>((resolve) => {
+        if (!src) return resolve();
+        const img = new Image();
+        img.onload = img.onerror = () => resolve();
+        img.src = src;
+        if (img.complete) resolve();
+      });
+    Promise.all([wait(sideChange ? 420 : 340), Promise.race([preload(active.image_url), wait(1200)])]).then(() => {
+      if (cancelled) return;
       setPrevImg(shown.image_url || null);
       setShown(active);
       setCardSide(nextSide);
       setPhase("in");
       setCardHidden(false);
-    }, sideChange ? 380 : 300);
-    return () => clearTimeout(timer);
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.id]);
 
@@ -560,25 +575,28 @@ export default function WorldMap() {
         .wm .wm-dot { cursor:pointer; }
         .wm .wm-dot:hover circle:last-child { fill:#E0C48C; }
         .wm-pulse { transform-box:fill-box; transform-origin:center; animation:wmPulse 2.4s ease-out infinite; }
+        .wm-dot-active { transform-box:fill-box; transform-origin:center; animation:wmDotIn .7s cubic-bezier(.34,1.56,.64,1) .2s both; }
+        @keyframes wmDotIn { from { opacity:0; transform:scale(.4); } to { opacity:1; transform:scale(1); } }
         @keyframes wmPulse { 0% { transform:scale(.6); opacity:.9; } 100% { transform:scale(1.6); opacity:0; } }
 
 
         .wm-line { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-        .wm-line path { fill:none; stroke:#B8914A; stroke-width:1.5; stroke-dasharray:4 5; animation:wmLineIn .7s ease .1s both; transition:opacity .25s ease; }
-        .wm-line.out path { opacity:0; animation:none; }
-        @keyframes wmLineIn { from { opacity:0; } to { opacity:1; } }
+        .wm-line > path { fill:none; stroke:#B8914A; stroke-width:1.5; stroke-dasharray:4 5; transition:opacity .3s ease; }
+        .wm-line.out > path { opacity:0; }
+        .wm-line-reveal { fill:none; stroke:#fff; stroke-width:8; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:wmLineDraw 1s cubic-bezier(.45,0,.2,1) .45s forwards; }
+        @keyframes wmLineDraw { to { stroke-dashoffset:0; } }
 
-        .wm-card { position:absolute; bottom:28px; width:min(330px, 34%); border-radius:22px; overflow:hidden; line-height:1.4; box-shadow:0 28px 60px rgba(0,0,0,.32); transition:opacity .38s ease, transform .38s cubic-bezier(.22,1,.36,1); }
-        .wm-card.is-hidden { opacity:0; transform:translateY(10px) scale(.985); }
+        .wm-card { position:absolute; bottom:28px; width:min(330px, 34%); border-radius:22px; overflow:hidden; line-height:1.4; box-shadow:0 28px 60px rgba(0,0,0,.32); transition:opacity .42s cubic-bezier(.4,0,.2,1); }
+        .wm-card.is-hidden { opacity:0; }
         .wm-card.left { left:28px; } .wm-card.right { right:28px; }
         .wm-light .wm-card { background:#1F1A13; color:#F4F0E8; }
         .wm-dark .wm-card { background:rgba(26,23,17,.96); color:#EDE5D4; border:1px solid rgba(201,168,106,.28); }
         .wm-card-img { display:block; height:180px; background:#2a2518; position:relative; overflow:hidden; }
         .wm-card-img img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-        .wm-card-img img.wm-img-new { animation:wmImgIn .9s cubic-bezier(.22,1,.36,1) both; }
-        @keyframes wmImgIn { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
-        .wm-card-body { padding:16px 20px 18px; transition:opacity .3s ease, transform .3s ease; }
-        .wm-card.out .wm-card-body { opacity:0; transform:translateY(5px); }
+        .wm-card-img img.wm-img-new { animation:wmImgIn 1s cubic-bezier(.25,.1,.25,1) both; }
+        @keyframes wmImgIn { from { opacity:0; transform:scale(1.025); } to { opacity:1; transform:scale(1); } }
+        .wm-card-body { padding:16px 20px 18px; transition:opacity .5s cubic-bezier(.22,1,.36,1) .12s, transform .6s cubic-bezier(.22,1,.36,1) .12s; }
+        .wm-card.out .wm-card-body { opacity:0; transform:translateY(-4px); transition:opacity .3s ease, transform .3s ease; }
         .wm-kicker { font-size:10.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:#D9BE86; }
         .wm-title { margin-top:6px; font-family:var(--serif, 'Cormorant Garamond', serif); font-weight:400; font-size:30px; line-height:1.02; }
         .wm-desc { margin-top:8px; font-size:13px; line-height:1.55; color:rgba(244,240,232,.72); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
@@ -598,7 +616,7 @@ export default function WorldMap() {
           .wm-map { height:300px; margin-top:0; touch-action:none; }
             }
         @media (max-width:420px) { .wm-map { height:260px; } }
-        @media (prefers-reduced-motion: reduce) { .wm-pulse, .wm-card-img img.wm-img-new { animation:none; } }
+        @media (prefers-reduced-motion: reduce) { .wm-pulse, .wm-card-img img.wm-img-new, .wm-dot-active { animation:none; } .wm-line-reveal { animation:none; stroke-dashoffset:0; } }
       `}</style>
 
       <ComposableMap
@@ -634,7 +652,21 @@ export default function WorldMap() {
 
       {line && (
         <svg className={`wm-line ${phase === "out" ? "out" : ""}`} aria-hidden="true">
-          <path key={shown?.id} d={`M${line.x1} ${line.y1} C ${(line.x1 + line.x2) / 2} ${line.y1}, ${(line.x1 + line.x2) / 2} ${line.y2}, ${line.x2} ${line.y2}`} />
+          {/* Die Linie zeichnet sich von der Karte aus bis zum Punkt (Maske läuft von Karte → Punkt) */}
+          <defs>
+            <mask id="wm-line-mask" maskUnits="userSpaceOnUse">
+              <path
+                key={shown?.id}
+                className="wm-line-reveal"
+                pathLength={1}
+                d={`M${line.x2} ${line.y2} C ${(line.x1 + line.x2) / 2} ${line.y2}, ${(line.x1 + line.x2) / 2} ${line.y1}, ${line.x1} ${line.y1}`}
+              />
+            </mask>
+          </defs>
+          <path
+            mask="url(#wm-line-mask)"
+            d={`M${line.x1} ${line.y1} C ${(line.x1 + line.x2) / 2} ${line.y1}, ${(line.x1 + line.x2) / 2} ${line.y2}, ${line.x2} ${line.y2}`}
+          />
         </svg>
       )}
 
