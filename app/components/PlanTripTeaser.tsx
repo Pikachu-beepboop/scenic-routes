@@ -6,7 +6,7 @@
 // die sich Schritt für Schritt aufbaut: 1 Start & Ziel · 2 goldene Route mit zwei Foto-Stopps
 // (Fotos echter Routen, Favoriten aus FEATURED_ROUTE_IDS) · 3 fertiger Trip mit Tagen und Stopps.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { supabasePublic, safeQuery } from "../../lib/supabase";
@@ -108,6 +108,18 @@ const ATLAS_DAY2 = "M189.3 243.9L188.7 245.2L187.4 246.4L186.3 247.6L186.1 249.0
  * Dieselbe Karte in drei Ausbaustufen:
  * 1 = nur Start & Ziel · 2 = schöne Route mit Foto-Stopps · 3 = fertiger Trip mit Tagen und Stopps.
  */
+/** Startverzögerung einer Animation (Sekunden nach dem Einblenden des Blocks) */
+const at = (sec: number): CSSProperties => ({ animationDelay: `${sec}s` });
+
+// Ablauf (s): Karte 1 → A, B, Luftlinie · Karte 2 → Route + Fotos · Karte 3 → Tage + Stopps.
+// Die Linien bremsen vor jedem Kreis ab, halten kurz an und fahren weiter; die Kreise erscheinen
+// genau dann, wenn die Linie bei ihnen ankommt (Zeiten passend zu den @keyframes pttC2d1 … unten).
+const T = {
+  a: 0.5, b: 0.9, crow: 1.0,
+  r1: 2.1, r2: 3.9, th0: 2.74, th1: 4.25,
+  legend: 5.6, d1: 5.7, d2: 7.5, s11: 6.34, s12: 7.42, s21: 7.85, s22: 8.53,
+};
+
 function AtlasMap({
   stage,
   places,
@@ -122,6 +134,7 @@ function AtlasMap({
   thumbs?: string[];
 }) {
   const paperId = `pta-paper-${stage}`;
+  const m = (k: string) => `pta-m${stage}${k}`;
   return (
     <>
       <svg className={`pta s${stage}`} viewBox="0 0 360 450" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -130,6 +143,22 @@ function AtlasMap({
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" />
             <feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.22  0 0 0 0.09 0" />
           </filter>
+          {/* Masken: zeichnen gestrichelte Linien Stück für Stück ein */}
+          {stage === 1 && (
+            <mask id={m("c")} maskUnits="userSpaceOnUse">
+              <path className="pta-reveal crow" style={at(T.crow)} d="M262 112L104 326" pathLength={1} />
+            </mask>
+          )}
+          {stage === 3 && (
+            <>
+              <mask id={m("1")} maskUnits="userSpaceOnUse">
+                <path className="pta-reveal r1" style={at(T.d1)} d={ATLAS_DAY1} pathLength={1} />
+              </mask>
+              <mask id={m("2")} maskUnits="userSpaceOnUse">
+                <path className="pta-reveal r2" style={at(T.d2)} d={ATLAS_DAY2} pathLength={1} />
+              </mask>
+            </>
+          )}
         </defs>
         <rect className="pta-bg" width="360" height="450" />
         <rect width="360" height="450" filter={`url(#${paperId})`} />
@@ -158,54 +187,82 @@ function AtlasMap({
         <path className="pta-peak" d="M309.2 247.9L318.2 233.9L327.2 247.9Z" /><path className="pta-snow" d="M315.0 238.8L318.2 233.9L321.4 238.8Z" />
         <path className="pta-peak" d="M43.2 287.6L52.2 273.6L61.2 287.6Z" /><path className="pta-snow" d="M49.0 278.5L52.2 273.6L55.400000000000006 278.5Z" />
         <path className="pta-peak" d="M145.5 277.7L154.5 263.7L163.5 277.7Z" /><path className="pta-snow" d="M151.3 268.59999999999997L154.5 263.7L157.7 268.59999999999997Z" />
-        {stage === 1 && <path className="pta-crow" d="M262 112L104 326" />}
+        {stage === 1 && <path className="pta-crow" d="M262 112L104 326" mask={`url(#${m("c")})`} />}
         {stage >= 2 && (
           <>
             {/* pathLength nur in Stufe 2 (fürs Einzeichnen), sonst bleiben die Striche in Stufe 3 normal */}
-            <path className="pta-route d1" d={ATLAS_DAY1} pathLength={stage === 2 ? 1 : undefined} />
-            <path className="pta-route d2" d={ATLAS_DAY2} pathLength={stage === 2 ? 1 : undefined} />
+            <path
+              className="pta-route d1"
+              d={ATLAS_DAY1}
+              pathLength={stage === 2 ? 1 : undefined}
+              style={stage === 2 ? at(T.r1) : undefined}
+              mask={stage === 3 ? `url(#${m("1")})` : undefined}
+            />
+            <path
+              className="pta-route d2"
+              d={ATLAS_DAY2}
+              pathLength={stage === 2 ? 1 : undefined}
+              style={stage === 2 ? at(T.r2) : undefined}
+              mask={stage === 3 ? `url(#${m("2")})` : undefined}
+            />
           </>
         )}
-        <text className="pta-label" x="245" y="116.5" textAnchor="end">{places[0]}</text>
+        <text className={`pta-label ${stage === 1 ? "anim-fade" : ""}`} style={stage === 1 ? at(T.a) : undefined} x="245" y="116.5" textAnchor="end">
+          {places[0]}
+        </text>
         {stage === 3 && (
           <>
-            <text className="pta-label" x="248.2" y="182.0">{places[1]}</text>
-            <text className="pta-label it" x="204.2" y="278.2">{places[2]}</text>
+            <text className="pta-label anim-fade" style={at(T.s11)} x="248.2" y="182.0">{places[1]}</text>
+            <text className="pta-label it anim-fade" style={at(T.s21)} x="204.2" y="278.2">{places[2]}</text>
           </>
         )}
-        <text className="pta-label" x="87" y="330.5" textAnchor="end">{places[3]}</text>
+        <text className={`pta-label ${stage === 1 ? "anim-fade" : ""}`} style={stage === 1 ? at(T.b) : undefined} x="87" y="330.5" textAnchor="end">
+          {places[3]}
+        </text>
         {stage === 3 && (
           <>
         <g className="pta-stop d1" transform="translate(229.2 177.5)">
-          <rect x="-15" y="-10" width="30" height="20" rx="10" />
-          <text y="3.6">1.1</text>
+          <g className="anim-pop" style={at(T.s11)}>
+            <rect x="-15" y="-10" width="30" height="20" rx="10" />
+            <text y="3.6">1.1</text>
+          </g>
         </g>
         <g className="pta-stop d1" transform="translate(189.3 243.9)">
-          <rect x="-15" y="-10" width="30" height="20" rx="10" />
-          <text y="3.6">1.2</text>
+          <g className="anim-pop" style={at(T.s12)}>
+            <rect x="-15" y="-10" width="30" height="20" rx="10" />
+            <text y="3.6">1.2</text>
+          </g>
         </g>
         <g className="pta-stop d2" transform="translate(185.2 273.7)">
-          <rect x="-15" y="-10" width="30" height="20" rx="10" />
-          <text y="3.6">2.1</text>
+          <g className="anim-pop" style={at(T.s21)}>
+            <rect x="-15" y="-10" width="30" height="20" rx="10" />
+            <text y="3.6">2.1</text>
+          </g>
         </g>
         <g className="pta-stop d2" transform="translate(166.1 305.3)">
-          <rect x="-15" y="-10" width="30" height="20" rx="10" />
-          <text y="3.6">2.2</text>
+          <g className="anim-pop" style={at(T.s22)}>
+            <rect x="-15" y="-10" width="30" height="20" rx="10" />
+            <text y="3.6">2.2</text>
+          </g>
         </g>
           </>
         )}
         <g className="pta-end a" transform="translate(262 112)">
-          <circle r="11" />
-          <text y="4">A</text>
+          <g className={stage === 1 ? "anim-pop" : undefined} style={stage === 1 ? at(T.a) : undefined}>
+            <circle r="11" />
+            <text y="4">A</text>
+          </g>
         </g>
         <g className="pta-end b" transform="translate(104 326)">
-          <circle r="11" />
-          <text y="4">B</text>
+          <g className={stage === 1 ? "anim-pop" : undefined} style={stage === 1 ? at(T.b) : undefined}>
+            <circle r="11" />
+            <text y="4">B</text>
+          </g>
         </g>
         </g>
       </svg>
       {stage === 3 && (
-        <div className="pta-legend">
+        <div className="pta-legend anim-fade" style={at(T.legend)}>
           <span><i className="d1" />{d1}</span>
           <span><i className="d2" />{d2}</span>
         </div>
@@ -213,7 +270,11 @@ function AtlasMap({
       {stage === 2 &&
         thumbs.slice(0, 2).map((src, i) => (
           // Positionen = Garmisch und Stilfser Joch auf der Route (in % der 4:5-Karte)
-          <span key={i} className={`pta-thumb t${i}`} style={{ backgroundImage: `url("${src}")` }} />
+          <span
+            key={i}
+            className={`pta-thumb t${i}`}
+            style={{ backgroundImage: `url("${src}")`, transitionDelay: `${i === 0 ? T.th0 : T.th1}s` }}
+          />
         ))}
     </>
   );
@@ -321,15 +382,28 @@ export default function PlanTripTeaser() {
         .pta-route { fill:none; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
         .s3 .pta-route { stroke-dasharray:7 5; }
         .s2 .pta-route { stroke:#B8914A !important; stroke-width:3.4; stroke-dasharray:1; stroke-dashoffset:1; }
-        .ptt.is-in .s2 .pta-route.d1 { animation:pttDraw 1.3s cubic-bezier(.45,0,.2,1) .5s forwards; }
-        .ptt.is-in .s2 .pta-route.d2 { animation:pttDraw 1.3s cubic-bezier(.45,0,.2,1) 1.75s forwards; }
+        .ptt.is-in .s2 .pta-route.d1 { animation:pttC2d1 1.8s linear forwards; }
+        .ptt.is-in .s2 .pta-route.d2 { animation:pttC2d2 1.8s linear forwards; }
+        @keyframes pttC2d1 { 0% { stroke-dashoffset:1; animation-timing-function:cubic-bezier(.4,0,.15,1); } 40.0% { stroke-dashoffset:0.55; animation-timing-function:linear; } 51.11% { stroke-dashoffset:0.55; animation-timing-function:cubic-bezier(.4,0,.15,1); } 100% { stroke-dashoffset:0; } }
+        @keyframes pttC2d2 { 0% { stroke-dashoffset:1; animation-timing-function:cubic-bezier(.4,0,.15,1); } 23.82% { stroke-dashoffset:0.732; animation-timing-function:linear; } 34.93% { stroke-dashoffset:0.732; animation-timing-function:cubic-bezier(.4,0,.15,1); } 100% { stroke-dashoffset:0; } }
+        @keyframes pttC3d1 { 0% { stroke-dashoffset:1; animation-timing-function:cubic-bezier(.4,0,.15,1); } 40.0% { stroke-dashoffset:0.55; animation-timing-function:linear; } 51.11% { stroke-dashoffset:0.55; animation-timing-function:cubic-bezier(.4,0,.15,1); } 100% { stroke-dashoffset:0; } }
+        @keyframes pttC3d2 { 0% { stroke-dashoffset:1; animation-timing-function:cubic-bezier(.4,0,.15,1); } 21.44% { stroke-dashoffset:0.732; animation-timing-function:linear; } 31.44% { stroke-dashoffset:0.732; animation-timing-function:cubic-bezier(.4,0,.15,1); } 55.28% { stroke-dashoffset:0.434; animation-timing-function:linear; } 65.28% { stroke-dashoffset:0.434; animation-timing-function:cubic-bezier(.4,0,.15,1); } 100% { stroke-dashoffset:0; } }
+        .pta-reveal { fill:none; stroke:#fff; stroke-width:12; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; }
+        .ptt.is-in .pta-reveal.crow { animation:pttDraw 1.1s cubic-bezier(.3,0,.1,1) forwards; }
+        .ptt.is-in .pta-reveal.r1 { animation:pttC3d1 1.8s linear forwards; }
+        .ptt.is-in .pta-reveal.r2 { animation:pttC3d2 2.0s linear forwards; }
+        .anim-pop { transform-box:fill-box; transform-origin:center; opacity:0; }
+        .ptt.is-in .anim-pop { animation:pttPop .55s cubic-bezier(.34,1.56,.64,1) both; }
+        @keyframes pttPop { from { opacity:0; transform:scale(.3); } to { opacity:1; transform:scale(1); } }
+        .anim-fade { opacity:0; }
+        .ptt.is-in .anim-fade { animation:pttFade .6s ease both; }
+        @keyframes pttFade { from { opacity:0; } to { opacity:1; } }
         @keyframes pttDraw { to { stroke-dashoffset:0; } }
         .pta-crow { fill:none; stroke:rgba(43,38,32,.35); stroke-width:1.6; stroke-dasharray:2 6; stroke-linecap:round; } .dark .pta-crow { stroke:rgba(237,229,212,.35); }
         .pta-thumb { position:absolute; z-index:2; width:clamp(44px,14%,58px); aspect-ratio:1; border-radius:50%; border:3px solid #FFFDF8; background-size:cover; background-position:center; box-shadow:0 8px 18px rgba(0,0,0,.28); transform:translate(-50%,-50%) scale(.6); opacity:0; transition:opacity .5s ease, transform .6s cubic-bezier(.34,1.56,.64,1); }
         .dark .pta-thumb { border-color:#1C1812; }
         .pta-thumb.t0 { left:68.8%; top:37%; } .pta-thumb.t1 { left:55.4%; top:60.5%; }
         .ptt.is-in .pta-thumb { opacity:1; transform:translate(-50%,-50%) scale(1); }
-        .ptt.is-in .pta-thumb.t0 { transition-delay:1.3s; } .ptt.is-in .pta-thumb.t1 { transition-delay:2.4s; }
         .pta-route.d1 { stroke:#B8914A; } .pta-route.d2 { stroke:#C0674A; }
         .pta-stop rect { stroke:#FFFDF8; stroke-width:2; } .pta-stop.d1 rect { fill:#B8914A; } .pta-stop.d2 rect { fill:#C0674A; }
         .pta-stop text, .pta-end text { font-family:var(--sans, 'Inter', sans-serif); font-size:10px; font-weight:700; text-anchor:middle; fill:#fff; }
@@ -353,7 +427,8 @@ export default function PlanTripTeaser() {
           .ptt-media.is-map { aspect-ratio:4/5; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .s2 .pta-route { stroke-dashoffset:0; animation:none !important; }
+          .s2 .pta-route, .pta-reveal { stroke-dashoffset:0; animation:none !important; }
+          .anim-pop, .anim-fade { opacity:1; animation:none !important; }
           .pta-thumb { opacity:1; transform:translate(-50%,-50%); transition:none; }
           .ptt-step { opacity:1; transform:none; transition:none; }
           .ptt-media { transition:none; }
