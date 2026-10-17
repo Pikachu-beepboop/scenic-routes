@@ -2,9 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-  ChevronRight, ChevronDown, CheckCircle2, Camera,
-  Compass, Globe, Bookmark, TrendingUp, Calendar,
-  MapPin, AlertTriangle, Circle, Award, Search, X
+  ChevronRight, ChevronDown, Calendar, MapPin, AlertTriangle, Search, X, Sparkles, Plus,
 } from "lucide-react";
 import { useLanguage } from "../../../LanguageContext";
 import type { Stamp, SubTabId } from "../../types";
@@ -38,6 +36,46 @@ const COUNTRY_CODES = [
 // UI-Sprache. Fällt bei unbekannten Sprachcodes auf Englisch zurück.
 const LOCALE_MAP: Record<string, string> = { en: "en", de: "de", ru: "ru" };
 
+/* NEU (Variante B): Texte, die es noch nicht in den Übersetzungsdateien gibt */
+const PT_TEXT = {
+  en: {
+    complete: "complete", passTitle: (n: number) => (n === 1 ? "1 stamp collected" : `${n} stamps collected`),
+    passEmpty: "Your first stamp is waiting", passSub: (c: number) => (c ? `From ${c} ${c === 1 ? "country" : "countries"} — save more routes to fill your pass` : "Save a route to get your first stamp"),
+    openPass: "Open pass", formTitle: "Tell us about you", formSub: "This is what other explorers see on your Traveller Pass.",
+    oneLeft: "Almost there:", missing: "still missing —", unsaved: "You have unsaved changes", discard: "Discard",
+  },
+  de: {
+    complete: "vollständig", passTitle: (n: number) => (n === 1 ? "1 Stempel gesammelt" : `${n} Stempel gesammelt`),
+    passEmpty: "Dein erster Stempel wartet", passSub: (c: number) => (c ? `Aus ${c} ${c === 1 ? "Land" : "Ländern"} — speichere mehr Routen, um deinen Pass zu füllen` : "Speichere eine Route für deinen ersten Stempel"),
+    openPass: "Pass öffnen", formTitle: "Erzähl uns von dir", formSub: "So sehen dich andere Entdecker auf deinem Traveller Pass.",
+    oneLeft: "Fast geschafft:", missing: "es fehlt noch —", unsaved: "Du hast ungespeicherte Änderungen", discard: "Verwerfen",
+  },
+  ru: {
+    complete: "заполнено", passTitle: (n: number) => `Штампов собрано: ${n}`,
+    passEmpty: "Ваш первый штамп ждёт", passSub: (c: number) => (c ? `Из стран: ${c} — сохраняйте маршруты, чтобы заполнить паспорт` : "Сохраните маршрут, чтобы получить первый штамп"),
+    openPass: "Открыть паспорт", formTitle: "Расскажите о себе", formSub: "Так вас видят другие путешественники в Traveller Pass.",
+    oneLeft: "Почти готово:", missing: "осталось —", unsaved: "Есть несохранённые изменения", discard: "Отменить",
+  },
+} as const;
+
+/** Ländername (z. B. "Switzerland", "Schweiz") -> ISO-Kürzel ("CH") für die Stempel */
+function countryToCode(name: string): string {
+  const clean = name.trim().toLowerCase();
+  if (!clean) return "?";
+  for (const loc of ["en", "de", "ru"]) {
+    try {
+      const dn = new Intl.DisplayNames([loc], { type: "region" });
+      const hit = COUNTRY_CODES.find((c) => (dn.of(c) || "").toLowerCase() === clean);
+      if (hit) return hit;
+    } catch {
+      /* Intl nicht verfügbar */
+    }
+  }
+  if (clean === "usa" || clean === "united states of america") return "US";
+  if (clean === "uk" || clean === "england" || clean === "scotland" || clean === "wales") return "GB";
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
 export default function ProfileTab({
   user, stamps, initials, avatarPreview, savedProfile, onAvatarUpdated,
   displayName, setDisplayName,
@@ -49,6 +87,7 @@ export default function ProfileTab({
   saving, handleSaveProfile,
   setSubTab,
   setShowDeleteConfirm, setDeleteConfirmText, setDeleteError,
+  dirty = false, onDiscard,
 }: {
   user: any;
   stamps: Stamp[];
@@ -67,8 +106,13 @@ export default function ProfileTab({
   setShowDeleteConfirm: (v: boolean) => void;
   setDeleteConfirmText: (v: string) => void;
   setDeleteError: (v: string) => void;
+  /** NEU: gibt es ungespeicherte Änderungen? (blendet die Speichern-Leiste ein) */
+  dirty?: boolean;
+  /** NEU: Änderungen verwerfen */
+  onDiscard?: () => void;
 }) {
   const { t, lang } = useLanguage();
+  const px = PT_TEXT[(lang in PT_TEXT ? lang : "en") as keyof typeof PT_TEXT];
   const [isCountryOpen, setIsCountryOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const countryDropdownRef = useRef<HTMLDivElement>(null);
@@ -95,11 +139,7 @@ export default function ProfileTab({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Profile Completion — derived from data we already have on hand (no extra
-
-  // backend calls). The overall % is computed from this checklist rather
-  // than hardcoded, so it stays honest even though the stat cards below
-  // (Trips/Countries/Distance) are still placeholders.
+  // Profile Completion — aus gespeicherten Daten (ändert sich erst beim Speichern)
   const completionChecks = [
     { label: t("profile.completion.addPhoto"),    done: !!savedProfile.avatarUrl },
     { label: t("profile.completion.addAbout"),     done: savedProfile.aboutYou.trim().length > 0 },
@@ -107,208 +147,220 @@ export default function ProfileTab({
     { label: t("profile.completion.connectEmail"), done: !!user?.email_confirmed_at },
   ];
   const completionPct = Math.round((completionChecks.filter(c => c.done).length / completionChecks.length) * 100);
+  const missingChecks = completionChecks.filter((c) => !c.done);
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(LOCALE_MAP[lang] || "en", { month: "long", year: "numeric" })
     : "—";
 
+  // Traveller-Pass-Vorschau: ein Stempel pro Land, neueste zuerst
+  const passStamps = (() => {
+    const byCountry: Record<string, { code: string; year: string; time: number }> = {};
+    for (const s of stamps) {
+      if (!s.country) continue;
+      const time = s.completed_at ? new Date(s.completed_at).getTime() : 0;
+      const prev = byCountry[s.country];
+      if (!prev || time > prev.time) {
+        byCountry[s.country] = {
+          code: countryToCode(s.country),
+          year: s.completed_at ? String(new Date(s.completed_at).getFullYear()) : "",
+          time,
+        };
+      }
+    }
+    return Object.values(byCountry).sort((a, b) => b.time - a.time);
+  })();
+  const shownStamps = passStamps.slice(0, 4);
+  const emptySlots = Math.max(shownStamps.length ? 0 : 3, 4 - shownStamps.length);
+
+  const ringStyle = { ["--p" as string]: `${completionPct}%` } as React.CSSProperties;
+
   return (
-    <div className="st-content wide">
-      <div className="st-profile-grid">
-
-        {/* Left column — identity + editable profile info */}
-        <div className="st-profile-col">
-          <div className="st-card st-subcard st-profile-head-card">
-            <div className="st-profile-head" style={{ borderBottom: "none", paddingBottom: 0 }}>
-              <AvatarEditor
-                userId={user?.id}
-                avatarPreview={avatarPreview}
-                initials={initials}
-                onAvatarUpdated={onAvatarUpdated}
-              />
-              <div>
-                <p className="st-profile-name">{displayName || username || user?.email?.split("@")[0]}</p>
-                <p className="st-profile-role">{t("common.roleExplorer")}</p>
-                <p className="st-profile-email">{user?.email}</p>
-                <div className="st-profile-meta-row">
-                  <span><Calendar size={11} strokeWidth={1.8} /> {t("profile.info.memberSince")} {memberSince}</span>
-                  {country && <span><MapPin size={11} strokeWidth={1.8} /> {country}</span>}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="st-card st-subcard">
-            <p className="st-card-title">{t("profile.info.title")}</p>
-
-            <div className="st-field">
-              <label className="st-field-label">{t("profile.info.displayName")}</label>
-              <input className="st-input" type="text" placeholder={t("profile.info.displayNamePh")} value={displayName} onChange={e => setDisplayName(e.target.value)} />
-            </div>
-
-            <div className="st-field">
-              <label className="st-field-label">{t("profile.info.username")}</label>
-              <input className="st-input" type="text" placeholder={t("profile.info.usernamePh")} value={username} onChange={e => setUsername(e.target.value)} />
-            </div>
-
-                        <div className="st-field-row">
-              <div className="st-field">
-                <label className="st-field-label">{t("profile.info.country")}</label>
-                <div className="st-country-dropdown-container" ref={countryDropdownRef}>
-                  <button
-                    className={`st-input st-country-trigger ${isCountryOpen ? 'open' : ''}`}
-                    onClick={() => setIsCountryOpen(!isCountryOpen)}
-                    type="button"
-                  >
-                    <span className={!country ? "placeholder" : ""}>
-                      {country || t("profile.info.selectCountry")}
-                    </span>
-                    <ChevronDown size={14} strokeWidth={2} className="st-chevron" />
-                  </button>
-
-                  {isCountryOpen && (
-                    <div className="st-country-dropdown">
-                      <div className="st-country-search-wrap">
-                        <Search size={14} className="st-search-icon" />
-                        <input
-                          autoFocus
-                          type="text"
-                          className="st-country-search-input"
-                          placeholder={t("explore.search.searchCountries")}
-                          value={countrySearch}
-                          onChange={(e) => setCountrySearch(e.target.value)}
-                        />
-                        {countrySearch && (
-                          <button className="st-clear-search" onClick={() => setCountrySearch("")}>
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-                      <div className="st-country-list">
-                        <button
-                          className="st-country-option"
-                          onClick={() => { setCountry(""); setIsCountryOpen(false); setCountrySearch(""); }}
-                        >
-                          {t("explore.search.allCountries")}
-                        </button>
-                        {filteredCountries.map((c) => (
-                          <button
-                            key={c.code}
-                            className={`st-country-option ${country === c.name ? "active" : ""}`}
-                            onClick={() => {
-                              setCountry(c.name);
-                              setIsCountryOpen(false);
-                              setCountrySearch("");
-                            }}
-                          >
-                            <span className="st-option-dot" />
-                            {c.name}
-                          </button>
-                        ))}
-                        {filteredCountries.length === 0 && (
-                          <div className="st-country-empty">No countries found</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="st-field">
-
-                <label className="st-field-label">{t("profile.info.city")}</label>
-                <input className="st-input" type="text" placeholder={t("profile.info.city")} value={city} onChange={e => setCity(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="st-field">
-              <div className="st-field-label-row">
-                <label className="st-field-label">{t("profile.info.aboutYou")}</label>
-                <span className="st-char-count">{aboutYou.length}/{ABOUT_MAX}</span>
-              </div>
-              <textarea
-                className="st-input st-textarea"
-                placeholder={t("profile.info.aboutYouPh")}
-                value={aboutYou}
-                maxLength={ABOUT_MAX}
-                onChange={e => setAboutYou(e.target.value)}
-              />
-            </div>
-
-            {error   && <p className="st-error">{error}</p>}
-            {success && <p className="st-success">{success}</p>}
+    <div className="st-content wide pb-content">
+      {/* Oben: Profil-Karte und Pass-Vorschau nebeneinander (spart Höhe) */}
+      <div className="pb-top">
+      {/* 1 — Profil-Karte mit Fortschritts-Ring */}
+      <div className="st-card st-subcard pb-hero">
+        <AvatarEditor
+          userId={user?.id}
+          avatarPreview={avatarPreview}
+          initials={initials}
+          onAvatarUpdated={onAvatarUpdated}
+        />
+        <div className="pb-hero-text">
+          <p className="pb-role">{t("common.roleExplorer")}</p>
+          <p className="pb-name">{displayName || username || user?.email?.split("@")[0]}</p>
+          <div className="pb-meta">
+            <span><Calendar size={12} strokeWidth={1.8} /> {t("profile.info.memberSince")} {memberSince}</span>
+            {(city || country) && (
+              <span>
+                <MapPin size={12} strokeWidth={1.8} /> {[city, country].filter(Boolean).join(", ")}
+              </span>
+            )}
           </div>
         </div>
-
-        {/* Right column — stats, completion, pass */}
-
-        
-        <div className="st-profile-col st-profile-col-side">
-          {/* Traveller Stats card — hidden for now, values are still
-              hardcoded placeholders (18 trips / 4 countries / 4,328 km)
-              with no real data source wired up yet. Re-enable by
-              un-commenting once trips/countries/distance are computed
-              from real user data. */}
-          {/*
-          <div className="st-card st-subcard st-stats-card">
-            <p className="st-card-title">{t("profile.stats.title")}</p>
-            <div className="st-stats-grid">
-              <div className="st-stat-item">
-                <div className="st-stat-icon"><Compass size={16} strokeWidth={1.8} /></div>
-                <div><p className="st-stat-num">18</p><p className="st-stat-label">{t("profile.stats.trips")}</p></div>
-              </div>
-              <div className="st-stat-item">
-                <div className="st-stat-icon"><Globe size={16} strokeWidth={1.8} /></div>
-                <div><p className="st-stat-num">4</p><p className="st-stat-label">{t("profile.stats.countries")}</p></div>
-              </div>
-              <div className="st-stat-item">
-                <div className="st-stat-icon"><Bookmark size={16} strokeWidth={1.8} /></div>
-                <div><p className="st-stat-num">{stamps.length}</p><p className="st-stat-label">{t("profile.stats.saved")}</p></div>
-              </div>
-              <div className="st-stat-item">
-                <div className="st-stat-icon"><TrendingUp size={16} strokeWidth={1.8} /></div>
-                <div><p className="st-stat-num">4,328 km</p><p className="st-stat-label">{t("profile.stats.distance")}</p></div>
-              </div>
-            </div>
+        <div className="pb-ring" style={ringStyle} title={t("profile.completion.title")}>
+          <div>
+            <b>{completionPct}%</b>
+            <small>{px.complete}</small>
           </div>
-          */}
-
-          {completionPct < 100 && (
-            <div className="st-card st-subcard st-completion-card">
-              <div className="st-completion-head">
-                <p className="st-card-title" style={{ marginBottom: 0 }}><CheckCircle2 size={13} strokeWidth={2} style={{ marginRight: 6, verticalAlign: -2 }} />{t("profile.completion.title")}</p>
-                <span className="st-completion-pct">{completionPct}%</span>
-              </div>
-              <div className="st-completion-track">
-                <div className="st-completion-fill" style={{ width: `${completionPct}%` }} />
-              </div>
-              <p className="st-completion-hint">{t("profile.completion.hint")}</p>
-              <div className="st-checklist">
-                {completionChecks.map((c) => (
-                  <div key={c.label} className="st-checklist-item">
-                    {c.done ? <CheckCircle2 size={14} strokeWidth={2} color="var(--gold)" /> : <Circle size={14} strokeWidth={1.8} color="var(--dim)" />}
-                    <span style={{ opacity: c.done ? 1 : 0.6 }}>{c.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-              {/*}
-          <div className="st-card st-subcard st-pass-mini-card">
-            <div className="st-pass-mini-head">
-              <div className="st-header-icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Award size={17} strokeWidth={1.8} /></div>
-              <div style={{ flex: 1 }}>
-                <p className="st-profile-name" style={{ fontSize: 15 }}>{t("profile.passMini.title")}</p>
-                <p className="st-row-sub" style={{ marginTop: 1 }}>{t("profile.passMini.sub")}</p>
-              </div>
-              <span className="st-badge st-badge-verified">{t("profile.passMini.active")}</span>
-            </div>
-            <button className="st-btn st-btn-secondary" style={{ width: "100%", justifyContent: "space-between" }} onClick={() => setSubTab("pass")}>
-              {t("profile.passMini.view")} <ChevronRight size={14} />
-            </button>
-          </div>
-          */}
         </div>
       </div>
 
+      {/* 2 — Traveller-Pass-Vorschau (Klick öffnet den Pass) */}
+      <button type="button" className="pb-pass" onClick={() => setSubTab("pass")}>
+        <div className="pb-pass-text">
+          <p className="pb-pass-ey">{t("profile.subtab.pass.title")}</p>
+          <p className="pb-pass-title">{stamps.length ? px.passTitle(stamps.length) : px.passEmpty}</p>
+          <p className="pb-pass-sub">{px.passSub(passStamps.length)}</p>
+        </div>
+        <div className="pb-stamps" aria-hidden="true">
+          {shownStamps.map((s, i) => (
+            <span key={s.code + i} className={`pb-stamp r${i % 3}`}>
+              <b>{s.code}</b>
+              {s.year && <small>{s.year}</small>}
+            </span>
+          ))}
+          {Array.from({ length: emptySlots }).map((_, i) => (
+            <span key={`e${i}`} className="pb-stamp empty">
+              <Plus size={16} strokeWidth={1.6} />
+            </span>
+          ))}
+        </div>
+        <span className="pb-pass-go">
+          {px.openPass} <ChevronRight size={15} strokeWidth={2} />
+        </span>
+      </button>
+
+      </div>
+
+      {/* 3 — Formular */}
+      <div className="st-card st-subcard pb-form">
+        <p className="st-card-title">{t("profile.info.title")}</p>
+        <p className="pb-form-title">{px.formTitle}</p>
+        <p className="pb-form-sub">{px.formSub}</p>
+
+        <div className="st-field-row">
+          <div className="st-field">
+            <label className="st-field-label">{t("profile.info.displayName")}</label>
+            <input className="st-input" type="text" placeholder={t("profile.info.displayNamePh")} value={displayName} onChange={e => setDisplayName(e.target.value)} />
+          </div>
+          <div className="st-field">
+            <label className="st-field-label">{t("profile.info.username")}</label>
+            <input className="st-input" type="text" placeholder={t("profile.info.usernamePh")} value={username} onChange={e => setUsername(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="st-field-row">
+          <div className="st-field">
+            <label className="st-field-label">{t("profile.info.country")}</label>
+            <div className="st-country-dropdown-container" ref={countryDropdownRef}>
+              <button
+                className={`st-input st-country-trigger ${isCountryOpen ? 'open' : ''}`}
+                onClick={() => setIsCountryOpen(!isCountryOpen)}
+                type="button"
+              >
+                <span className={!country ? "placeholder" : ""}>
+                  {country || t("profile.info.selectCountry")}
+                </span>
+                <ChevronDown size={14} strokeWidth={2} className="st-chevron" />
+              </button>
+
+              {isCountryOpen && (
+                <div className="st-country-dropdown">
+                  <div className="st-country-search-wrap">
+                    <Search size={14} className="st-search-icon" />
+                    <input
+                      autoFocus
+                      type="text"
+                      className="st-country-search-input"
+                      placeholder={t("explore.search.searchCountries")}
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                    />
+                    {countrySearch && (
+                      <button className="st-clear-search" onClick={() => setCountrySearch("")}>
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="st-country-list">
+                    <button
+                      className="st-country-option"
+                      onClick={() => { setCountry(""); setIsCountryOpen(false); setCountrySearch(""); }}
+                    >
+                      {t("explore.search.allCountries")}
+                    </button>
+                    {filteredCountries.map((c) => (
+                      <button
+                        key={c.code}
+                        className={`st-country-option ${country === c.name ? "active" : ""}`}
+                        onClick={() => {
+                          setCountry(c.name);
+                          setIsCountryOpen(false);
+                          setCountrySearch("");
+                        }}
+                      >
+                        <span className="st-option-dot" />
+                        {c.name}
+                      </button>
+                    ))}
+                    {filteredCountries.length === 0 && (
+                      <div className="st-country-empty">No countries found</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="st-field">
+            <label className="st-field-label">{t("profile.info.city")}</label>
+            <input className="st-input" type="text" placeholder={t("profile.info.city")} value={city} onChange={e => setCity(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="st-field">
+          <div className="st-field-label-row">
+            <label className="st-field-label">{t("profile.info.aboutYou")}</label>
+            <span className="st-char-count">{aboutYou.length}/{ABOUT_MAX}</span>
+          </div>
+          <textarea
+            className="st-input st-textarea"
+            placeholder={t("profile.info.aboutYouPh")}
+            value={aboutYou}
+            maxLength={ABOUT_MAX}
+            onChange={e => setAboutYou(e.target.value)}
+          />
+        </div>
+
+        {missingChecks.length > 0 && (
+          <div className="pb-tip">
+            <Sparkles size={15} strokeWidth={1.8} />
+            <span>
+              <b>{px.oneLeft}</b> {px.missing} {missingChecks.map((c) => c.label).join(" · ")}
+            </span>
+          </div>
+        )}
+
+        {error   && <p className="st-error">{error}</p>}
+        {success && !dirty && <p className="st-success">{success}</p>}
+      </div>
+
+      {/* 4 — Speichern-Leiste: erscheint nur bei Änderungen */}
+      <div className={`pb-savebar ${dirty || saving ? "show" : ""}`} aria-hidden={!dirty && !saving}>
+        <span>{px.unsaved}</span>
+        <span className="pb-savebar-actions">
+          {onDiscard && (
+            <button type="button" className="pb-discard" onClick={onDiscard} disabled={saving}>
+              {px.discard}
+            </button>
+          )}
+          <button type="button" className="pb-save" disabled={saving} onClick={handleSaveProfile}>
+            {saving ? t("common.saving") : t("common.saveChanges")}
+          </button>
+        </span>
+      </div>
+
+      {/* 5 — Konto löschen */}
       <div className="st-danger-banner">
         <AlertTriangle size={18} strokeWidth={1.8} color="#e08080" />
         <div style={{ flex: 1 }}>
@@ -321,12 +373,6 @@ export default function ProfileTab({
           onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(""); setDeleteError(""); }}
         >
           {t("profile.danger.delete")}
-        </button>
-      </div>
-
-      <div className="st-action-row">
-        <button className="st-btn st-btn-primary" disabled={saving} onClick={handleSaveProfile}>
-          {saving ? t("common.saving") : t("common.saveChanges")}
         </button>
       </div>
     </div>

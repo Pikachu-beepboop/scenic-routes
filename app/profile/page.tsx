@@ -82,6 +82,8 @@ export default function ProfilePage() {
   // Completion so it only updates on Save Changes, not on every keystroke in
   // the live-edited fields above (avatarUrl/country/aboutYou).
   const [savedProfile, setSavedProfile] = useState({ avatarUrl: "", country: "", aboutYou: "" });
+  // NEU: gespeicherter Stand aller Formularfelder — für "ungespeicherte Änderungen" und "Verwerfen"
+  const [savedFields, setSavedFields] = useState({ username: "", displayName: "", country: "", city: "", aboutYou: "" });
   const [navScrolled, setNavScrolled]     = useState(false);
   const [stamps, setStamps]               = useState<Stamp[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -227,6 +229,13 @@ export default function ProfilePage() {
     setCity(data.city || "");
     setAboutYou(data.about || "");
     setSavedProfile({ avatarUrl: data.avatar_url || "", country: data.country || "", aboutYou: data.about || "" });
+    setSavedFields({
+      username: data.username || "",
+      displayName: data.display_name || data.username || "",
+      country: data.country || "",
+      city: data.city || "",
+      aboutYou: data.about || "",
+    });
   }
 
   // GEÄNDERT: saved_routes hat nur id/user_id/route_id/created_at — title/country
@@ -288,6 +297,7 @@ export default function ProfilePage() {
 
     setSuccess(t("profile.updateSuccess"));
     setSavedProfile((prev) => ({ ...prev, country, aboutYou }));
+    setSavedFields({ username, displayName, country, city, aboutYou });
     setSaving(false);
   }
 
@@ -419,6 +429,23 @@ export default function ProfilePage() {
     }
   }
 
+  // NEU: ungespeicherte Änderungen im Profil-Formular?
+  const profileDirty =
+    username !== savedFields.username ||
+    displayName !== savedFields.displayName ||
+    country !== savedFields.country ||
+    city !== savedFields.city ||
+    aboutYou !== savedFields.aboutYou;
+
+  function handleDiscardProfile() {
+    setUsername(savedFields.username);
+    setDisplayName(savedFields.displayName);
+    setCountry(savedFields.country);
+    setCity(savedFields.city);
+    setAboutYou(savedFields.aboutYou);
+    setError("");
+  }
+
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0c0b09", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: 36, height: 36, border: "2px solid rgba(201,168,106,0.15)", borderTopColor: "#C9A86A", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -477,18 +504,7 @@ export default function ProfilePage() {
       <div className="pp-layout">
         <div className="st-wrap">
           <div className="st-megacard">
-            <div className="st-header">
-              <div className="st-header-left">
-                <div className="st-header-icon">{meta.icon}</div>
-                <div>
-                  <p className="st-title">{meta.title}</p>
-                  <p className="st-subtitle">{meta.subtitle}</p>
-                </div>
-              </div>
-              
-            </div>
-
-            <div className="st-body">
+            <div className="st-body is-profile">
               <SettingsNav
                 subTab={subTab}
                 setSubTab={setSubTab}
@@ -498,6 +514,11 @@ export default function ProfilePage() {
                 setSecurityGroupOpen={setSecurityGroupOpen}
                 onNavigateTrips={() => router.push("/my-trips")}
                 handleLogout={handleLogout}
+                user={user}
+                avatarPreview={avatarPreview}
+                initials={initials}
+                displayName={savedFields.displayName || username}
+                stampsCount={stamps.length}
               />
 
               <div>
@@ -520,74 +541,91 @@ export default function ProfilePage() {
                     setShowDeleteConfirm={setShowDeleteConfirm}
                     setDeleteConfirmText={setDeleteConfirmText}
                     setDeleteError={setDeleteError}
+                    dirty={profileDirty}
+                    onDiscard={handleDiscardProfile}
                   />
                 )}
 
-                {subTab === "email" && (
-                  <EmailTab
-                    user={user}
-                    newEmailInput={newEmailInput} setNewEmailInput={setNewEmailInput}
-                    confirmEmailPassword={confirmEmailPassword} setConfirmEmailPassword={setConfirmEmailPassword}
-                    emailError={emailError} setEmailError={setEmailError}
-                    emailSuccess={emailSuccess} setEmailSuccess={setEmailSuccess}
-                    emailSaving={emailSaving}
-                    handleChangeEmail={handleChangeEmail}
-                  />
+                {/* NEU: alle anderen Bereiche in derselben Karte wie das Profil — Seitenleiste bleibt
+                    immer an derselben Stelle, Titel steht in der Karte statt oben drüber */}
+                {subTab !== "profile" && (
+                  <div className="st-card st-subcard pb-panel">
+                    <div className="pb-panel-head">
+                      <div className="st-header-icon">{meta.icon}</div>
+                      <div>
+                        <p className="pb-panel-title">{meta.title}</p>
+                        <p className="pb-panel-sub">{meta.subtitle}</p>
+                      </div>
+                    </div>
+                    <div className="pb-panel-body">
+                  {subTab === "email" && (
+                    <EmailTab
+                      user={user}
+                      newEmailInput={newEmailInput} setNewEmailInput={setNewEmailInput}
+                      confirmEmailPassword={confirmEmailPassword} setConfirmEmailPassword={setConfirmEmailPassword}
+                      emailError={emailError} setEmailError={setEmailError}
+                      emailSuccess={emailSuccess} setEmailSuccess={setEmailSuccess}
+                      emailSaving={emailSaving}
+                      handleChangeEmail={handleChangeEmail}
+                    />
+                  )}
+
+                  {subTab === "password" && (
+                    <PasswordTab
+                      newPassword={newPassword} setNewPassword={setNewPassword}
+                      confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
+                      passwordError={passwordError} setPasswordError={setPasswordError}
+                      passwordSuccess={passwordSuccess} setPasswordSuccess={setPasswordSuccess}
+                      passwordSaving={passwordSaving}
+                      handleChangePassword={handleChangePassword}
+                    />
+                  )}
+
+                  {subTab === "twofa" && <TwoFATab />}
+
+                  {subTab === "sessions" && (
+                    <SessionsTab
+                      sessionsError={sessionsError}
+                      sessionsSuccess={sessionsSuccess}
+                      sessionsSaving={sessionsSaving}
+                      handleSignOutOthers={handleSignOutOthers}
+                    />
+                  )}
+
+                  {subTab === "pass" && (
+                    <PassTab
+                      username={username}
+                      email={user?.email || ""}
+                      avatarPreview={avatarPreview}
+                      initials={initials}
+                      stamps={stamps}
+                    />
+                  )}
+
+                  {subTab === "preferences" && (
+                    <PreferencesTab unit={unit} setUnit={setUnit} lang={lang} setLang={setLang} />
+                  )}
+
+                  {subTab === "notifications" && (
+                    <NotificationsTab toggles={toggles} toggleSwitch={toggleSwitch} />
+                  )}
+
+                  {subTab === "privacy" && (
+                    <PrivacyTab
+                      googleMapsConsent={googleMapsConsent}
+                      handleGoogleMapsToggle={handleGoogleMapsToggle}
+                      mapsConsentSaving={mapsConsentSaving}
+                      toggles={toggles}
+                      toggleSwitch={toggleSwitch}
+                    />
+                  )}
+
+                  {subTab === "support" && <SupportTab />}
+
+                  {subTab === "about" && <AboutTab />}
+                    </div>
+                  </div>
                 )}
-
-                {subTab === "password" && (
-                  <PasswordTab
-                    newPassword={newPassword} setNewPassword={setNewPassword}
-                    confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
-                    passwordError={passwordError} setPasswordError={setPasswordError}
-                    passwordSuccess={passwordSuccess} setPasswordSuccess={setPasswordSuccess}
-                    passwordSaving={passwordSaving}
-                    handleChangePassword={handleChangePassword}
-                  />
-                )}
-
-                {subTab === "twofa" && <TwoFATab />}
-
-                {subTab === "sessions" && (
-                  <SessionsTab
-                    sessionsError={sessionsError}
-                    sessionsSuccess={sessionsSuccess}
-                    sessionsSaving={sessionsSaving}
-                    handleSignOutOthers={handleSignOutOthers}
-                  />
-                )}
-
-                {subTab === "pass" && (
-                  <PassTab
-                    username={username}
-                    email={user?.email || ""}
-                    avatarPreview={avatarPreview}
-                    initials={initials}
-                    stamps={stamps}
-                  />
-                )}
-
-                {subTab === "preferences" && (
-                  <PreferencesTab unit={unit} setUnit={setUnit} lang={lang} setLang={setLang} />
-                )}
-
-                {subTab === "notifications" && (
-                  <NotificationsTab toggles={toggles} toggleSwitch={toggleSwitch} />
-                )}
-
-                {subTab === "privacy" && (
-                  <PrivacyTab
-                    googleMapsConsent={googleMapsConsent}
-                    handleGoogleMapsToggle={handleGoogleMapsToggle}
-                    mapsConsentSaving={mapsConsentSaving}
-                    toggles={toggles}
-                    toggleSwitch={toggleSwitch}
-                  />
-                )}
-
-                {subTab === "support" && <SupportTab />}
-
-                {subTab === "about" && <AboutTab />}
               </div>
             </div>
           </div>
