@@ -650,3 +650,47 @@
   .pb-panel { padding:18px; }
   .pb-panel-title { font-size:23px; }
 }
+
+/* NEU: Suchtreffer in Details */
+.sb-entry { display:flex; flex-direction:column; }
+.sb-hit { display:flex; align-items:center; gap:10px; width:100%; padding:5px 8px 5px 22px; border-radius:10px; text-align:left;
+  font-size:12px; color:var(--muted); transition:background .2s, color .2s; }
+.sb-hit:hover { background:color-mix(in srgb, var(--border) 45%, transparent); color:var(--cream); }
+.sb-hit-line { width:10px; height:10px; flex:none; border-left:1.5px solid var(--border); border-bottom:1.5px solid var(--border); border-bottom-left-radius:4px; margin-top:-6px; }
+.sb-hit-text mark { background:color-mix(in srgb, var(--gold) 28%, transparent); color:var(--cream); border-radius:3px; padding:0 1px; }
+/* Aufleuchten nach Sprung: weicher Rahmen um die Zeile (als eigene Ebene, damit nichts abgeschnitten wird) */
+.sb-flash { position:relative; z-index:0; }
+.sb-flash::after { content:""; position:absolute; inset:-10px -14px; z-index:-1; border-radius:14px; pointer-events:none;
+  background:color-mix(in srgb, var(--gold) 10%, transparent); box-shadow:0 0 0 1.5px color-mix(in srgb, var(--gold) 45%, transparent);
+  animation:sbFlash 2.2s cubic-bezier(.22,1,.36,1) forwards; }
+@keyframes sbFlash { 0% { opacity:0; transform:scale(.98); } 15% { opacity:1; transform:scale(1); } 70% { opacity:1; } 100% { opacity:0; } }
+@media (prefers-reduced-motion: reduce) { .sb-flash::after { animation:none; opacity:1; } }
+
+/* NEU: Bereiche mittig — Titel zentriert, Inhalt als ruhige Spalte in der Mitte */
+.pb-panel-head { flex-direction:column; justify-content:center; text-align:center; gap:10px; padding:4px 0 22px; }
+.pb-panel-head .st-header-icon { width:48px; height:48px; border-radius:14px; }
+.pb-panel-title { font-size:32px; }
+.pb-panel-body { padding:12px 18px 18px; margin:0 -18px; }
+.pb-panel-body .st-content, .pb-panel-body .st-content.wide { width:100%; max-width:720px; margin:0 auto; padding-left:0; }
+
+.pb-panel-body .st-card { gap:18px; }
+.pb-panel-body .st-row { padding:16px 0; }
+@media (max-width:760px) { .pb-panel-title { font-size:25px; } }
+
+/* NEU: Seite ist am Desktop genau ein Fenster hoch — nichts scrollt mehr außen.
+   Zu langer Inhalt wird verkleinert (Pass) bzw. scrollt nur innerhalb der Karte. */
+@media (min-width:761px) and (min-height:600px) {
+  .pp-layout { height:100vh; height:100dvh; min-height:0; overflow:hidden; }
+  .st-wrap, .st-megacard { min-height:0; }
+  .st-body { min-height:0; grid-template-rows:minmax(0,1fr); }
+  .st-body > div:last-child { min-height:0; overflow:hidden; }
+  .st-body .st-subnav.sb { min-height:0; overflow-y:auto; scrollbar-width:none; }
+  .st-body .st-subnav.sb::-webkit-scrollbar { display:none; }
+  .pb-panel { min-height:0; }
+  .st-body.is-profile .pb-content { min-height:0; overflow-y:auto; scrollbar-width:thin; }
+
+  /* Traveller Pass passend verkleinern */
+  .pb-panel-body .pp-pass-scale-wrap { transform:none; width:100%; margin:0; zoom:.82; }
+}
+@media (min-width:761px) and (max-height:960px) { .pb-panel-body .pp-pass-scale-wrap { zoom:.72; } }
+@media (min-width:761px) and (max-height:820px) { .pb-panel-body .pp-pass-scale-wrap { zoom:.6; } }

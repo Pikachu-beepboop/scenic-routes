@@ -385,6 +385,35 @@ export default function ProfilePage() {
     setSessionsSaving(false);
   }
 
+  /* NEU: Suche in der Seitenleiste -> zur passenden Stelle im Bereich springen und kurz aufleuchten */
+  function handleJumpToDetail(text: string) {
+    const target = text.trim().toLowerCase();
+    let tries = 0;
+    const find = () => {
+      const root = document.querySelector(".st-body > div:last-child");
+      if (!root) return null;
+      const candidates = Array.from(root.querySelectorAll<HTMLElement>("label, p, span, button, h3, h4, option"));
+      const hit = candidates.find((el) => (el.textContent || "").trim().toLowerCase() === target)
+        ?? candidates.find((el) => el.children.length === 0 && (el.textContent || "").trim().toLowerCase().includes(target));
+      return hit ? (hit.closest(".st-row, .st-field, .st-danger-banner, .st-card") as HTMLElement | null) ?? hit : null;
+    };
+    const run = () => {
+      const el = find();
+      if (!el) {
+        if (tries++ < 10) setTimeout(run, 60);
+        return;
+      }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("sb-flash");
+      void el.offsetWidth;
+      el.classList.add("sb-flash");
+      window.setTimeout(() => el.classList.remove("sb-flash"), 2200);
+      const input = el.querySelector<HTMLElement>("input, textarea, select");
+      if (input && el.matches(".st-field")) input.focus({ preventScroll: true });
+    };
+    setTimeout(run, 60);
+  }
+
   async function handleLogout() {
     await signOutSafe();
     router.push("/");
@@ -513,6 +542,7 @@ export default function ProfilePage() {
                 securityGroupOpen={securityGroupOpen}
                 setSecurityGroupOpen={setSecurityGroupOpen}
                 onNavigateTrips={() => router.push("/my-trips")}
+                onJumpToDetail={handleJumpToDetail}
                 handleLogout={handleLogout}
                 user={user}
                 avatarPreview={avatarPreview}
