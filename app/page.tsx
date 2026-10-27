@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import PlanTripTeaser from "./components/PlanTripTeaser";
+import UserMenu from "./components/UserMenu";
 import { useTheme } from "next-themes";
 import { useLanguage } from "./LanguageContext";
 import {
@@ -918,6 +919,7 @@ export default function HomePage() {
           .mobile-menu-btn { display:flex; }
 
           .nav-right .user-menu-wrap { display:none; }
+          .nav-right .um-wrap { display:none; }
 
           .hero-h1 { font-size:clamp(48px,13vw,72px); margin-bottom:20px; }
           .hero-sub { font-size:14px; max-width:280px; }
@@ -1011,107 +1013,8 @@ export default function HomePage() {
           </div>
 
           <div className="nav-right">
-            {!user && <ThemeSwitch />}
-
-            {user ? (
-              <div className="user-menu-wrap">
-                <button
-                  className="user-avatar"
-                  onClick={() => setShowUserMenu((p) => !p)}
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="avatar"
-                      onError={() => setAvatarUrl("")}
-                    />
-                  ) : (
-                    displayName?.[0]?.toUpperCase() ||
-                    user.email?.[0]?.toUpperCase()
-                  )}
-                </button>
-
-                {showUserMenu && (
-                  <div className="user-dropdown">
-                    <div className="ud-header">
-                      <div className="ud-avatar">
-                        {avatarUrl ? (
-                          <img
-                            src={avatarUrl}
-                            alt="avatar"
-                            onError={() => setAvatarUrl("")}
-                          />
-                        ) : (
-                          displayName?.[0]?.toUpperCase() ||
-                          user.email?.[0]?.toUpperCase()
-                        )}
-                      </div>
-
-                      <div style={{ minWidth: 0 }}>
-                        <p className="ud-name">{displayName}</p>
-                        <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">{t("common.roleExplorer")}</p>
-                      </div>
-                    </div>
-
-                    <div className="ud-theme-row">
-                      <span className="ud-theme-label">{t("common.theme")}</span>
-                      <ThemeSwitch />
-                    </div>
-
-                    <div className="ud-links">
-                      <Link
-                        href="/profile"
-                        className="ud-link"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}
-                      </Link>
-
-                      <Link
-                        href="/my-trips"
-                        className="ud-link"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}
-                      </Link>
-
-                      <Link
-                        href="/explore"
-                        className="ud-link"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}
-                      </Link>
-                      {isAdmin && (
-                        <Link
-                          href="/admin"
-                          className="ud-link"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span> {t("nav.adminPanel")}
-                        </Link>
-                      )}
-                      <div className="ud-divider" />
-
-                      <button className="ud-logout" onClick={handleLogout}>
-                        <span
-                          className="ud-link-icon"
-                          style={{ color: "#e08080" }}
-                        >
-                          <LogOut size={14} strokeWidth={1.8} />
-                        </span>{" "}
-                        {t("nav.signOut")}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href={loginHref} className="login-btn">
-                {t("nav.login")}
-              </Link>
-            )}
+            {/* GEÄNDERT: gemeinsames Profil-Dropdown (app/components/UserMenu.tsx) */}
+            <UserMenu loginHref={loginHref} />
 
             <button
               className="mobile-menu-btn mobile-only"

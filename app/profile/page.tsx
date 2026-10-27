@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase, withTimeout, safeQuery, getSessionSafe } from "../../lib/supabase";
 import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { getSupabaseConsent, persistConsent } from "../../lib/cookieConsent";
-import { ThemeSwitch } from "../components/ThemeSwitch";
+import UserMenu from "../components/UserMenu";
 import { useTheme } from "next-themes";
 import { useUnit } from "../UnitContext";
 import { useLanguage } from "../LanguageContext";
@@ -506,7 +506,7 @@ export default function ProfilePage() {
           <Link href="/my-trips" className="pp-nav-link">{t("nav.myTrips")}</Link>
         </div>
         <div className="pp-nav-right">
-          <ThemeSwitch />
+          <UserMenu avatarOverride={avatarPreview || undefined} />
         </div>
 
         <button

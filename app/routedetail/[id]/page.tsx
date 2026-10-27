@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
+import UserMenu from '@/app/components/UserMenu';
 import GoogleMapsGate from '@/app/components/GoogleMapsGate';
 import { useTheme } from 'next-themes';
 import { useUnit } from '@/app/UnitContext';
@@ -930,110 +931,7 @@ export default function RouteDetailPage() {
                         </div>
 
                         <div className="flex items-center gap-5">
-                            {!user && <ThemeSwitch />}
-
-                            <div className="relative route-user-menu-wrap">
-                                <button
-                                    onClick={() => {
-                                        if (user) {
-                                            setShowUserMenu((prev) => !prev);
-                                        } else {
-                                            router.push(loginHref);
-                                        }
-                                    }}
-                                    aria-label="Account"
-                                    className="w-12 h-12 rounded-full border-[1.5px] border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center hover:border-[var(--gold)] hover:-translate-y-0.5 transition-all duration-300 shadow-2xl overflow-hidden"
-                                >
-                                    {user ? (
-                                        avatarUrl ? (
-                                            <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span
-                                                style={{ fontFamily: 'var(--serif)' }}
-                                                className={`text-xl font-bold ${isLight ? 'text-black' : 'text-[var(--cream)]'}`}
-                                            >
-                                                {username?.[0]?.toUpperCase() || user.email?.charAt(0)?.toUpperCase()}
-                                            </span>
-                                        )
-                                    ) : (
-                                        <User size={18} />
-                                    )}
-                                </button>
-
-                                {showUserMenu && user && (
-                                    <div className="absolute right-0 top-16 w-[290px] bg-[color-mix(in_srgb,var(--bg)_97%,transparent)] border border-[var(--border)] rounded-[20px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65)] backdrop-blur-[28px] z-50">
-                                        <div className="p-5 border-b border-[var(--border)] flex items-center gap-4">
-                                            <div className="w-[46px] h-[46px] rounded-[11px] border border-[var(--border)] bg-[var(--bg2)] flex items-center justify-center font-serif text-[22px] font-light text-[var(--cream)] overflow-hidden shrink-0">
-                                                {avatarUrl ? (
-                                                    <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    user.email?.charAt(0).toUpperCase()
-                                                )}
-                                            </div>
-
-                                            <div className="min-w-0">
-                                                <p className="font-serif text-[18px] font-light text-[var(--cream)] leading-tight truncate">
-                                                    {username || user.email?.split('@')[0]}
-                                                </p>
-                                                <p className="text-[10px] text-[var(--dim)] mt-1 truncate max-w-[180px]">
-                                                    {user.email}
-                                                </p>
-                                                <p className="text-[8px] font-extrabold tracking-[0.18em] uppercase text-[var(--gold)] mt-1 opacity-70">
-                                                    {t("common.roleExplorer")}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
-                                            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--muted)]">{t("common.theme")}</span>
-                                            <ThemeSwitch />
-                                        </div>
-
-                                        <div className="p-2">
-                                            <Link
-                                                href="/profile"
-                                                onClick={() => setShowUserMenu(false)}
-                                                className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
-                                            >
-                                                <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><User size={14} strokeWidth={1.8} /></span>
-                                                {t("nav.profile")}
-                                            </Link>
-
-                                            <Link
-                                                href="/my-trips"
-                                                onClick={() => setShowUserMenu(false)}
-                                                className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
-                                            >
-                                                <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><MapIcon size={14} strokeWidth={1.8} /></span>
-                                                {t("nav.myTrips")}
-                                            </Link>
-
-                                            <Link
-                                                href="/explore"
-                                                onClick={() => setShowUserMenu(false)}
-                                                className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)] transition-all"
-                                            >
-                                                <span className="text-[var(--gold)] w-[18px] flex items-center justify-center shrink-0"><Compass size={14} strokeWidth={1.8} /></span>
-                                                {t("nav.explore")}
-                                            </Link>
-
-                                            <div className="h-px bg-[var(--border)] my-1 mx-2" />
-
-                                            <button
-                                                onClick={async () => {
-                                                    await signOutSafe();
-                                                    setShowUserMenu(false);
-                                                    router.push('/');
-                                                }}
-                                                className="flex items-center gap-3 w-full px-3 py-3 rounded-[10px] text-[12px] font-semibold tracking-[0.04em] text-[rgba(224,128,128,0.55)] hover:bg-[rgba(224,128,128,0.07)] hover:text-[#e08080] transition-all"
-                                            >
-                                                <span className="text-[#e08080] w-[18px] flex items-center justify-center shrink-0"><LogOut size={14} strokeWidth={1.8} /></span>
-                                                {t("nav.signOut")}
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <UserMenu loginHref={loginHref} />
                         </div>
                     </div>
                 </motion.nav>

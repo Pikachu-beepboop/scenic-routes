@@ -7,11 +7,17 @@ import { supabase, safeQuery } from '../../lib/supabase';
 import { useAuth, signOutSafe } from '../../lib/useAuth';
 import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
+import UserMenu from '../components/UserMenu';
 import { useLanguage } from '../LanguageContext';
 import {
   User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight, Globe,
-  Menu, X, ChevronRight, ChevronDown, Mail,
+  Menu, X, ChevronRight, ChevronDown, Mail, ShieldCheck,
 } from 'lucide-react';
+
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 // NEU (Mobile): eigene Instagram/YouTube-Icons im lucide-Stroke-Stil,
 // da diese Marken-Icons in lucide-react nicht mehr enthalten sind.
@@ -117,6 +123,7 @@ export default function AboutPage() {
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   // NEU (Mobile): Hamburger-Menü, Values-Akkordeon, Team-Karussell, Footer-Akkordeon
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -486,6 +493,7 @@ export default function AboutPage() {
         @media (max-width:760px) {
           .mobile-menu-btn { display:flex; }
           .user-menu-wrap { display:none; }
+          .nav-right .um-wrap { display:none; }
 
           .hero-stack { display:flex; flex-direction:column; min-height:100vh; }
           .about-hero { flex:1 1 auto; min-height:0; padding-bottom:0; align-items:flex-end; }
@@ -547,51 +555,8 @@ export default function AboutPage() {
             {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
           </div>
           <div className="nav-right">
-            {!user && <ThemeSwitch />}
-            {user ? (
-              <div className="user-menu-wrap">
-                <button className="user-avatar" onClick={() => setShowUserMenu(p => !p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                </button>
-                {showUserMenu && (
-                  <div className="user-dropdown">
-                    <div className="ud-header">
-                      <div className="ud-avatar">
-                        {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p className="ud-name">{displayName}</p>
-                        <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">{t("common.roleExplorer")}</p>
-                      </div>
-                    </div>
-
-                    <div className="ud-theme-row">
-                      <span className="ud-theme-label">{t("common.theme")}</span>
-                      <ThemeSwitch />
-                    </div>
-
-                    <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}>
-                        <span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}
-                      </Link>
-                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}>
-                        <span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}
-                      </Link>
-                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}>
-                        <span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}
-                      </Link>
-                      <div className="ud-divider" />
-                      <button className="ud-logout" onClick={handleLogout}>
-                        <span className="ud-link-icon" style={{ color: '#e08080' }}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href={loginHref} className="login-btn">{t("nav.login")}</Link>
-            )}
+            {/* GEÄNDERT: gemeinsames Profil-Dropdown (app/components/UserMenu.tsx) */}
+            <UserMenu loginHref={loginHref} />
 
             {/* NEU (Mobile): Hamburger-Button */}
             <button
@@ -659,6 +624,13 @@ export default function AboutPage() {
                   {t("nav.myTrips")}
                   <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
                 </Link>
+                {isAdmin && (
+                  <Link href="/admin" className="ud-link" onClick={() => setMobileMenuOpen(false)}>
+                    <span className="ud-link-icon"><ShieldCheck size={14} strokeWidth={1.8} /></span>
+                    {t("nav.adminPanel")}
+                    <ChevronRight size={14} style={{ marginLeft: "auto", opacity: 0.4 }} />
+                  </Link>
+                )}
 
                 <div className="ud-divider" />
 

@@ -7,6 +7,7 @@ import { supabase, supabasePublic, withTimeout, safeQuery } from "../../lib/supa
 import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+import UserMenu from "../components/UserMenu";
 import { useLanguage } from "../LanguageContext";
 // Die Routenkarte ist jetzt eine eigene Komponente — /plan nutzt exakt dieselbe.
 import RouteCard, { ROUTE_CARD_STYLES } from "../components/RouteCard";
@@ -1724,45 +1725,7 @@ function ExplorePageInner() {
           </div>
 
           <div className="nav-right">
-            {!user && <ThemeSwitch />}
-
-            {user ? (
-              <div className="ep-user-menu-wrap">
-                <button className="user-avatar" onClick={() => setShowUserMenu((p) => !p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                </button>
-
-                {showUserMenu && (
-                  <div className="user-dropdown">
-                    <div className="ud-header">
-                      <div className="ud-avatar">
-                        {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p className="ud-name">{displayName}</p>
-                        <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">{t("common.roleExplorer")}</p>
-                      </div>
-                    </div>
-
-                    <div className="ud-theme-row">
-                      <span className="ud-theme-label">{t("common.theme")}</span>
-                      <ThemeSwitch />
-                    </div>
-
-                    <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}</Link>
-                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}</Link>
-                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}</Link>
-                      <div className="ud-divider" />
-                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{ color: "#e08080" }}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href={loginHref} className="login-btn">{t("nav.login")}</Link>
-            )}
+            <UserMenu loginHref={loginHref} />
 
             <button
               className="mobile-menu-btn mobile-only"

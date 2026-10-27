@@ -10,6 +10,7 @@ import AuthModal from "../AuthModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+import UserMenu from "../components/UserMenu";
 import { useLanguage } from "../LanguageContext";
 import {
   Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
@@ -82,9 +83,9 @@ const MOBILE_PAGE_SIZE = 4;
 
 // NEU: Beschriftung der ersten Box (gespeicherte Routen + geplante Trips)
 const STATS_TEXT = {
-  en: { collection: "Trips" },
-  de: { collection: "Touren" },
-  ru: { collection: "Поездки" },
+  en: { collection: "In your collection" },
+  de: { collection: "In deiner Sammlung" },
+  ru: { collection: "В вашей коллекции" },
 } as const;
 
 /** Stopps, Vorschaubild und Länder eines Trips — für Hero-Panel und Trip-Grid. */
@@ -708,43 +709,7 @@ export default function MyTripsPage() {
             {user && <Link href="/my-trips" className={`nav-link ${pathname === "/my-trips" ? "nav-link-active" : ""}`}>{t("nav.myTrips")}</Link>}
           </div>
           <div className="nav-right">
-            {!user && <ThemeSwitch />}
-            {user ? (
-              <div className="user-menu-wrap">
-                <button className="user-avatar" onClick={() => setShowUserMenu(p => !p)}>
-                  {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                </button>
-                {showUserMenu && (
-                  <div className="user-dropdown">
-                    <div className="ud-header">
-                      <div className="ud-avatar">
-                        {avatarUrl ? <img src={avatarUrl} alt="avatar" /> : displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p className="ud-name">{displayName}</p>
-                        <p className="ud-email">{user.email}</p>
-                        <p className="ud-role">{t("common.roleExplorer")}</p>
-                      </div>
-                    </div>
-
-                    <div className="ud-theme-row">
-                      <span className="ud-theme-label">{t("common.theme")}</span>
-                      <ThemeSwitch />
-                    </div>
-
-                    <div className="ud-links">
-                      <Link href="/profile" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><UserIcon size={14} strokeWidth={1.8} /></span> {t("nav.profile")}</Link>
-                      <Link href="/my-trips" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><MapIcon size={14} strokeWidth={1.8} /></span> {t("nav.myTrips")}</Link>
-                      <Link href="/explore" className="ud-link" onClick={() => setShowUserMenu(false)}><span className="ud-link-icon"><Compass size={14} strokeWidth={1.8} /></span> {t("nav.explore")}</Link>
-                      <div className="ud-divider" />
-                      <button className="ud-logout" onClick={handleLogout}><span className="ud-link-icon" style={{ color: '#e08080' }}><LogOut size={14} strokeWidth={1.8} /></span> {t("nav.signOut")}</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link href="/login" className="login-btn">{t("nav.login")}</Link>
-            )}
+            <UserMenu loginHref="/login" />
 
             {/* NEU (Mobile): Hamburger-Button */}
             <button
