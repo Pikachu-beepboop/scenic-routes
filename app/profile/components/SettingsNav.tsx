@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import {
   User, Settings as SettingsIcon, Mail, Lock, Smartphone, Monitor,
   Award, Bell, ShieldCheck, LifeBuoy, Info, LogOut, Search, X,
@@ -249,7 +250,30 @@ export default function SettingsNav({
             </button>
           </div>
         )}
+
+        {/* NEU: Mini-Footer mit Pflichtlinks (Impressum § 5 DDG, Datenschutz Art. 13 DSGVO).
+            Die Profilseite hat keinen normalen Footer, weil sie in ein Fenster passt —
+            deshalb stehen die Links hier unten in der Seitenleiste, immer sichtbar. */}
+        <div className="sb-legal">
+          <nav aria-label="Legal">
+            <Link href="/legal/imprint">{t("footer.link.imprint")}</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/legal/privacy">{t("footer.link.privacyPolicy")}</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/legal/terms">{t("footer.link.termsOfUse")}</Link>
+          </nav>
+          <p>© {new Date().getFullYear()} Explore Scenic Routes</p>
+        </div>
       </aside>
+
+      <style>{`
+        .st-subnav.sb .sb-legal { margin-top:auto; padding:16px 10px 2px; display:flex; flex-direction:column; gap:6px; }
+        .st-subnav.sb .sb-legal nav { display:flex; flex-wrap:wrap; align-items:center; gap:4px 7px; }
+        .st-subnav.sb .sb-legal a { font-size:11px; font-weight:500; color:var(--dim); text-decoration:none; transition:color .2s; }
+        .st-subnav.sb .sb-legal a:hover { color:var(--gold); }
+        .st-subnav.sb .sb-legal span { font-size:11px; color:var(--dim); opacity:.6; }
+        .st-subnav.sb .sb-legal p { font-size:10px; color:var(--dim); opacity:.75; letter-spacing:.02em; }
+      `}</style>
     </>
   );
 }
