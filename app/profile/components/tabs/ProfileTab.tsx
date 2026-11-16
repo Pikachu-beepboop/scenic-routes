@@ -7,6 +7,7 @@ import {
 import { useLanguage } from "../../../LanguageContext";
 import type { Stamp, SubTabId } from "../../types";
 import AvatarEditor from "./AvatarEditor";
+import { CompletionRing, CompletionBanner, AutoFade, useCompletionCelebration } from "./ProfileCompletion";
 
 const ABOUT_MAX = 250;
 
@@ -172,14 +173,15 @@ export default function ProfileTab({
   const shownStamps = passStamps.slice(0, 4);
   const emptySlots = Math.max(shownStamps.length ? 0 : 3, 4 - shownStamps.length);
 
-  const ringStyle = { ["--p" as string]: `${completionPct}%` } as React.CSSProperties;
+  // NEU: 100 % feiern (einmal pro Nutzer, siehe ProfileCompletion.tsx)
+  const celebrating = useCompletionCelebration(completionPct, user?.id, !!user);
 
   return (
     <div className="st-content wide pb-content">
       {/* Oben: Profil-Karte und Pass-Vorschau nebeneinander (spart Höhe) */}
       <div className="pb-top">
       {/* 1 — Profil-Karte mit Fortschritts-Ring */}
-      <div className="st-card st-subcard pb-hero">
+      <div className={`st-card st-subcard pb-hero ${completionPct >= 100 ? "is-complete" : ""}`}>
         <AvatarEditor
           userId={user?.id}
           avatarPreview={avatarPreview}
@@ -198,12 +200,12 @@ export default function ProfileTab({
             )}
           </div>
         </div>
-        <div className="pb-ring" style={ringStyle} title={t("profile.completion.title")}>
-          <div>
-            <b>{completionPct}%</b>
-            <small>{px.complete}</small>
-          </div>
-        </div>
+        <CompletionRing
+          pct={completionPct}
+          lang={lang}
+          title={t("profile.completion.title")}
+          celebrating={celebrating}
+        />
       </div>
 
       {/* 2 — Traveller-Pass-Vorschau (Klick öffnet den Pass) */}
@@ -332,6 +334,8 @@ export default function ProfileTab({
           />
         </div>
 
+        <CompletionBanner show={celebrating} lang={lang} />
+
         {missingChecks.length > 0 && (
           <div className="pb-tip">
             <Sparkles size={15} strokeWidth={1.8} />
@@ -342,7 +346,10 @@ export default function ProfileTab({
         )}
 
         {error   && <p className="st-error">{error}</p>}
-        {success && !dirty && <p className="st-success">{success}</p>}
+        {/* GEÄNDERT: Erfolgsmeldung erscheint, bleibt kurz stehen und verschwindet dann sanft */}
+        <AutoFade show={!!success && !dirty} holdMs={3500}>
+          <p className="st-success">{success}</p>
+        </AutoFade>
       </div>
 
       {/* 4 — Speichern-Leiste: erscheint nur bei Änderungen */}
