@@ -2,15 +2,15 @@ import LegalLayout from "../LegalLayout";
 
 export default function TermsOfUsePage() {
   return (
-    <LegalLayout title="Nutzungsbedingungen" updated="Juli 2026">
+    <LegalLayout title="Nutzungsbedingungen" updated="November 2026">
       <h2>1. Anbieter und Geltungsbereich</h2>
       <p>
         Diese Nutzungsbedingungen gelten für die Nutzung der Website und der darüber angebotenen Funktionen
-        von „Explore Scenic Routes".
+        von „Explore Scenic Routes“.
       </p>
       <p>Anbieter ist:</p>
       <p>
-        Anichin Lavr<br />
+        Lavr Anichin<br />
         Hornschuchpromenade 43<br />
         90762 Fürth<br />
         Deutschland
@@ -18,7 +18,7 @@ export default function TermsOfUsePage() {
       <p>
         E-Mail: <span className="lp-fill">contact@explorescenicroutes.com</span>
       </p>
-      <p>Nachfolgend wird der Anbieter als „Explore Scenic Routes", „Anbieter", „wir" oder „uns" bezeichnet.</p>
+      <p>Nachfolgend wird der Anbieter als „Explore Scenic Routes“, „Anbieter“, „wir“ oder „uns“ bezeichnet.</p>
       <p>
         Diese Nutzungsbedingungen regeln das Nutzungsverhältnis zwischen dem Anbieter und den Besuchern
         beziehungsweise registrierten Nutzern der Website.
@@ -42,8 +42,10 @@ export default function TermsOfUsePage() {
         <li>Einbindung oder Verlinkung von Kartendiensten;</li>
         <li>Erstellung eines persönlichen Benutzerkontos;</li>
         <li>Speicherung ausgewählter Routen;</li>
-        <li>Verwaltung gespeicherter Routen im Bereich „My Trips";</li>
-        <li>freiwilliges Hochladen eines Profilbildes.</li>
+        <li>Verwaltung gespeicherter Routen im Bereich „My Trips“;</li>
+        <li>Planung eigener Reisen mit Zwischenstopps im Reiseplaner;</li>
+        <li>Anzeige abgeschlossener Routen im persönlichen Traveller Pass;</li>
+        <li>Gestaltung eines Profils mit frei wählbaren Angaben und einem vorgegebenen Avatar.</li>
       </ul>
       <p>
         Der konkrete Funktionsumfang kann abhängig von Gerät, Standort, technischer Verfügbarkeit und
@@ -57,18 +59,11 @@ export default function TermsOfUsePage() {
         Karten, Bilder, Hinweise und Empfehlungen dienen ausschließlich der allgemeinen Information und
         Inspiration.
       </p>
-      <p>Sie stellen insbesondere keine verbindliche:</p>
-      <ul>
-        <li>Routen- oder Navigationsanweisung;</li>
-        <li>Reiseberatung;</li>
-        <li>Verkehrsberatung;</li>
-        <li>Sicherheitsberatung;</li>
-        <li>Wetterauskunft;</li>
-        <li>Rechtsberatung;</li>
-        <li>Garantie für die Befahrbarkeit einer Straße;</li>
-        <li>Zusicherung einer bestimmten Reisezeit oder eines bestimmten Erlebnisses</li>
-      </ul>
-      <p>dar.</p>
+      <p>
+        Sie stellen insbesondere keine verbindliche Routen- oder Navigationsanweisung und keine Reise-,
+        Verkehrs-, Sicherheits-, Wetter- oder Rechtsberatung dar. Eine Gewähr für die Befahrbarkeit einer
+        Strecke, für bestimmte Fahrzeiten oder für ein bestimmtes Reiseerlebnis wird nicht übernommen.
+      </p>
       <p>
         Straßenverläufe, Verkehrsregelungen, Grenzbestimmungen, Zufahrtsbeschränkungen, Mautregelungen,
         Umweltzonen, saisonale Sperrungen und Wetterbedingungen können sich jederzeit ändern. Gleiches gilt
@@ -165,7 +160,7 @@ export default function TermsOfUsePage() {
       </p>
 
       <h2>8. Anmeldung mit Google</h2>
-      <p>Alternativ kann eine Anmeldung über „Mit Google anmelden" angeboten werden.</p>
+      <p>Alternativ kann eine Anmeldung über „Mit Google anmelden“ angeboten werden.</p>
       <p>
         Für die Authentifizierung über Google gelten ergänzend die Bedingungen und Datenschutzbestimmungen
         von Google. Explore Scenic Routes hat keinen Einfluss auf die Verfügbarkeit des Google-Kontos oder
@@ -197,35 +192,29 @@ export default function TermsOfUsePage() {
         selbst vorgenommen oder schuldhaft ermöglicht hat.
       </p>
 
-      <h2>10. Profilbild und Nutzerinhalte</h2>
-      <p>Nutzer können freiwillig ein Profilbild hochladen.</p>
-      <p>Mit dem Hochladen bestätigt der Nutzer, dass:</p>
-      <ul>
-        <li>er die erforderlichen Rechte an dem Bild besitzt;</li>
-        <li>die Verwendung des Bildes keine Rechte Dritter verletzt;</li>
-        <li>abgebildete Personen der Verwendung zugestimmt haben, soweit eine Zustimmung erforderlich ist;</li>
-        <li>das Bild nicht rechtswidrig, beleidigend, diskriminierend, pornografisch, gewaltverherrlichend oder anderweitig unzulässig ist.</li>
-      </ul>
-      <p>Der Nutzer behält seine Rechte am hochgeladenen Bild.</p>
+      <h2>10. Profilangaben und Nutzerinhalte</h2>
       <p>
-        Er räumt Explore Scenic Routes für die Dauer der Speicherung ein einfaches, nicht ausschließliches,
-        nicht übertragbares und räumlich unbeschränktes Recht ein, das Bild ausschließlich zu speichern,
-        technisch zu bearbeiten, zu vervielfältigen und anzuzeigen, soweit dies für die Bereitstellung der
-        Profilfunktion erforderlich ist.
+        Nutzer können in ihrem Profil freiwillig Angaben wie Anzeigename, Benutzername, Land, Stadt und einen
+        kurzen Text über sich hinterlegen sowie einen der bereitgestellten Avatare auswählen. Das Hochladen
+        eigener Bilder ist nicht vorgesehen.
       </p>
       <p>
-        Explore Scenic Routes erhält kein Recht, das Profilbild unabhängig vom Betrieb der Plattform zu
-        verkaufen oder für fremde Werbung zu verwenden.
+        Nutzer sind für die von ihnen eingegebenen Inhalte selbst verantwortlich. Unzulässig sind
+        insbesondere Inhalte, die Rechte Dritter verletzen oder rechtswidrig, beleidigend, diskriminierend,
+        pornografisch oder gewaltverherrlichend sind. Benutzernamen dürfen nicht den Eindruck erwecken, es
+        handle sich um eine andere Person, eine Marke oder um Explore Scenic Routes selbst.
       </p>
       <p>
-        Das Nutzungsrecht endet grundsätzlich, wenn der Nutzer das Bild oder sein Benutzerkonto löscht.
-        Vorübergehend in Sicherungskopien verbliebene Daten werden im Rahmen der üblichen Löschzyklen
-        entfernt.
+        Soweit Nutzer Inhalte eingeben, räumen sie Explore Scenic Routes für die Dauer ihrer Speicherung ein
+        einfaches, nicht übertragbares und unentgeltliches Recht ein, diese ausschließlich zur Bereitstellung
+        der jeweiligen Funktion zu speichern, technisch zu verarbeiten und anzuzeigen. Das Recht erlischt
+        mit der Löschung der Inhalte bzw. des Benutzerkontos.
       </p>
 
-      <h2>11. Gespeicherte Routen und „My Trips"</h2>
+      <h2>11. Gespeicherte Routen, Reiseplanung und Traveller Pass</h2>
       <p>
-        Registrierte Nutzer können Routen speichern und ihrem persönlichen Bereich „My Trips" hinzufügen.
+        Registrierte Nutzer können Routen speichern, ihrem persönlichen Bereich „My Trips“ hinzufügen und
+        mit dem Reiseplaner eigene Reisen mit Zwischenstopps zusammenstellen.
       </p>
       <p>Die Speicherung einer Route bedeutet nicht, dass:</p>
       <ul>
@@ -240,6 +229,11 @@ export default function TermsOfUsePage() {
         Explore Scenic Routes ist kein dauerhafter Datensicherungs- oder Archivierungsdienst. Nutzer sollten
         wichtige Reiseinformationen zusätzlich selbst speichern und vor Fahrtbeginn anhand aktueller und
         verlässlicher Quellen überprüfen.
+      </p>
+      <p>
+        Der Traveller Pass zeigt die abgeschlossenen Routen eines Nutzers in Form von Stempeln an. Er dient
+        ausschließlich der persönlichen Übersicht; Stempel haben keinen Geldwert, sind nicht übertragbar und
+        begründen keine Ansprüche gegenüber Explore Scenic Routes oder Dritten.
       </p>
 
       <h2>12. Zulässige Nutzung</h2>

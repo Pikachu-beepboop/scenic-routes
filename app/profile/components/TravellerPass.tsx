@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Stamp } from "../types";
@@ -57,6 +57,10 @@ const STAMP_STYLES = [
 ];
 
 const STAMPS_PER_PAGE = 6;
+const LAST_PAGE = 5;
+/** linke Seite jeder Doppelseite: Umschlag · Ausweis · Stempel · Rückseite */
+const SPREADS = [0, 1, 3, 5];
+const FLIP_MS = 1000;
 
 export default function TravellerPass({
   username, email, avatarPreview, initials, stamps, pageWidth = PASS_PAGE_W,
@@ -73,14 +77,59 @@ export default function TravellerPass({
   const pageH = Math.round((pageWidth * PASS_PAGE_H) / PASS_PAGE_W);
   const zoom = pageWidth / PASS_PAGE_W;
 
+  // NEU: Umblättern nur noch über Pfeile/Reiter — nicht mehr mit der Maus ziehen.
+  // Solange eine Seite noch umklappt, werden weitere Klicks ignoriert, damit sich
+  // Animationen nicht überlagern (das hat vorher abgehackt gewirkt).
+  const busyRef = useRef(false);
+  const pageRef = useRef(0);
+
   const flipTo = useCallback((idx: number) => {
     const pf = bookRef.current?.pageFlip?.();
-    if (!pf) return;
-    setPageIndex(idx); // Buch rutscht schon beim Klick in die Mitte, nicht erst am Ende
-    pf.flip(idx, "top");
+    if (!pf || busyRef.current) return;
+    const target = Math.max(0, Math.min(LAST_PAGE, idx));
+    if (target === pageRef.current) return;
+    busyRef.current = true;
+    pageRef.current = target;
+    setPageIndex(target); // Buch rutscht schon beim Klick in die Mitte, nicht erst am Ende
+    pf.flip(target, "top");
+    // Sicherheitsnetz, falls das Ende der Animation nicht gemeldet wird
+    window.setTimeout(() => { busyRef.current = false; }, FLIP_MS + 150);
   }, []);
 
-  const onFlip = useCallback((e: any) => setPageIndex(e.data), []);
+  /** Pfeile: Doppelseite für Doppelseite (am Handy Seite für Seite) */
+  const go = useCallback((dir: 1 | -1) => {
+    const pf = bookRef.current?.pageFlip?.();
+    const portrait = pf?.getOrientation?.() === "portrait";
+    const cur = pageRef.current;
+    let next: number | undefined;
+    if (portrait) next = cur + dir;
+    else if (dir === 1) next = SPREADS.find((x) => x > cur);
+    else next = [...SPREADS].reverse().find((x) => x < cur);
+    if (next !== undefined) flipTo(next);
+  }, [flipTo]);
+
+  const onFlip = useCallback((e: any) => {
+    pageRef.current = e.data;
+    setPageIndex(e.data);
+  }, []);
+  const onChangeState = useCallback((e: any) => {
+    if (e.data === "read") busyRef.current = false;
+  }, []);
+
+  // Pfeiltasten auf der Tastatur
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (e.key === "ArrowRight") go(1);
+      if (e.key === "ArrowLeft") go(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [go]);
+
+  const canPrev = pageIndex > 0;
+  const canNext = pageIndex < LAST_PAGE;
 
   // aktiver Reiter: welche Doppelseite gerade offen ist
   const activeTab = pageIndex === 0 ? "cover" : pageIndex <= 2 ? "id" : pageIndex <= 4 ? "stamps" : "cover";
@@ -108,6 +157,27 @@ export default function TravellerPass({
 
       {/* Geschlossen liegt der Umschlag mittig — beim Aufklappen rutscht das Buch zur Seite,
           wie wenn man einen echten Pass öffnet */}
+      <div className="tp-stage" style={{ height: pageH }}>
+      <button
+        type="button"
+        className="tp-arrow tp-arrow-left"
+        onClick={() => go(-1)}
+        disabled={!canPrev}
+        aria-label="Previous page"
+        style={{ right: `calc(50% + ${pageW + 18}px)` }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+      </button>
+      <button
+        type="button"
+        className="tp-arrow tp-arrow-right"
+        onClick={() => go(1)}
+        disabled={!canNext}
+        aria-label="Next page"
+        style={{ left: `calc(50% + ${pageW + 18}px)` }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </button>
       <div
         className="tp-book"
         style={{
@@ -129,17 +199,18 @@ export default function TravellerPass({
             maxHeight={pageH}
             showCover={true}
             usePortrait={true}
-            flippingTime={1100}
+            flippingTime={FLIP_MS}
             drawShadow={true}
             maxShadowOpacity={0.55}
             mobileScrollSupport={false}
             swipeDistance={20}
-            showPageCorners={true}
+            showPageCorners={false}
             startZIndex={0}
             autoSize={false}
             clickEventForward={true}
-            useMouseEvents={true}
+            useMouseEvents={false}
             onFlip={onFlip}
+            onChangeState={onChangeState}
             className="passport-flipbook"
             // feste Breite für zwei Seiten: nur so zeigt react-pageflip die Doppelseite.
             // Ist weniger Platz da (Handy), wird automatisch eine Einzelseite daraus.
@@ -149,6 +220,7 @@ export default function TravellerPass({
           </HTMLFlipBook>
         )}
       </div>
+      </div>
 
       <style>{`
         .tp-tabs { display:flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:color-mix(in srgb, var(--bg2) 60%, transparent); }
@@ -156,6 +228,18 @@ export default function TravellerPass({
         .tp-tabs button:last-child { border-right:none; }
         .tp-tabs button.is-active { color:#C9A86A; background:rgba(201,168,106,0.08); }
         .tp-tabs button:hover { color:var(--cream); }
+        .tp-stage { position:relative; width:100%; }
+        .tp-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:5; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); background:color-mix(in srgb, var(--bg) 85%, transparent); color:var(--cream); cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,.12); transition:background .25s, color .25s, border-color .25s, opacity .25s, transform .25s; }
+        .tp-arrow:hover:not(:disabled) { background:#C9A86A; border-color:#C9A86A; color:#17130E; }
+        .tp-arrow-left:hover:not(:disabled) { transform:translate(-3px,-50%); }
+        .tp-arrow-right:hover:not(:disabled) { transform:translate(3px,-50%); }
+        .tp-arrow:disabled { opacity:.25; cursor:default; box-shadow:none; }
+        @media (max-width:760px) {
+          .tp-arrow { width:40px; height:40px; top:auto; bottom:-56px; transform:none; }
+          .tp-arrow-left { right:auto !important; left:calc(50% - 52px); }
+          .tp-arrow-right { left:calc(50% + 12px) !important; }
+          .tp-arrow-left:hover:not(:disabled), .tp-arrow-right:hover:not(:disabled) { transform:none; }
+        }
         .tp-book { display:flex; justify-content:center; width:100%; transition:transform .8s cubic-bezier(.22,1,.36,1); }
         @media (max-width:760px) { .tp-book { transform:none !important; } }
         .passport-flipbook { margin:0 auto; }
