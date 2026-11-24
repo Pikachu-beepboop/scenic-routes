@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, supabasePublic, safeQuery, withTimeout } from "../lib/supabase";
 import { useAuth, signOutSafe } from "../lib/useAuth";
+// NEU: Admin-Prüfung über Supabase-Funktion is_admin()
+import { useIsAdmin } from "../lib/useIsAdmin";
 import dynamic from "next/dynamic";
 import AuthModal from "./AuthModal";
 import { ThemeSwitch } from "./components/ThemeSwitch";
@@ -111,11 +113,7 @@ const FEATURES = [
   { icon: BookOpen, titleKey: "home.features.stories.title" as const, textKey: "home.features.stories.text" as const },
 ];
 
-// Admin_Page
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(e => e.trim().toLowerCase())
-  .filter(Boolean);
+// GEÄNDERT: Admin-Status kommt jetzt aus der Datenbank (lib/useIsAdmin.ts) statt aus NEXT_PUBLIC_ADMIN_EMAILS.
 
 type Route = {
   id: string;
@@ -494,7 +492,8 @@ export default function HomePage() {
   };
 
   const displayName = username || user?.email?.split("@")[0] || "";
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  // GEÄNDERT: Admin-Status aus der Datenbank
+  const { isAdmin } = useIsAdmin();
 
   return (
     <>

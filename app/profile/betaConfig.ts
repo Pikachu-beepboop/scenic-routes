@@ -14,6 +14,8 @@ import type { SubTabId } from "./types";
 export const HIDDEN_TABS: SubTabId[] = [
   "sessions",
   "notifications",
+  // NEU: 2FA ist noch nicht gebaut (nur „Soon“-Hinweis) – bis zum Start ausgeblendet
+  "twofa",
 ];
 
 export function isTabHidden(id: SubTabId): boolean {
@@ -36,4 +38,3 @@ export const HIDE_UNFINISHED_PREFERENCES = true;
  * Wieder einblenden: einfach auf `false` setzen.
  */
 export const HIDE_TUTORIALS_ROW = true;
-

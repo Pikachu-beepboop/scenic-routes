@@ -29,12 +29,11 @@ import { ThemeSwitch } from "./ThemeSwitch";
 import { useLanguage } from "../LanguageContext";
 import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { supabase, safeQuery } from "../../lib/supabase";
+// NEU: Admin-Prüfung über Supabase-Funktion is_admin()
+import { useIsAdmin } from "../../lib/useIsAdmin";
 import UserMenu from "./UserMenu";
 
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+// GEÄNDERT: Admin-Status kommt jetzt aus der Datenbank (lib/useIsAdmin.ts) statt aus NEXT_PUBLIC_ADMIN_EMAILS.
 
 export default function PlannerNav({ activePath }: { activePath: string }) {
   const { t } = useLanguage();
@@ -48,7 +47,8 @@ export default function PlannerNav({ activePath }: { activePath: string }) {
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
   const initial = (displayName[0] || user?.email?.[0] || "?").toUpperCase();
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  // GEÄNDERT: Admin-Status aus der Datenbank
+  const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

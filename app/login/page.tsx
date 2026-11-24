@@ -4,12 +4,11 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase, getSessionSafe } from "../../lib/supabase";
+// NEU: Admin-Prüfung über Supabase-Funktion is_admin()
+import { checkIsAdmin } from "../../lib/useIsAdmin";
 import { useLanguage } from "@/app/LanguageContext";
 
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(e => e.trim().toLowerCase())
-  .filter(Boolean);
+// GEÄNDERT: Admin-Status kommt jetzt aus der Datenbank (lib/useIsAdmin.ts) statt aus NEXT_PUBLIC_ADMIN_EMAILS.
 
 function LoginPageInner() {
   const router = useRouter();
@@ -65,9 +64,9 @@ function LoginPageInner() {
 
     // GEÄNDERT: getSessionSafe() — bei ungültigem Token liefert das
     // zuverlässig "keine Session", statt die Login-Seite hängen zu lassen.
-    getSessionSafe().then(({ session }) => {
-      const email = session?.user?.email?.toLowerCase();
-      const isAdmin = !!email && ADMIN_EMAILS.includes(email);
+    getSessionSafe().then(async ({ session }) => {
+      // GEÄNDERT: Admin-Status aus der Datenbank statt aus der E-Mail-Liste
+      const isAdmin = await checkIsAdmin(session?.user?.id);
 
       // Если редирект ведёт в /admin, а пользователь не админ — не отправляем его
       // туда автоматически, иначе получится бесконечный цикл /admin <-> /login

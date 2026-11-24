@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase, safeQuery } from '../../lib/supabase';
 import { useAuth, signOutSafe } from '../../lib/useAuth';
+// NEU: Admin-Prüfung über Supabase-Funktion is_admin()
+import { useIsAdmin } from '../../lib/useIsAdmin';
 import { ThemeSwitch } from '../components/ThemeSwitch';
 // NEU: gemeinsamer Footer für alle Seiten
 import SiteFooter from "../components/SiteFooter";
@@ -15,10 +17,7 @@ import {
   Menu, X, ChevronRight, ChevronDown, ShieldCheck,
 } from 'lucide-react';
 
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(e => e.trim().toLowerCase())
-  .filter(Boolean);
+// GEÄNDERT: Admin-Status kommt jetzt aus der Datenbank (lib/useIsAdmin.ts) statt aus NEXT_PUBLIC_ADMIN_EMAILS.
 
 const TEAM = [
   { initials: "LA", name: "Lavr", roleKey: "about.team.role1" as const, bioKey: "about.team.bio1" as const },
@@ -52,7 +51,8 @@ export default function AboutPage() {
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
   const [username, setUsername] = useState("");
   const displayName = username || user?.email?.split("@")[0] || "";
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  // GEÄNDERT: Admin-Status aus der Datenbank
+  const { isAdmin } = useIsAdmin();
 
   // NEU (Mobile): Hamburger-Menü, Values-Akkordeon, Team-Karussell, Footer-Akkordeon
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

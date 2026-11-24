@@ -12,13 +12,12 @@ import { useRouter } from "next/navigation";
 import { User as UserIcon, Map as MapIcon, Compass, Navigation, ShieldCheck, LogOut } from "lucide-react";
 import { supabase, safeQuery } from "../../lib/supabase";
 import { useAuth, signOutSafe } from "../../lib/useAuth";
+// NEU: Admin-Prüfung über Supabase-Funktion is_admin()
+import { useIsAdmin } from "../../lib/useIsAdmin";
 import { useLanguage } from "../LanguageContext";
 import { ThemeSwitch } from "./ThemeSwitch";
 
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+// GEÄNDERT: Admin-Status kommt jetzt aus der Datenbank (lib/useIsAdmin.ts) statt aus NEXT_PUBLIC_ADMIN_EMAILS.
 
 type Props = {
   /** Ziel des Login-Buttons, wenn niemand eingeloggt ist. */
@@ -41,6 +40,8 @@ export default function UserMenu({
   afterSignOut = "/",
 }: Props) {
   const { user } = useAuth();
+  // GEÄNDERT: Admin-Status aus der Datenbank (Hook muss vor dem frühen return stehen)
+  const { isAdmin } = useIsAdmin();
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -99,7 +100,6 @@ export default function UserMenu({
   const avatar = avatarOverride !== undefined ? avatarOverride : avatarUrl;
   const displayName = nameOverride || username || user.email?.split("@")[0] || "";
   const initial = displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "?";
-  const isAdmin = !!user.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
   const close = () => setOpen(false);
 
   const handleLogout = async () => {

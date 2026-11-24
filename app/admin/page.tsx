@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, getSessionSafe } from '../../lib/supabase';
 import { signOutSafe } from '../../lib/useAuth';
+// NEU: Admin-Prüfung über Supabase-Funktion is_admin()
+import { checkIsAdmin } from '../../lib/useIsAdmin';
 import * as XLSX from 'xlsx';
 
 // ---------- Auth ----------
 
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-  .split(',')
-  .map(e => e.trim().toLowerCase())
-  .filter(Boolean);
+// GEÄNDERT: Admin-Status kommt jetzt aus der Datenbank (lib/useIsAdmin.ts) statt aus NEXT_PUBLIC_ADMIN_EMAILS.
+// Das ist nur die Anzeige-Sperre – geschützt sind die Daten über RLS (public.is_admin()).
 
 // ---------- Types ----------
 
@@ -254,8 +254,9 @@ export default function AdminPage() {
       const { session } = await getSessionSafe();
       if (!active) return;
 
-      const email = session?.user?.email?.toLowerCase();
-      const allowed = !!email && ADMIN_EMAILS.includes(email);
+      // GEÄNDERT: Admin-Status aus der Datenbank statt aus der E-Mail-Liste
+      const allowed = await checkIsAdmin(session?.user?.id);
+      if (!active) return;
 
       setIsAuthorized(allowed);
       setAuthChecked(true);
@@ -271,9 +272,10 @@ export default function AdminPage() {
       // setTimeout(0): im Auth-Callback hält supabase-js den Auth-Lock — alles,
       // was danach Supabase anfassen könnte (Navigation/Re-Render), gehört
       // aus dem Callback heraus.
-      setTimeout(() => {
-        const email = session?.user?.email?.toLowerCase();
-        const allowed = !!email && ADMIN_EMAILS.includes(email);
+      setTimeout(async () => {
+        // GEÄNDERT: Admin-Status aus der Datenbank statt aus der E-Mail-Liste
+        const allowed = await checkIsAdmin(session?.user?.id);
+        if (!active) return;
         setIsAuthorized(allowed);
         if (!allowed) {
           router.push('/login?redirect=/admin');
