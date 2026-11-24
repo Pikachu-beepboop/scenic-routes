@@ -996,7 +996,7 @@ function ExplorePageInner() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700;800&display=swap');
+        /* GEÄNDERT: Google-Fonts-Import entfernt. Cormorant Garamond und Inter kommen jetzt selbst gehostet aus app/globals.css (public/fonts/). */
 
         html { scroll-behavior:smooth; }
         body { background:var(--bg); overflow-x:hidden; }

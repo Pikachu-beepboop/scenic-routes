@@ -18,7 +18,9 @@ import { supabasePublic, safeQuery } from "../../lib/supabase";
 import { useTheme } from "next-themes";
 import { useLanguage } from "../LanguageContext";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+// GEÄNDERT: Länderkarte liegt jetzt selbst gehostet in public/geo/ (world-atlas 2.0.2, Lizenz ISC)
+// statt von cdn.jsdelivr.net geladen zu werden – keine Anfrage an fremde Server mehr.
+const GEO_URL = "/geo/countries-110m.json";
 const TOUR_MS = 6000;
 /** Routen, die näher als dieser Abstand (Grad) beieinander liegen, teilen sich einen Klick. */
 const NEAR_DEG = 1.6;

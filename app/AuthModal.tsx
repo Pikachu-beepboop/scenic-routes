@@ -87,7 +87,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        /* GEÄNDERT: Poppins-Import von Google entfernt. Das Modal nutzt jetzt Inter wie der Rest der Seite (selbst gehostet, app/globals.css). */
 
         .au-overlay {
           position: fixed;
@@ -117,7 +117,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           width: 850px;
           max-width: 100%;
           height: 530px;
-          font-family: 'Poppins', sans-serif;
+          font-family: 'Inter', system-ui, sans-serif;
           animation: auBoxIn .4s cubic-bezier(.34,1.56,.64,1);
         }
         @keyframes auBoxIn {
@@ -199,7 +199,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           margin: 6px 0;
           width: 100%;
           font-size: 14px;
-          font-family: 'Poppins', sans-serif;
+          font-family: 'Inter', system-ui, sans-serif;
           outline: none;
           transition: all .3s;
         }
@@ -229,7 +229,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           margin-top: 12px;
           transition: all .3s;
           box-shadow: 0 4px 15px rgba(0,62,77,.4);
-          font-family: 'Poppins', sans-serif;
+          font-family: 'Inter', system-ui, sans-serif;
         }
         .au-btn:hover { box-shadow: 0 6px 20px rgba(0,62,77,.55); }
         .au-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -288,7 +288,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           letter-spacing: 1px;
           text-transform: uppercase;
           cursor: pointer;
-          font-family: 'Poppins', sans-serif;
+          font-family: 'Inter', system-ui, sans-serif;
           transition: all .3s;
         }
         .au-ghost:hover { background: rgba(255,255,255,.15); }
@@ -313,7 +313,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           font-weight: 600;
           padding: 10px 36px;
           cursor: pointer;
-          font-family: 'Poppins', sans-serif;
+          font-family: 'Inter', system-ui, sans-serif;
           transition: all .3s;
         }
         .au-mobile-btn:hover { background: #003e4d; color: #fff; }

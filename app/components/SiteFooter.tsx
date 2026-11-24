@@ -7,34 +7,18 @@
 // Eigenständig gebaut, damit er auf jeder Seite gleich aussieht:
 // - Farben: eigene Variablen pro Theme (.dark / .light auf <html> von next-themes),
 //   funktioniert also auch auf Seiten ohne eigenes Variablen-System (Legal, Support).
-// - Schriften: über next/font selbst gehostet (keine Anfrage an Google im Browser).
+// - Schriften: GEÄNDERT – kommen jetzt zentral selbst gehostet aus app/globals.css.
 // - CSS: alle Selektoren mit .srf präfixiert, damit globale Resets wie
 //   `.pg button`, `.pp *` oder `.pp button` die Footer-Stile nicht überschreiben.
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { Cormorant_Garamond, Inter } from "next/font/google";
 import { ArrowRight, Globe } from "lucide-react";
 // GEÄNDERT: derselbe Theme-Switch wie im Profil-Dropdown (UserMenu)
 import { ThemeSwitch } from "./ThemeSwitch";
 import { useLanguage } from "../LanguageContext";
 import { useAuth } from "../../lib/useAuth";
 import type { TranslationKey } from "@/lib/translations";
-
-const serif = Cormorant_Garamond({
-  subsets: ["latin", "cyrillic"],
-  weight: ["300", "400"],
-  style: ["normal", "italic"],
-  variable: "--srf-serif",
-  display: "swap",
-});
-
-const sans = Inter({
-  subsets: ["latin", "cyrillic"],
-  weight: ["300", "400", "600", "700", "800"],
-  variable: "--srf-sans",
-  display: "swap",
-});
 
 type FooterLink = {
   key: TranslationKey;
@@ -122,7 +106,7 @@ export default function SiteFooter() {
   };
 
   return (
-    <footer className={`srf ${serif.variable} ${sans.variable}`}>
+    <footer className="srf">
       <div className="srf-in">
         {/* Statement + CTA */}
         <div className="srf-hero">
@@ -247,7 +231,7 @@ const SITE_FOOTER_CSS = `
   background:var(--srf-bg); color:var(--srf-cream);
   border-top:1px solid var(--srf-border);
   padding:84px clamp(24px,5vw,80px) 30px;
-  font-family:var(--srf-sans), 'Inter', system-ui, sans-serif;
+  font-family:'Inter', system-ui, sans-serif;
   -webkit-font-smoothing:antialiased;
   overflow:hidden; transition:background .35s, color .35s;
 }
@@ -262,7 +246,7 @@ const SITE_FOOTER_CSS = `
 
 .srf .srf-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:40px; }
 .srf .srf-kicker { margin:0 0 18px; padding:0; font-size:10px; font-weight:700; letter-spacing:.3em; text-transform:uppercase; color:var(--srf-ink); }
-.srf .srf-h { margin:0; padding:0; font-family:var(--srf-serif), 'Cormorant Garamond', Georgia, serif; font-weight:300; font-size:64px; line-height:1.02; letter-spacing:-.01em; color:var(--srf-cream); }
+.srf .srf-h { margin:0; padding:0; font-family:'Cormorant Garamond', Georgia, serif; font-weight:300; font-size:64px; line-height:1.02; letter-spacing:-.01em; color:var(--srf-cream); }
 .srf .srf-h em { font-style:italic; color:var(--srf-ink); }
 .srf a.srf-cta {
   display:inline-flex; align-items:center; gap:12px; padding:15px 26px;
