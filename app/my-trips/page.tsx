@@ -8,14 +8,15 @@ import { useAuth, signOutSafe } from "../../lib/useAuth";
 import { deleteTrip, fetchTrips, type Trip } from "../../lib/trips";
 import AuthModal from "../AuthModal";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { useTheme } from "next-themes";
 import { ThemeSwitch } from "../components/ThemeSwitch";
+// NEU: gemeinsamer Footer für alle Seiten
+import SiteFooter from "../components/SiteFooter";
 import UserMenu from "../components/UserMenu";
 import { useLanguage } from "../LanguageContext";
 import {
   Bookmark, Globe2, Navigation, Clock, Heart, ChevronRight, X,
-  User as UserIcon, Map as MapIcon, Compass, LogOut, Globe,
-  Menu, ChevronDown, Trash2,
+  User as UserIcon, Map as MapIcon, Compass, LogOut,
+  Menu, Trash2,
 } from "lucide-react";
 
 const fmtKm = (km?: number) =>
@@ -28,55 +29,6 @@ function localizedText(route: any, field: string, lang: string): string {
   const value = route?.[`${field}_${lang}`] ?? route?.[`${field}_en`] ?? route?.[`${field}_de`] ?? route?.[field];
   return value ?? "";
 }
-
-// Footer-Linkdaten: jeder Link trägt jetzt sein eigenes Ziel (href) und ein
-// "protected"-Flag für Links, die einen eingeloggten User voraussetzen
-// (Login-Redirect greift dafür weiter unten im Render).
-const FOOTER_COLUMNS = [
-  {
-    id: "explore",
-    headingKey: "footer.col.explore" as const,
-    links: [
-      { key: "footer.link.allRoutes" as const, href: "/explore", protected: false },
-      { key: "footer.link.myTrips" as const, href: "/my-trips", protected: true },
-      { key: "footer.link.profile" as const, href: "/profile", protected: true },
-    ],
-  },
-  {
-    id: "about",
-    headingKey: "footer.col.about" as const,
-    links: [
-      // Traveller Pass ist kein eigener Pfad, sondern ein Tab auf der Profile-Page
-      // (subTab="pass"). Die Profile-Page liest ?tab=pass beim Laden aus.
-      { key: "footer.link.travellerPass" as const, href: "/profile?tab=pass", protected: true },
-      { key: "footer.link.about" as const, href: "/about", protected: false },
-      // Our Team ist ein Anchor-Abschnitt auf der About-Page (id="team")
-      { key: "footer.link.ourTeam" as const, href: "/about#team", protected: false },
-    ],
-  },
-  {
-    id: "support",
-    headingKey: "footer.col.support" as const,
-    links: [
-      // FAQ, Contact und Send Feedback führen nicht eingeloggte User zur
-      // öffentlichen /support-Seite. Eingeloggte User werden stattdessen
-      // direkt zum "support"-Subtab im Profil weitergeleitet (loggedInHref),
-      // da dort derselbe Inhalt bereits eingebettet vorhanden ist.
-      { key: "footer.link.faq" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
-      { key: "footer.link.contact" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
-      { key: "footer.link.sendFeedback" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
-    ],
-  },
-  {
-    id: "legal",
-    headingKey: "footer.col.legal" as const,
-    links: [
-      { key: "footer.link.termsOfUse" as const, href: "/legal/terms", protected: false },
-      { key: "footer.link.privacyPolicy" as const, href: "/legal/privacy", protected: false },
-      { key: "footer.link.imprint" as const, href: "/legal/imprint", protected: false },
-    ],
-  },
-];
 
 // NEU (Mobile): wie viele Route-Einträge initial + pro "Load more"-Klick angezeigt werden
 const MOBILE_PAGE_SIZE = 4;
@@ -116,11 +68,9 @@ export default function MyTripsPage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [navScrolled, setNavScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const { t, lang, setLang } = useLanguage();
+  // GEÄNDERT: setLang, theme und mounted wurden nur vom alten Footer gebraucht
+  const { t, lang } = useLanguage();
   const statsText = STATS_TEXT[(lang in STATS_TEXT ? lang : "en") as keyof typeof STATS_TEXT];
-  const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -131,7 +81,6 @@ export default function MyTripsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(MOBILE_PAGE_SIZE);
-  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
 
   // NEU: eigener, abgerundeter Scrollbar-Indikator für die Saved-Routes-Liste
   // (native scrollbar-color/webkit-Radien werden von Browsern uneinheitlich
@@ -147,7 +96,6 @@ export default function MyTripsPage() {
     ...trips.flatMap((trip) => tripSummary(trip).countries),
   ].filter(Boolean)).size;
 
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
@@ -183,15 +131,6 @@ export default function MyTripsPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
-
-  useEffect(() => {
-    if (!showLangMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest(".footer-lang-wrap")) setShowLangMenu(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showLangMenu]);
 
   // NEU (Mobile): Body-Scroll sperren, solange das Hamburger-Menü offen ist
   useEffect(() => {
@@ -1088,108 +1027,8 @@ export default function MyTripsPage() {
         />
 
         {/* FOOTER */}
-        <footer className="footer">
-          <div className="footer-inner">
-            <div className="footer-top">
-              <div>
-                <div className="footer-logo-container">
-                  <img
-                    src="/logodark.png"
-                    alt="Scenic Routes"
-                    className={`footer-logo-img ${mounted && theme === "light" ? "footer-logo-light" : "footer-logo-dark"}`}
-                  />
-                </div>
-
-                <p className="footer-tagline">
-                  {t("home.footer.tagline")}
-                </p>
-
-                {/* NEU (Mobile): Social-Icons */}
-                {/* Social-Icons wurden entfernt */}
-              </div>
-
-              {FOOTER_COLUMNS.map(({ id, headingKey, links }) => {
-                const isOpen = openFooterSection === id;
-                return (
-                  <div className="footer-col" key={id}>
-                    {/* NEU (Mobile): Header klickbar (Akkordeon). Auf PC durch
-                        pointer-events:none wirkungslos, Links bleiben über
-                        .footer-col-links-wrap (max-height:none Basis-Regel)
-                        immer sichtbar. */}
-                    <button
-                      className="footer-col-header"
-                      onClick={() => setOpenFooterSection(isOpen ? null : id)}
-                    >
-                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{t(headingKey)}</p>
-                      <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
-                    </button>
-
-                    <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
-                      <div style={{ paddingTop: 14 }}>
-                        {links.map(({ key, href, protected: isProtected }) => {
-                          // Geschützte Links (My Trips, Profile, Traveller Pass) gehen
-                          // ohne Session erst zum Login, mit redirect zurück zum Ziel.
-                          const finalHref =
-                            isProtected && !user
-                              ? `/login?redirect=${encodeURIComponent(href)}`
-                              : href;
-
-                          return (
-                            <Link href={finalHref} key={key}>
-                              {t(key)}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="footer-bottom">
-              <p className="footer-copy">
-                © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
-              </p>
-
-              <div className="footer-controls">
-                <div className="footer-lang-wrap">
-                  <button
-                    className="footer-lang-btn"
-                    onClick={() => setShowLangMenu((p) => !p)}
-                  >
-                    <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
-                  </button>
-
-                  {showLangMenu && (
-                    <div className="footer-lang-menu">
-                      <button
-                        className={`footer-lang-option ${lang === "en" ? "active" : ""}`}
-                        onClick={() => { setLang("en"); setShowLangMenu(false); }}
-                      >
-                        English
-                      </button>
-                      <button
-                        className={`footer-lang-option ${lang === "de" ? "active" : ""}`}
-                        onClick={() => { setLang("de"); setShowLangMenu(false); }}
-                      >
-                        Deutsch
-                      </button>
-                      <button
-                        className={`footer-lang-option ${lang === "ru" ? "active" : ""}`}
-                        onClick={() => { setLang("ru"); setShowLangMenu(false); }}
-                      >
-                        Русский
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <ThemeSwitch />
-              </div>
-            </div>
-          </div>
-        </footer>
+        {/* GEÄNDERT: gemeinsamer Footer statt eigenem Footer-Code */}
+        <SiteFooter />
       </div>
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />

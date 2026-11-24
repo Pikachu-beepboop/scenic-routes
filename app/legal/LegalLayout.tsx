@@ -4,6 +4,8 @@ import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import "./legal.css";
+// NEU: gemeinsamer Footer – Impressum & Co. sind so auch von hier aus erreichbar
+import SiteFooter from "../components/SiteFooter";
 
 export default function LegalLayout({
   title,
@@ -32,6 +34,8 @@ export default function LegalLayout({
   };
 
   return (
+    // GEÄNDERT: Fragment, damit der Footer unter der Legal-Seite steht
+    <>
     <div className="lp">
       <div className="lp-bg" />
       <div className="lp-card">
@@ -45,5 +49,8 @@ export default function LegalLayout({
         <div className="lp-body">{children}</div>
       </div>
     </div>
+    {/* NEU: gemeinsamer Footer */}
+    <SiteFooter />
+    </>
   );
 }

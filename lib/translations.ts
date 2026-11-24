@@ -114,6 +114,11 @@ export const translations = {
 "footer.link.privacyPolicy":    { en: "Privacy Policy",        de: "Datenschutz",              ru: "Политика конфиденциальности" },
 "footer.link.imprint":          { en: "Imprint",               de: "Impressum",                ru: "Выходные данные" },
 
+  // NEU: Gemeinsamer Footer (SiteFooter) — Statement und Button
+  "footer.headline.line1": { en: "The road is",          de: "Die Straße ist",            ru: "Дорога —" },
+  "footer.headline.line2": { en: "the destination.",     de: "das Ziel.",                 ru: "это и есть цель." },
+  "footer.cta":            { en: "Find your next route", de: "Finde deine nächste Route", ru: "Найти следующий маршрут" },
+
 // ==================== About-Seite ====================
 
 

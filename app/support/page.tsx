@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, LifeBuoy } from "lucide-react";
 import { ThemeSwitch } from "../components/ThemeSwitch";
 import { useLanguage } from "../LanguageContext";
+// NEU: gemeinsamer Footer für alle Seiten
+import SiteFooter from "../components/SiteFooter";
 
 // Wiederverwendung des bestehenden Support-Inhalts (FAQ / Contact / Feedback
 // Akkordeon) — bleibt unverändert, wird hier nur zusätzlich öffentlich
@@ -33,6 +35,9 @@ export default function SupportPage() {
   };
 
   return (
+    // GEÄNDERT: Fragment, damit der Footer außerhalb von .pp steht
+    // (die globalen .pp-Resets greifen so gar nicht erst)
+    <>
     <div className="pp">
       <nav className="pp-nav">
         <Link href="/" className="pp-nav-logo">
@@ -84,5 +89,8 @@ export default function SupportPage() {
         </div>
       </div>
     </div>
+    {/* NEU: gemeinsamer Footer */}
+    <SiteFooter />
+    </>
   );
 }

@@ -7,13 +7,15 @@ import { useAuth, signOutSafe } from '@/lib/useAuth';
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 import {
     Clock, MapPin, Navigation, Star, ChevronDown, ChevronRight,
-    Heart, ArrowLeft, User, ArrowRight, Send, Globe,
+    Heart, ArrowLeft, User, ArrowRight, Send,
     Map as MapIcon, Compass, LogOut, Menu, X,
     Route as RouteIcon, Mountain, Waves, Droplets, Ticket, Car,
     CloudRain, Fuel, Users, Sun, ExternalLink, Bookmark, Gauge, TreePine
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeSwitch } from '@/app/components/ThemeSwitch';
+// NEU: gemeinsamer Footer für alle Seiten
+import SiteFooter from '@/app/components/SiteFooter';
 import UserMenu from '@/app/components/UserMenu';
 import GoogleMapsGate from '@/app/components/GoogleMapsGate';
 import { useTheme } from 'next-themes';
@@ -109,50 +111,6 @@ function localizedRouteText(route: Route | null, field: string, lang: string): s
     const legacy = route[field];
     const value = specific || en || de || legacy;
     return typeof value === 'string' ? value : '';
-}
-
-const LANGUAGES = [
-    { code: "en", label: "English" },
-    { code: "de", label: "Deutsch" },
-    { code: "ru", label: "Русский" },
-] as const;
-
-// Footer-Linkdaten (analog zu Homepage/Explore/About/My Trips): pro Link-Key
-// hinterlegt, wohin er führt. "protected" = braucht Login (sonst Redirect zu
-// /login mit redirect-Param). "loggedInHref" = eingeloggte User werden auf
-// ein alternatives Ziel geleitet (z.B. Support-Tab im Profil statt der
-// öffentlichen /support-Seite), ohne dass dafür ein Login erzwungen wird.
-const FOOTER_LINK_META: Record<string, { href: string; protected?: boolean; loggedInHref?: string }> = {
-    "footer.link.allRoutes": { href: "/explore" },
-    "footer.link.myTrips": { href: "/my-trips", protected: true },
-    "footer.link.profile": { href: "/profile", protected: true },
-    // Traveller Pass ist kein eigener Pfad, sondern ein Tab auf der Profile-Page
-    // (subTab="pass"). Die Profile-Page liest ?tab=pass beim Laden aus.
-    "footer.link.travellerPass": { href: "/profile?tab=pass", protected: true },
-    "footer.link.about": { href: "/about" },
-    // Our Team ist ein Anchor-Abschnitt auf der About-Page (id="team")
-    "footer.link.ourTeam": { href: "/about#team" },
-    // FAQ, Contact und Send Feedback führen nicht eingeloggte User zur
-    // öffentlichen /support-Seite. Eingeloggte User werden stattdessen direkt
-    // zum "support"-Subtab im Profil weitergeleitet.
-    "footer.link.faq": { href: "/support", loggedInHref: "/profile?tab=support" },
-    "footer.link.contact": { href: "/support", loggedInHref: "/profile?tab=support" },
-    "footer.link.sendFeedback": { href: "/support", loggedInHref: "/profile?tab=support" },
-    "footer.link.termsOfUse": { href: "/legal/terms" },
-    "footer.link.privacyPolicy": { href: "/legal/privacy" },
-    "footer.link.imprint": { href: "/legal/imprint" },
-};
-
-function getFooterHref(linkKey: string, user: any): string {
-    const meta = FOOTER_LINK_META[linkKey];
-    if (!meta) return "#";
-    if (meta.protected && !user) {
-        return `/login?redirect=${encodeURIComponent(meta.href)}`;
-    }
-    if (user && meta.loggedInHref) {
-        return meta.loggedInHref;
-    }
-    return meta.href;
 }
 
 /** Titel im Magazin-Stil: letztes Wort (bzw. Klammerteil) kursiv in Gold. */
@@ -276,12 +234,11 @@ export default function RouteDetailPage() {
     const [avatarUrl, setAvatarUrl] = useState('');
     const [username, setUsername] = useState('');
     const [openStopIndex, setOpenStopIndex] = useState<number | null>(null);
-    const { lang: currentLang, setLang, t } = useLanguage();
-    const [showLangMenu, setShowLangMenu] = useState(false);
+    // GEÄNDERT: setLang wurde nur von den alten Footern gebraucht
+    const { lang: currentLang, t } = useLanguage();
 
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [mobileNavScrolled, setMobileNavScrolled] = useState(false);
-    const [mobileFooterOpen, setMobileFooterOpen] = useState<'explore' | 'about' | 'support' | 'legal' | null>(null);
 
     const { theme } = useTheme();
     const { unit } = useUnit();
@@ -382,24 +339,6 @@ export default function RouteDetailPage() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showUserMenu]);
-
-    useEffect(() => {
-        if (!showLangMenu) return;
-
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-
-            if (!target.closest('.route-lang-wrap')) {
-                setShowLangMenu(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showLangMenu]);
 
     async function fetchProfile(userId: string) {
         const data = await safeQuery<{ avatar_url: string | null; username: string | null }>(
@@ -1155,202 +1094,11 @@ export default function RouteDetailPage() {
                     </div>
                 </section>
 
-                <footer className="lg:hidden relative bg-[var(--bg)] border-t border-[var(--border)] px-5 pt-12 pb-28">
-                    <div className="flex flex-col items-center text-center">
-                        <img
-                            src="/logodark.png"
-                            alt="Scenic Routes"
-                            style={{
-                                width: '150px',
-                                height: 'auto',
-                                display: 'block',
-                                filter: isLight ? 'none' : 'invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%)',
-                            }}
-                        />
-
-                        <p className="text-[var(--dim)] text-[13px] leading-relaxed font-light max-w-[280px] mt-2">
-                            {t("home.footer.tagline")}
-                        </p>
-                    </div>
-
-                    <div className="mt-10">
-                        {([
-                            { key: 'explore' as const, headingKey: 'footer.col.explore' as const, linkKeys: ['footer.link.allRoutes', 'footer.link.myTrips', 'footer.link.profile'] as const },
-                            { key: 'about' as const, headingKey: 'footer.col.about' as const, linkKeys: ['footer.link.travellerPass', 'footer.link.about', 'footer.link.ourTeam'] as const },
-                            { key: 'support' as const, headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.sendFeedback'] as const },
-                            { key: 'legal' as const, headingKey: 'footer.col.legal' as const, linkKeys: ['footer.link.termsOfUse', 'footer.link.privacyPolicy', 'footer.link.imprint'] as const },
-                        ]).map(({ key, headingKey, linkKeys }) => (
-                            <div key={key} className="border-t border-[var(--border)]">
-                                <button
-                                    type="button"
-                                    onClick={() => setMobileFooterOpen(mobileFooterOpen === key ? null : key)}
-                                    className="w-full flex items-center justify-between py-4 text-[11px] font-extrabold uppercase tracking-[0.28em] text-[var(--dim)]"
-                                >
-                                    {t(headingKey)}
-                                    <ChevronDown
-                                        size={14}
-                                        className={`text-[var(--dim)] transition-transform duration-300 ${mobileFooterOpen === key ? 'rotate-180 text-[var(--gold)]' : ''}`}
-                                    />
-                                </button>
-                                <AnimatePresence>
-                                    {mobileFooterOpen === key && (
-                                        <motion.ul
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.25 }}
-                                            className="overflow-hidden space-y-3 pb-4"
-                                        >
-                                            {linkKeys.map(linkKey => (
-                                                <li key={linkKey}>
-                                                    <Link href={getFooterHref(linkKey, user)} className="text-sm text-[var(--dim)]">{t(linkKey)}</Link>
-                                                </li>
-                                            ))}
-                                        </motion.ul>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="border-t border-[var(--border)] mt-2 pt-6 text-center">
-                        <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--dim)]">
-                            © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
-                        </p>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-3 pt-5">
-                        <div className="relative route-lang-wrap">
-                            <button
-                                onClick={() => setShowLangMenu((p) => !p)}
-                                className="flex items-center gap-1 h-[38px] px-3 rounded-full border-none bg-transparent text-[14px] font-normal uppercase tracking-wider text-[var(--muted)]"
-                            >
-                                <Globe size={17} /> {currentLang.toUpperCase()}
-                            </button>
-
-                            {showLangMenu && (
-                                <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 min-w-[140px] bg-[color-mix(in_srgb,var(--bg)_97%,transparent)] border border-[var(--border)] rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl z-50">
-                                    {LANGUAGES.map((lang) => (
-                                        <button
-                                            key={lang.code}
-                                            onClick={() => {
-                                                setLang(lang.code);
-                                                setShowLangMenu(false);
-                                            }}
-                                            className={`block w-full text-left px-4 py-2.5 text-xs font-medium ${lang.code === currentLang ? 'text-[var(--gold)] font-bold' : 'text-[var(--muted)]'
-                                                }`}
-                                        >
-                                            {lang.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <ThemeSwitch />
-                    </div>
-                </footer>
-
-                <footer className="hidden lg:block relative bg-gradient-to-b from-[var(--bg)] via-[var(--bg2)] to-[var(--bg)] border-t border-[var(--border)] overflow-hidden">
-                    <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-                        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(201,168,106,0.18) 1px, transparent 0)',
-                        backgroundSize: '40px 40px',
-                    }} />
-
-                    <div className="relative max-w-7xl mx-auto px-12 pt-32 pb-16">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 pb-20 border-b border-[var(--border)]">
-                            <div className="lg:col-span-4 space-y-8">
-
-                                <Link href="/" className="flex items-center w-fit">
-                                    <div style={{ width: '220px', height: '147px', display: 'flex', alignItems: 'center' }}>
-                                        <img
-                                            src="/logodark.png"
-                                            alt="Scenic Routes"
-                                            style={{
-                                                width: '220px',
-                                                height: 'auto',
-                                                display: 'block',
-                                                filter: isLight ? 'none' : 'invert(33%) sepia(46%) saturate(600%) hue-rotate(4deg) brightness(96%) drop-shadow(0 4px 10px rgba(0,0,0,0.6))',
-                                            }}
-                                        />
-                                    </div>
-                                </Link>
-
-                                <p className="text-[var(--dim)] text-sm leading-relaxed max-w-xs font-light">
-                                    Curating the world's most breathtaking driving routes for those who seek the road less travelled.
-                                </p>
-                                <div className="flex gap-4">
-                                    {['IG'].map(social => (
-                                        <a key={social} href="#" aria-label={social}
-                                            className="w-11 h-11 rounded-xl bg-[var(--bg2)] border border-[var(--border)] flex items-center justify-center text-[10px] font-bold text-[var(--dim)] hover:text-[var(--cream)] hover:bg-[#C9A86A]/10 hover:border-[#C9A86A]/30 transition-all duration-500 hover:scale-110">
-                                            {social}
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-12">
-                                {[
-                                    { headingKey: 'footer.col.explore' as const, linkKeys: ['footer.link.allRoutes', 'footer.link.myTrips', 'footer.link.profile'] as const },
-                                    { headingKey: 'footer.col.about' as const, linkKeys: ['footer.link.travellerPass', 'footer.link.about', 'footer.link.ourTeam'] as const },
-                                    { headingKey: 'footer.col.support' as const, linkKeys: ['footer.link.faq', 'footer.link.contact', 'footer.link.sendFeedback'] as const },
-                                    { headingKey: 'footer.col.legal' as const, linkKeys: ['footer.link.termsOfUse', 'footer.link.privacyPolicy', 'footer.link.imprint'] as const },
-                                ].map(({ headingKey, linkKeys }) => (
-                                    <div key={headingKey} className="space-y-6">
-                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--gold)]">{t(headingKey)}</h4>
-                                        <ul className="space-y-4">
-                                            {linkKeys.map(linkKey => (
-                                                <li key={linkKey}>
-                                                    <Link href={getFooterHref(linkKey, user)} className="text-sm text-[var(--dim)] hover:text-[var(--cream)] hover:translate-x-1 inline-block transition-all duration-300">{t(linkKey)}</Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </div>
-
-
-                        </div>
-
-                        <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-[var(--dim)]">
-                            <p>© {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}</p>
-
-                            <div className="flex items-center gap-6 flex-wrap justify-center">
-                                <div className="relative route-lang-wrap">
-                                    <button
-                                        onClick={() => setShowLangMenu((p) => !p)}
-                                        className="flex items-center gap-1.5 px-6.5 py-2 rounded-full border-none bg-transparent text-base font-normal uppercase tracking-[0.12em] text-[var(--muted)] hover:text-[var(--cream)] transition-colors duration-200"
-                                    >
-                                        <Globe size={12} strokeWidth={2} /> {currentLang.toUpperCase()}
-                                    </button>
-
-                                    {showLangMenu && (
-                                        <div className="absolute bottom-[calc(100%+10px)] right-0 min-w-[150px] bg-[color-mix(in_srgb,var(--bg)_97%,transparent)] border border-[var(--border)] rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl z-50">
-                                            {LANGUAGES.map((lang) => (
-                                                <button
-                                                    key={lang.code}
-                                                    onClick={() => {
-                                                        setLang(lang.code);
-                                                        setShowLangMenu(false);
-                                                    }}
-                                                    className={`block w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 ${lang.code === currentLang
-                                                        ? 'text-[var(--gold)] font-bold'
-                                                        : 'text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--border)_60%,transparent)] hover:text-[var(--cream)]'
-                                                        }`}
-                                                >
-                                                    {lang.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <ThemeSwitch />
-                            </div>
-                        </div>
-                        <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-[#C9A86A]/25 to-transparent" />
-                    </div>
-                </footer>
+                {/* GEÄNDERT: gemeinsamer Footer statt der zwei eigenen Footer (Mobil/Desktop).
+                    pb-28 auf Mobil hält den Platz für die feste Aktionsleiste unten frei. */}
+                <div className="pb-28 lg:pb-0 bg-[var(--bg)]">
+                    <SiteFooter />
+                </div>
 
                 <div className="hidden lg:block fixed bottom-16 right-16 z-50">
                     <motion.button

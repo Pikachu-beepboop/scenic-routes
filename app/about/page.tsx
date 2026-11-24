@@ -5,40 +5,20 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase, safeQuery } from '../../lib/supabase';
 import { useAuth, signOutSafe } from '../../lib/useAuth';
-import { useTheme } from 'next-themes';
 import { ThemeSwitch } from '../components/ThemeSwitch';
+// NEU: gemeinsamer Footer für alle Seiten
+import SiteFooter from "../components/SiteFooter";
 import UserMenu from '../components/UserMenu';
 import { useLanguage } from '../LanguageContext';
 import {
-  User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight, Globe,
-  Menu, X, ChevronRight, ChevronDown, Mail, ShieldCheck,
+  User as UserIcon, Map as MapIcon, Compass, LogOut, ArrowRight,
+  Menu, X, ChevronRight, ChevronDown, ShieldCheck,
 } from 'lucide-react';
 
 const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
   .split(',')
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
-
-// NEU (Mobile): eigene Instagram/YouTube-Icons im lucide-Stroke-Stil,
-// da diese Marken-Icons in lucide-react nicht mehr enthalten sind.
-function InstagramIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-    </svg>
-  );
-}
-
-function YoutubeIcon({ size = 15, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-    </svg>
-  );
-}
 
 const TEAM = [
   { initials: "LA", name: "Lavr", roleKey: "about.team.role1" as const, bioKey: "about.team.bio1" as const },
@@ -59,65 +39,14 @@ const VALUES = [
   { num: "03", titleKey: "about.values.v3.title" as const, textKey: "about.values.v3.text" as const },
 ];
 
-// Footer-Linkdaten: jeder Link trägt jetzt sein eigenes Ziel (href) und ein
-// "protected"-Flag für Links, die einen eingeloggten User voraussetzen
-// (Login-Redirect greift dafür weiter unten im Render).
-const FOOTER_COLUMNS = [
-  {
-    id: "explore",
-    headingKey: "footer.col.explore" as const,
-    links: [
-      { key: "footer.link.allRoutes" as const, href: "/explore", protected: false },
-      { key: "footer.link.myTrips" as const, href: "/my-trips", protected: true },
-      { key: "footer.link.profile" as const, href: "/profile", protected: true },
-    ],
-  },
-  {
-    id: "about",
-    headingKey: "footer.col.about" as const,
-    links: [
-      // Traveller Pass ist kein eigener Pfad, sondern ein Tab auf der Profile-Page
-      // (subTab="pass"). Die Profile-Page liest ?tab=pass beim Laden aus.
-      { key: "footer.link.travellerPass" as const, href: "/profile?tab=pass", protected: true },
-      { key: "footer.link.about" as const, href: "/about", protected: false },
-      // Our Team ist der Anchor-Abschnitt weiter unten auf dieser Page (id="team")
-      { key: "footer.link.ourTeam" as const, href: "/about#team", protected: false },
-    ],
-  },
-  {
-    id: "support",
-    headingKey: "footer.col.support" as const,
-    links: [
-      // FAQ, Contact und Send Feedback führen nicht eingeloggte User zur
-      // öffentlichen /support-Seite. Eingeloggte User werden stattdessen
-      // direkt zum "support"-Subtab im Profil weitergeleitet (loggedInHref),
-      // da dort derselbe Inhalt bereits eingebettet vorhanden ist.
-      { key: "footer.link.faq" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
-      { key: "footer.link.contact" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
-      { key: "footer.link.sendFeedback" as const, href: "/support", loggedInHref: "/profile?tab=support", protected: false },
-    ],
-  },
-  {
-    id: "legal",
-    headingKey: "footer.col.legal" as const,
-    links: [
-      { key: "footer.link.termsOfUse" as const, href: "/legal/terms", protected: false },
-      { key: "footer.link.privacyPolicy" as const, href: "/legal/privacy", protected: false },
-      { key: "footer.link.imprint" as const, href: "/legal/imprint", protected: false },
-    ],
-  },
-];
-
 export default function AboutPage() {
   // GEÄNDERT: zentraler Auth-State statt eigenem getSession()/Listener.
   const { user } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const { t, lang, setLang } = useLanguage();
-  const { theme } = useTheme();
+  // GEÄNDERT: lang/setLang, theme und mounted wurden nur vom alten Footer gebraucht
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
@@ -129,10 +58,7 @@ export default function AboutPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openValueIndex, setOpenValueIndex] = useState<number | null>(0);
   const [teamActiveIndex, setTeamActiveIndex] = useState(0);
-  const [openFooterSection, setOpenFooterSection] = useState<string | null>(null);
   const teamScrollRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40);
@@ -176,15 +102,6 @@ export default function AboutPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showUserMenu]);
-
-  useEffect(() => {
-    if (!showLangMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest(".footer-lang-wrap")) setShowLangMenu(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showLangMenu]);
 
   // NEU (Mobile): Body-Scroll sperren, solange das Hamburger-Menü offen ist
   useEffect(() => {
@@ -854,119 +771,8 @@ export default function AboutPage() {
         </section>
 
         {/* FOOTER */}
-        <footer className="footer">
-          <div className="footer-inner">
-            <div className="footer-top">
-              <div>
-                <div className="footer-logo-container">
-                  <img
-                    src="/logodark.png"
-                    alt="Scenic Routes"
-                    className={`footer-logo-img ${mounted && theme === "light" ? "footer-logo-light" : "footer-logo-dark"}`}
-                  />
-                </div>
-
-                <p className="footer-tagline">
-                  {t("home.footer.tagline")}
-                </p>
-
-                {/* NEU (Mobile): Social-Icons */}
-                <div className="footer-social mobile-only">
-                  <a href="#" aria-label="Instagram"><InstagramIcon size={15} strokeWidth={1.8} /></a>
-                  <a href="#" aria-label="YouTube"><YoutubeIcon size={15} strokeWidth={1.8} /></a>
-                  <a href="#" aria-label="E-Mail"><Mail size={15} strokeWidth={1.8} /></a>
-                </div>
-              </div>
-
-              {FOOTER_COLUMNS.map(({ id, headingKey, links }) => {
-                const isOpen = openFooterSection === id;
-                return (
-                  <div key={id}>
-                    {/* NEU (Mobile): Header klickbar (Akkordeon). Auf PC durch
-                        pointer-events:none wirkungslos, Links bleiben über
-                        .footer-col-links-wrap (max-height:none Basis-Regel)
-                        immer sichtbar. */}
-                    <button
-                      className="footer-col-header"
-                      onClick={() => setOpenFooterSection(isOpen ? null : id)}
-                    >
-                      <p className="footer-col-title" style={{ marginBottom: 0 }}>{t(headingKey)}</p>
-                      <ChevronDown size={14} className={`footer-col-chevron mobile-only ${isOpen ? "open" : ""}`} />
-                    </button>
-
-                    <div className={`footer-col-links-wrap ${isOpen ? "open" : ""}`}>
-                      <div style={{ paddingTop: 14 }}>
-                        {links.map(({ key, href, protected: isProtected, ...rest }) => {
-                          // Geschützte Links (My Trips, Profile, Traveller Pass) gehen
-                          // ohne Session erst zum Login, mit redirect zurück zum Ziel —
-                          // gleiches Verhalten wie in der Navbar (loginHref).
-                          // loggedInHref (z.B. Support-Links): eingeloggte User werden
-                          // stattdessen direkt auf ein alternatives Ziel geleitet (z.B.
-                          // den Support-Tab im Profil), ohne dass ein Login erzwungen wird.
-                          const loggedInHref = (rest as { loggedInHref?: string }).loggedInHref;
-                          const finalHref =
-                            isProtected && !user
-                              ? `/login?redirect=${encodeURIComponent(href)}`
-                              : user && loggedInHref
-                              ? loggedInHref
-                              : href;
-
-                          return (
-                            <Link href={finalHref} key={key} className="footer-col-link">
-                              {t(key)}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="footer-bottom">
-              <p className="footer-copy">
-                © {new Date().getFullYear()} Explore Scenic Routes. {t("home.footer.rights")}
-              </p>
-
-              <div className="footer-controls">
-                <div className="footer-lang-wrap">
-                  <button
-                    className="footer-lang-btn"
-                    onClick={() => setShowLangMenu((p) => !p)}
-                  >
-                    <Globe size={12} strokeWidth={2} /> {lang.toUpperCase()}
-                  </button>
-
-                  {showLangMenu && (
-                    <div className="footer-lang-menu">
-                      <button
-                        className={`footer-lang-option ${lang === "en" ? "active" : ""}`}
-                        onClick={() => { setLang("en"); setShowLangMenu(false); }}
-                      >
-                        English
-                      </button>
-                      <button
-                        className={`footer-lang-option ${lang === "de" ? "active" : ""}`}
-                        onClick={() => { setLang("de"); setShowLangMenu(false); }}
-                      >
-                        Deutsch
-                      </button>
-                      <button
-                        className={`footer-lang-option ${lang === "ru" ? "active" : ""}`}
-                        onClick={() => { setLang("ru"); setShowLangMenu(false); }}
-                      >
-                        Русский
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <ThemeSwitch />
-              </div>
-            </div>
-          </div>
-        </footer>
+        {/* GEÄNDERT: gemeinsamer Footer statt eigenem Footer-Code */}
+        <SiteFooter />
 
       </div>
     </>
