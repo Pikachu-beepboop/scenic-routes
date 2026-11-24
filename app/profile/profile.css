@@ -688,6 +688,10 @@
   .st-body .st-subnav.sb::-webkit-scrollbar { display:none; }
   .pb-panel { min-height:0; }
   .st-body.is-profile .pb-content { min-height:0; overflow-y:auto; scrollbar-width:thin; }
+  /* GEÄNDERT: Karten im scrollbaren Profilbereich ohne Außenschatten. Der Bereich schneidet
+     alles außerhalb ab (overflow:auto) – Schatten endeten dort als harte Kante/heller Block
+     (v. a. im Light-Theme sichtbar). Rand + Hintergrund reichen zur Abgrenzung. */
+  .st-body.is-profile .pb-content .st-subcard { box-shadow:none; }
 
   /* Traveller Pass passend verkleinern */
   .pb-panel-body .pp-pass-scale-wrap { transform:none; width:100%; margin:0; zoom:.82; }

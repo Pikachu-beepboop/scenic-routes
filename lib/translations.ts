@@ -413,6 +413,9 @@ export const translations = {
   "profile.info.usernamePh":    { en: "Your username",          de: "Dein Benutzername",        ru: "Твоё имя пользователя" },
   "profile.info.country":       { en: "Country",                 de: "Land",                     ru: "Страна" },
   "profile.info.selectCountry": { en: "Select country",          de: "Land auswählen",           ru: "Выбери страну" },
+  // NEU: Land-Auswahl im Profil – „keine Angabe“ statt „Alle Länder“ und übersetzte Leer-Meldung
+  "profile.info.noCountry":         { en: "Not specified",        de: "Keine Angabe",             ru: "Не указано" },
+  "profile.info.noCountriesFound":  { en: "No countries found",   de: "Keine Länder gefunden",    ru: "Страны не найдены" },
   "profile.info.city":          { en: "Your City",                de: "Dein Stadt",                 ru: "Твой Город" },
   "profile.info.aboutYou":      { en: "About You",                de: "Über dich",                ru: "О Cебе" },
   "profile.info.aboutYouPh":    { en: "Mountain lover. Scenic roads enthusiast.", de: "Bergliebhaber. Fan von Panoramastraßen.", ru: "Люблю горы. Увлекаюсь живописными дорогами." },

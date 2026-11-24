@@ -270,6 +270,51 @@ function moveStop(
 
 // GEÄNDERT: Der Footer kommt jetzt aus app/components/SiteFooter.tsx.
 
+// NEU: Zwischenspeicher für die Nummern-Positionen auf der Fahrstrecke (localStorage).
+// Die Positionen stammen aus einer Google-Routenberechnung – Google erlaubt das
+// Zwischenspeichern solcher Koordinaten höchstens 30 Tage. Jeder Eintrag bekommt
+// deshalb einen Zeitstempel; ältere Einträge (und solche im alten Format ohne
+// Zeitstempel) werden ignoriert und gelöscht.
+const ONROAD_PREFIX = "trip-onroad:";
+const ONROAD_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+function readOnRoadCache(key: string): Record<string, LatLng> | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { t?: number; pos?: Record<string, LatLng> };
+    if (typeof parsed?.t !== "number" || !parsed.pos || Date.now() - parsed.t > ONROAD_MAX_AGE_MS) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    return parsed.pos;
+  } catch {
+    return null;
+  }
+}
+
+function writeOnRoadCache(key: string, pos: Record<string, LatLng>) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ t: Date.now(), pos }));
+  } catch {
+    /* Speicher voll oder gesperrt — egal */
+  }
+}
+
+/** Räumt alle abgelaufenen bzw. alten trip-onroad-Einträge weg (einmal pro Seitenaufruf). */
+function pruneOnRoadCache() {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(ONROAD_PREFIX)) keys.push(k);
+    }
+    keys.forEach((k) => readOnRoadCache(k)); // liest und löscht, falls abgelaufen
+  } catch {
+    /* Speicher nicht verfügbar — egal */
+  }
+}
+
 function TripBuilder() {
   const searchParams = useSearchParams();
   const tripId = searchParams.get("id") ?? "";
@@ -815,6 +860,11 @@ function TripBuilder() {
     if (activeStop && !placed.some((p) => p.stopId === activeStop)) setActiveStop(null);
   }, [placed, activeStop]);
 
+  // NEU: abgelaufene Positions-Einträge einmal pro Seitenaufruf aufräumen
+  useEffect(() => {
+    pruneOnRoadCache();
+  }, []);
+
   // Fahrstrecke über alle Stopps (eine Directions-Anfrage, nach Änderungen kurz verzögert)
   const routeKey = placed.map((p) => `${p.dayId}:${p.stopId}`).join("|") + `|${startLocation}|${endLocation}`;
   useEffect(() => {
@@ -833,16 +883,13 @@ function TripBuilder() {
     }
     // Schon einmal berechnet (gleicher Trip, gleiche Reihenfolge)? Dann Positionen sofort aus dem
     // Zwischenspeicher nehmen — die Nummern stehen direkt richtig, die Anfrage läuft trotzdem.
-    const cacheKey = `trip-onroad:${routeKey}`;
+    // GEÄNDERT: Einträge sind höchstens 30 Tage gültig (Google-Vorgabe), siehe readOnRoadCache()
+    const cacheKey = `${ONROAD_PREFIX}${routeKey}`;
     routeDoneRef.current = false;
-    try {
-      const cached = window.localStorage.getItem(cacheKey);
-      if (cached) {
-        onRoadRef.current = { ...onRoadRef.current, ...(JSON.parse(cached) as Record<string, LatLng>) };
-        routeDoneRef.current = withPoints.every((p) => onRoadRef.current[p.stopId]);
-      }
-    } catch {
-      /* Speicher nicht verfügbar — egal */
+    const cached = readOnRoadCache(cacheKey);
+    if (cached) {
+      onRoadRef.current = { ...onRoadRef.current, ...cached };
+      routeDoneRef.current = withPoints.every((p) => onRoadRef.current[p.stopId]);
     }
     setOnRoadVersion((v) => v + 1);
     let cancelled = false;
@@ -898,11 +945,8 @@ function TripBuilder() {
           if (pos) next[p.stopId] = pos;
         }
         onRoadRef.current = next;
-        try {
-          window.localStorage.setItem(cacheKey, JSON.stringify(next));
-        } catch {
-          /* Speicher voll oder gesperrt — egal */
-        }
+        // GEÄNDERT: mit Zeitstempel speichern (Ablauf nach 30 Tagen)
+        writeOnRoadCache(cacheKey, next);
       } catch (err) {
         console.warn("trip: Fahrstrecke konnte nicht berechnet werden", err);
         if (!cancelled) setDriveStats(null);

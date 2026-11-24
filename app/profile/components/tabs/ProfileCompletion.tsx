@@ -279,7 +279,19 @@ const CSS = `
 }
 
 /* ---- Profil-Karte bei 100 % ---- */
-.pb-hero.is-complete { box-shadow:0 0 0 1px rgba(201,168,106,.45), 0 18px 44px rgba(201,168,106,.14) !important; }
+/* GEÄNDERT: Der goldene Schein lag vorher als Schatten AUSSERHALB der Karte. Die Karte sitzt
+   aber in einem scrollbaren Bereich (.pb-content, overflow:auto), der alles außerhalb
+   abschneidet – oben/links war der Goldrand deshalb abgeschnitten und unten lief der
+   Schein unter die nächste Karte. Jetzt liegt alles INNERHALB der Karte:
+   goldener Rand + weicher Lichtschein von innen. */
+.pb-hero.is-complete {
+  border-color:rgba(201,168,106,.45) !important;
+  box-shadow:inset 0 0 0 1px rgba(201,168,106,.08), inset 0 -30px 60px -30px rgba(201,168,106,.16) !important;
+  background-image:radial-gradient(120% 90% at 0% 0%, rgba(201,168,106,.10), transparent 60%) !important;
+}
+.light .pb-hero.is-complete {
+  box-shadow:inset 0 0 0 1px rgba(201,168,106,.10), inset 0 -30px 60px -30px rgba(201,168,106,.14) !important;
+}
 
 /* ---- Erfolgsmeldung ---- */
 .pc-banner { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px;

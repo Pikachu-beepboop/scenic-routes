@@ -290,7 +290,8 @@ export default function ProfileTab({
                       className="st-country-option"
                       onClick={() => { setCountry(""); setIsCountryOpen(false); setCountrySearch(""); }}
                     >
-                      {t("explore.search.allCountries")}
+                      {/* GEÄNDERT: „Keine Angabe“ statt „Alle Länder“ (der Text kam aus dem Explore-Filter) */}
+                      {t("profile.info.noCountry")}
                     </button>
                     {filteredCountries.map((c) => (
                       <button
@@ -307,7 +308,10 @@ export default function ProfileTab({
                       </button>
                     ))}
                     {filteredCountries.length === 0 && (
-                      <div className="st-country-empty">No countries found</div>
+                      <div className="st-country-empty">
+                        {/* GEÄNDERT: übersetzt statt fest Englisch */}
+                        {t("profile.info.noCountriesFound")}
+                      </div>
                     )}
                   </div>
                 </div>
