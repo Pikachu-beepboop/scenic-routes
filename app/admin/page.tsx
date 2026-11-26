@@ -261,8 +261,11 @@ export default function AdminPage() {
       setIsAuthorized(allowed);
       setAuthChecked(true);
 
+      // GEÄNDERT: Nur wer NICHT eingeloggt ist, kommt zum Login. Eingeloggte
+      // Nicht-Admins gehen zur Startseite – sonst entsteht eine Endlosschleife
+      // /admin → /login → (Login) → /admin → /login …
       if (!allowed) {
-        router.push('/login?redirect=/admin');
+        router.replace(session?.user ? '/' : '/login?redirect=/admin');
       }
     }
 
@@ -277,8 +280,9 @@ export default function AdminPage() {
         const allowed = await checkIsAdmin(session?.user?.id);
         if (!active) return;
         setIsAuthorized(allowed);
+        // GEÄNDERT: wie oben – eingeloggte Nicht-Admins zur Startseite, nicht zurück zum Login
         if (!allowed) {
-          router.push('/login?redirect=/admin');
+          router.replace(session?.user ? '/' : '/login?redirect=/admin');
         }
       }, 0);
     });

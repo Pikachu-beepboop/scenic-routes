@@ -144,7 +144,14 @@ function LoginPageInner() {
       setError(error.message);
     } else {
       setSuccess(t("login.success.welcomeBack"));
-      setTimeout(() => router.push(redirectPath), 900);
+      // GEÄNDERT: Ziel /admin nur für Admins – alle anderen landen auf der Startseite
+      // (vorher: Nicht-Admin → /admin → zurück zum Login → Endlosschleife)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const target =
+        redirectPath === "/admin" && !(await checkIsAdmin(sessionData.session?.user?.id))
+          ? "/"
+          : redirectPath;
+      setTimeout(() => router.push(target), 900);
     }
 
     setLoading(false);
